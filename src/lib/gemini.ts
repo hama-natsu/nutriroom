@@ -22,14 +22,14 @@ if (apiKey.includes('your_google_ai_api_key')) {
 
 // Gemini APIクライアントの初期化
 console.log('🚀 Initializing GoogleGenerativeAI client...');
+let genAI: GoogleGenerativeAI;
 try {
-  const genAI = new GoogleGenerativeAI(apiKey);
+  genAI = new GoogleGenerativeAI(apiKey);
   console.log('✅ GoogleGenerativeAI client initialized successfully');
 } catch (initError) {
   console.error('❌ Failed to initialize GoogleGenerativeAI:', initError);
   throw initError;
 }
-const genAI = new GoogleGenerativeAI(apiKey);
 
 // キャラクター別プロンプト設定
 const characterPrompts = {
@@ -264,11 +264,13 @@ export async function generateResponse(
     try {
       model = genAI.getGenerativeModel(modelConfig);
       console.log('✅ Gemini model created successfully');
-    } catch (modelError) {
+    } catch (modelError: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const err = modelError as any;
       console.error('❌ Failed to create Gemini model:', {
         error: modelError,
-        message: modelError.message,
-        stack: modelError.stack,
+        message: err.message,
+        stack: err.stack,
         config: modelConfig
       });
       throw modelError;
@@ -309,17 +311,19 @@ export async function generateResponse(
         resultKeys: Object.keys(result || {}),
         timestamp: new Date().toISOString()
       });
-    } catch (apiError) {
+    } catch (apiError: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const err = apiError as any;
       console.error('❌ Gemini API request failed:', {
         error: apiError,
-        message: apiError.message,
-        status: apiError.status,
-        code: apiError.code,
-        details: apiError.details,
-        stack: apiError.stack,
-        name: apiError.name,
-        cause: apiError.cause,
-        fullError: JSON.stringify(apiError, null, 2),
+        message: err.message,
+        status: err.status,
+        code: err.code,
+        details: err.details,
+        stack: err.stack,
+        name: err.name,
+        cause: err.cause,
+        fullError: JSON.stringify(err, null, 2),
         promptLength: fullPrompt.length,
         character: character.name,
         timestamp: new Date().toISOString()
@@ -336,15 +340,17 @@ export async function generateResponse(
         responseKeys: Object.keys(response || {}),
         timestamp: new Date().toISOString()
       });
-    } catch (responseError) {
+    } catch (responseError: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const err = responseError as any;
       console.error('❌ Failed to get response object:', {
         error: responseError,
-        message: responseError.message,
-        status: responseError.status,
-        code: responseError.code,
-        details: responseError.details,
-        stack: responseError.stack,
-        fullError: JSON.stringify(responseError, null, 2),
+        message: err.message,
+        status: err.status,
+        code: err.code,
+        details: err.details,
+        stack: err.stack,
+        fullError: JSON.stringify(err, null, 2),
         timestamp: new Date().toISOString()
       });
       throw responseError;
@@ -360,15 +366,17 @@ export async function generateResponse(
         hasContent: !!responseText,
         timestamp: new Date().toISOString()
       });
-    } catch (textError) {
+    } catch (textError: unknown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const err = textError as any;
       console.error('❌ Failed to extract response text:', {
         error: textError,
-        message: textError.message,
-        status: textError.status,
-        code: textError.code,
-        details: textError.details,
-        stack: textError.stack,
-        fullError: JSON.stringify(textError, null, 2),
+        message: err.message,
+        status: err.status,
+        code: err.code,
+        details: err.details,
+        stack: err.stack,
+        fullError: JSON.stringify(err, null, 2),
         timestamp: new Date().toISOString()
       });
       throw textError;
