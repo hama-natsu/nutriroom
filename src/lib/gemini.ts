@@ -5,7 +5,9 @@ const apiKey = process.env.GOOGLE_AI_API_KEY;
 console.log('🔑 Gemini API Key check:', {
   exists: !!apiKey,
   length: apiKey?.length || 0,
-  starts: apiKey?.substring(0, 8) || 'undefined'
+  starts: apiKey?.substring(0, 8) || 'undefined',
+  isPlaceholder: apiKey?.includes('your_google_ai_api_key'),
+  env: process.env.NODE_ENV
 });
 
 if (!apiKey) {
@@ -13,7 +15,20 @@ if (!apiKey) {
   throw new Error('GOOGLE_AI_API_KEY is required');
 }
 
+if (apiKey.includes('your_google_ai_api_key')) {
+  console.error('❌ GOOGLE_AI_API_KEY is still using placeholder value');
+  throw new Error('Please set a valid Google AI API Key');
+}
+
 // Gemini APIクライアントの初期化
+console.log('🚀 Initializing GoogleGenerativeAI client...');
+try {
+  const genAI = new GoogleGenerativeAI(apiKey);
+  console.log('✅ GoogleGenerativeAI client initialized successfully');
+} catch (initError) {
+  console.error('❌ Failed to initialize GoogleGenerativeAI:', initError);
+  throw initError;
+}
 const genAI = new GoogleGenerativeAI(apiKey);
 
 // キャラクター別プロンプト設定
@@ -242,7 +257,22 @@ export async function generateResponse(
     }
 
     console.log('🔧 Creating Gemini model...');
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const modelConfig = { model: "gemini-pro" };
+    console.log('📋 Model configuration:', modelConfig);
+    
+    let model;
+    try {
+      model = genAI.getGenerativeModel(modelConfig);
+      console.log('✅ Gemini model created successfully');
+    } catch (modelError) {
+      console.error('❌ Failed to create Gemini model:', {
+        error: modelError,
+        message: modelError.message,
+        stack: modelError.stack,
+        config: modelConfig
+      });
+      throw modelError;
+    }
     
     // キャラクター情報を取得
     const character = characterPrompts[characterId as keyof typeof characterPrompts];
@@ -265,33 +295,127 @@ export async function generateResponse(
 
     console.log('💬 Sending prompt to Gemini...', {
       promptLength: fullPrompt.length,
-      character: character.name
+      character: character.name,
+      modelType: "gemini-pro",
+      timestamp: new Date().toISOString()
     });
 
-    const result = await model.generateContent(fullPrompt);
-    console.log('📥 Received result from Gemini');
+    let result;
+    try {
+      console.log('🌐 Making API request to Gemini...');
+      result = await model.generateContent(fullPrompt);
+      console.log('📥 Received result from Gemini:', {
+        hasResult: !!result,
+        resultKeys: Object.keys(result || {}),
+        timestamp: new Date().toISOString()
+      });
+    } catch (apiError) {
+      console.error('❌ Gemini API request failed:', {
+        error: apiError,
+        message: apiError.message,
+        status: apiError.status,
+        code: apiError.code,
+        details: apiError.details,
+        stack: apiError.stack,
+        name: apiError.name,
+        cause: apiError.cause,
+        fullError: JSON.stringify(apiError, null, 2),
+        promptLength: fullPrompt.length,
+        character: character.name,
+        timestamp: new Date().toISOString()
+      });
+      throw apiError;
+    }
     
-    const response = await result.response;
-    console.log('📝 Processing response...');
+    let response;
+    try {
+      console.log('📝 Processing response...');
+      response = await result.response;
+      console.log('✅ Response object received:', {
+        hasResponse: !!response,
+        responseKeys: Object.keys(response || {}),
+        timestamp: new Date().toISOString()
+      });
+    } catch (responseError) {
+      console.error('❌ Failed to get response object:', {
+        error: responseError,
+        message: responseError.message,
+        status: responseError.status,
+        code: responseError.code,
+        details: responseError.details,
+        stack: responseError.stack,
+        fullError: JSON.stringify(responseError, null, 2),
+        timestamp: new Date().toISOString()
+      });
+      throw responseError;
+    }
     
-    const responseText = response.text();
-    console.log('✅ Response processed successfully:', {
-      responseLength: responseText.length,
-      character: character.name
-    });
+    let responseText;
+    try {
+      console.log('📄 Extracting response text...');
+      responseText = response.text();
+      console.log('✅ Response processed successfully:', {
+        responseLength: responseText.length,
+        character: character.name,
+        hasContent: !!responseText,
+        timestamp: new Date().toISOString()
+      });
+    } catch (textError) {
+      console.error('❌ Failed to extract response text:', {
+        error: textError,
+        message: textError.message,
+        status: textError.status,
+        code: textError.code,
+        details: textError.details,
+        stack: textError.stack,
+        fullError: JSON.stringify(textError, null, 2),
+        timestamp: new Date().toISOString()
+      });
+      throw textError;
+    }
     
     return responseText;
   } catch (error: unknown) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const err = error as any;
-    console.error('❌ Gemini API Error Details:', {
+    
+    console.error('❌ COMPLETE GEMINI API ERROR DETAILS:', {
+      // Basic error info
       name: err.name,
       message: err.message,
+      
+      // HTTP/API specific
       status: err.status,
+      statusText: err.statusText,
+      code: err.code,
+      
+      // Gemini specific
       details: err.details,
-      stack: err.stack,
+      cause: err.cause,
+      
+      // Full objects
+      fullError: JSON.stringify(err, Object.getOwnPropertyNames(err), 2),
+      errorObject: err,
+      errorConstructor: err.constructor?.name,
+      
+      // Context
       characterId,
-      userMessage: userMessage.substring(0, 100)
+      userMessage: userMessage.substring(0, 100),
+      userMessageLength: userMessage.length,
+      
+      // Debugging
+      stack: err.stack,
+      timestamp: new Date().toISOString(),
+      
+      // Environment
+      nodeEnv: process.env.NODE_ENV,
+      apiKeyExists: !!apiKey,
+      apiKeyStart: apiKey?.substring(0, 10) || 'undefined',
+      
+      // Additional properties that might exist
+      response: err.response,
+      request: err.request,
+      config: err.config
     });
     
     // より詳細なエラーメッセージ
