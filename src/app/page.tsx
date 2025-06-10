@@ -5,10 +5,11 @@ import { useAuth } from '@/components/auth-provider'
 import { AuthForm } from '@/components/auth-form'
 import { CharacterSelection } from '@/components/character-selection'
 import { CharacterSelected } from '@/components/character-selected'
+import { ChatRoom } from '@/components/chat-room'
 import { supabase } from '@/lib/supabase'
 import { Character } from '@/lib/characters'
 
-type ViewState = 'dashboard' | 'character-selection' | 'character-selected'
+type ViewState = 'dashboard' | 'character-selection' | 'character-selected' | 'chat'
 
 export default function Home() {
   const { user, loading } = useAuth()
@@ -39,8 +40,7 @@ export default function Home() {
   }
 
   const handleStartChat = () => {
-    // TODO: チャット画面への遷移を実装
-    alert(`${selectedCharacter?.name}とのチャットを開始します！（未実装）`)
+    setCurrentView('chat')
   }
 
   if (loading) {
@@ -72,6 +72,16 @@ export default function Home() {
         character={selectedCharacter}
         onBack={handleBackToSelection}
         onStartChat={handleStartChat}
+      />
+    )
+  }
+
+  // チャット画面
+  if (currentView === 'chat' && selectedCharacter) {
+    return (
+      <ChatRoom
+        character={selectedCharacter}
+        onBack={handleBackToDashboard}
       />
     )
   }
