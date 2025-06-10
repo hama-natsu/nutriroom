@@ -1,7 +1,20 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+// 環境変数チェック
+const apiKey = process.env.GOOGLE_AI_API_KEY;
+console.log('🔑 Gemini API Key check:', {
+  exists: !!apiKey,
+  length: apiKey?.length || 0,
+  starts: apiKey?.substring(0, 8) || 'undefined'
+});
+
+if (!apiKey) {
+  console.error('❌ GOOGLE_AI_API_KEY is not set in environment variables');
+  throw new Error('GOOGLE_AI_API_KEY is required');
+}
+
 // Gemini APIクライアントの初期化
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!);
+const genAI = new GoogleGenerativeAI(apiKey);
 
 // キャラクター別プロンプト設定
 const characterPrompts = {
@@ -215,15 +228,31 @@ export async function generateResponse(
   userMessage: string,
   conversationHistory: string[] = []
 ): Promise<string> {
+  console.log('🤖 generateResponse called:', {
+    characterId,
+    userMessageLength: userMessage.length,
+    conversationHistoryLength: conversationHistory.length
+  });
+
   try {
+    // APIキーの再確認
+    if (!apiKey) {
+      console.error('❌ API Key not available in generateResponse');
+      return '申し訳ございません。APIキーが設定されていません。';
+    }
+
+    console.log('🔧 Creating Gemini model...');
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
     
     // キャラクター情報を取得
     const character = characterPrompts[characterId as keyof typeof characterPrompts];
     
     if (!character) {
+      console.error('❌ Character not found:', characterId);
       return 'すみません、そのキャラクターは見つかりませんでした。';
     }
+
+    console.log('✅ Character found:', character.name);
 
     // 会話履歴を含めたプロンプト作成
     let fullPrompt = character.prompt;
@@ -234,13 +263,51 @@ export async function generateResponse(
     
     fullPrompt += `\n【ユーザーからの質問・相談】\n${userMessage}\n\n上記に対して、${character.name}として回答してください。`;
 
+    console.log('💬 Sending prompt to Gemini...', {
+      promptLength: fullPrompt.length,
+      character: character.name
+    });
+
     const result = await model.generateContent(fullPrompt);
-    const response = await result.response;
+    console.log('📥 Received result from Gemini');
     
-    return response.text();
-  } catch (error) {
-    console.error('Gemini API エラー:', error);
-    return 'すみません、今は応答できません。少し時間をおいてもう一度お試しください。';
+    const response = await result.response;
+    console.log('📝 Processing response...');
+    
+    const responseText = response.text();
+    console.log('✅ Response processed successfully:', {
+      responseLength: responseText.length,
+      character: character.name
+    });
+    
+    return responseText;
+  } catch (error: unknown) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const err = error as any;
+    console.error('❌ Gemini API Error Details:', {
+      name: err.name,
+      message: err.message,
+      status: err.status,
+      details: err.details,
+      stack: err.stack,
+      characterId,
+      userMessage: userMessage.substring(0, 100)
+    });
+    
+    // より詳細なエラーメッセージ
+    if (err.message?.includes('API_KEY')) {
+      return '申し訳ございません。APIキーの設定に問題があります。管理者にお問い合わせください。';
+    }
+    
+    if (err.message?.includes('QUOTA')) {
+      return '申し訳ございません。API利用量の上限に達しました。しばらく時間をおいてからお試しください。';
+    }
+    
+    if (err.message?.includes('FORBIDDEN')) {
+      return '申し訳ございません。APIアクセスが制限されています。管理者にお問い合わせください。';
+    }
+
+    return `申し訳ございません。一時的なエラーが発生しました。(${err.name || 'Unknown Error'}) しばらく時間をおいてもう一度お試しください。`;
   }
 }
 
