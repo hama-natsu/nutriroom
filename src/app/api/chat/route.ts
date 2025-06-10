@@ -4,6 +4,14 @@ import { generateResponse } from '@/lib/gemini'
 export async function POST(request: NextRequest) {
   console.log('🚀 Chat API route called');
   
+  // 環境変数の詳細確認
+  console.log('🔑 API_KEY_EXISTS:', !!process.env.GOOGLE_AI_API_KEY);
+  console.log('🔑 API_KEY_LENGTH:', process.env.GOOGLE_AI_API_KEY?.length);
+  console.log('🔑 API_KEY_START:', process.env.GOOGLE_AI_API_KEY?.substring(0, 10) || 'undefined');
+  console.log('🔑 IS_PLACEHOLDER:', process.env.GOOGLE_AI_API_KEY?.includes('your_google_ai_api_key'));
+  console.log('🌍 NODE_ENV:', process.env.NODE_ENV);
+  console.log('🌍 VERCEL_ENV:', process.env.VERCEL_ENV);
+  
   try {
     console.log('📥 Parsing request body...');
     const { characterId, message, conversationHistory } = await request.json()
@@ -26,8 +34,12 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('🔄 Calling generateResponse...');
+    console.log('🤖 GEMINI_MODEL_INIT: 開始');
+    
     // Gemini APIを使用してレスポンスを生成
     const response = await generateResponse(characterId, message, conversationHistory)
+    
+    console.log('🤖 GEMINI_MODEL_INIT: 完了');
 
     console.log('✅ Response generated:', {
       responseLength: response.length,
@@ -38,6 +50,20 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const err = error as any;
+    
+    // 本番環境用の詳細ログ出力
+    console.log('🔥 PRODUCTION ERROR DETAILS START 🔥');
+    console.log('ERROR_MESSAGE:', err.message);
+    console.log('ERROR_STACK:', err.stack);
+    console.log('ERROR_STATUS:', err.status);
+    console.log('ERROR_CODE:', err.code);
+    console.log('ERROR_NAME:', err.name);
+    console.log('ERROR_CAUSE:', err.cause);
+    console.log('ERROR_DETAILS:', err.details);
+    console.log('API_KEY_EXISTS_IN_ERROR:', !!process.env.GOOGLE_AI_API_KEY);
+    console.log('NODE_ENV_IN_ERROR:', process.env.NODE_ENV);
+    console.log('TIMESTAMP:', new Date().toISOString());
+    console.log('🔥 PRODUCTION ERROR DETAILS END 🔥');
     
     console.error('❌ COMPLETE CHAT API ERROR DETAILS:', {
       // Basic error info
@@ -66,6 +92,8 @@ export async function POST(request: NextRequest) {
       
       // Environment
       nodeEnv: process.env.NODE_ENV,
+      apiKeyExists: !!process.env.GOOGLE_AI_API_KEY,
+      apiKeyLength: process.env.GOOGLE_AI_API_KEY?.length,
       
       // Additional properties that might exist
       response: err.response,
