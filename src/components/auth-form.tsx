@@ -30,8 +30,8 @@ export function AuthForm() {
         })
         if (error) throw error
       }
-    } catch (error: any) {
-      setMessage(error.message)
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'エラーが発生しました')
     } finally {
       setLoading(false)
     }
