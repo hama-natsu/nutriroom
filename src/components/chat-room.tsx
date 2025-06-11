@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Character } from '@/lib/characters'
+import { ThreeDRoom } from './3d-room'
+import { usePerformanceDetector } from './3d-performance-detector'
 
 interface Message {
   id: string
@@ -26,7 +28,9 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
   ])
   const [inputMessage, setInputMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [is3DMode, setIs3DMode] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const performanceInfo = usePerformanceDetector()
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -147,13 +151,19 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
 
   return (
     <div 
-      className="h-screen flex flex-col keyboard-aware"
+      className="h-screen flex flex-col keyboard-aware relative"
       style={{ 
         background: character.colorTheme.background.includes('gradient') 
           ? character.colorTheme.background 
           : `linear-gradient(135deg, ${character.colorTheme.background} 0%, ${character.colorTheme.secondary}20 100%)`
       }}
     >
+      {/* 3D背景レイヤー */}
+      {is3DMode && (
+        <div className="absolute inset-0 z-0">
+          <ThreeDRoom />
+        </div>
+      )}
       {/* ヤフーフリマ風固定ヘッダー */}
       <div 
         className="fixed top-0 left-0 right-0 text-white shadow-md z-50"
@@ -184,11 +194,23 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
               <p className="text-sm opacity-90">{character.personalityType}</p>
             </div>
           </div>
+          
+          {/* 3D切り替えボタン - パフォーマンス判定により表示制御 */}
+          {performanceInfo.shouldEnable3D && (
+            <button
+              onClick={() => setIs3DMode(!is3DMode)}
+              className="ml-4 p-2 text-white text-sm font-medium hover:text-white/80 transition-colors duration-200 rounded-md"
+              style={{ minWidth: '64px' }}
+              title={is3DMode ? '2D表示' : '3D表示'}
+            >
+              {is3DMode ? '2D' : '3D'}
+            </button>
+          )}
         </div>
       </div>
 
       {/* メッセージエリア - ヘッダーと入力エリア分のpadding追加 */}
-      <div className="pt-20 pb-32 flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 smooth-scroll">
+      <div className={`pt-20 pb-32 flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 smooth-scroll relative z-10 ${is3DMode ? 'bg-black/10 backdrop-blur-sm' : ''}`}>
         {messages.map((message, index) => (
           <div
             key={message.id}
@@ -267,7 +289,7 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
       </div>
 
       {/* 入力エリア - 固定下部配置 */}
-      <div className="fixed bottom-0 left-0 right-0 p-3 sm:p-4 bg-white border-t mobile-bottom-action fixed-bottom-safe z-40">
+      <div className={`fixed bottom-0 left-0 right-0 p-3 sm:p-4 border-t mobile-bottom-action fixed-bottom-safe z-40 ${is3DMode ? 'bg-white/90 backdrop-blur-md' : 'bg-white'}`}>
         <div className="flex space-x-2 sm:space-x-4">
           <div className="flex-1">
             <textarea
