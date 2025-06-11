@@ -86,21 +86,27 @@ export function ThreeDRoom({ className = '' }: ThreeDRoomProps) {
           }}
           performance={{
             // モバイル最適化設定
-            min: 0.5, // 最低FPS
-            max: 60,  // 最高FPS
-            debounce: 200 // デバウンス時間
+            min: 0.2, // 最低FPS（モバイル向けに下げる）
+            max: 30,  // 最高FPS（モバイル向けに下げる）
+            debounce: 400 // デバウンス時間（モバイル向けに増加）
           }}
           gl={{
-            // WebGL設定 - モバイル最適化
+            // WebGL設定 - モバイル最適化強化
             antialias: false, // アンチエイリアス無効でパフォーマンス向上
             alpha: true,
-            powerPreference: 'low-power' // 省電力モード
+            powerPreference: 'low-power', // 省電力モード
+            precision: 'lowp', // 低精度モード
+            depth: false, // 深度バッファ無効化
+            stencil: false, // ステンシルバッファ無効化
+            preserveDrawingBuffer: false // 描画バッファ保持無効
           }}
+          dpr={[1, 2]} // デバイスピクセル比制限
+          resize={{ scroll: false, debounce: { scroll: 50, resize: 0 } }}
         >
           <Lighting />
           <Room />
           
-          {/* カメラコントロール - タッチ対応 */}
+          {/* カメラコントロール - モバイル最適化 */}
           <OrbitControls
             enablePan={false} // パン無効
             enableZoom={true} // ズーム有効
@@ -109,8 +115,14 @@ export function ThreeDRoom({ className = '' }: ThreeDRoomProps) {
             minDistance={2} // 最小距離
             maxDistance={8} // 最大距離
             autoRotate={false} // 自動回転無効
-            dampingFactor={0.05} // スムーズな操作
+            dampingFactor={0.1} // モバイル向けにダンピング調整
             enableDamping={true}
+            rotateSpeed={0.5} // 回転速度を下げる
+            zoomSpeed={0.5} // ズーム速度を下げる
+            touches={{
+              ONE: 2, // タッチ1本で回転
+              TWO: 0  // タッチ2本でズーム
+            }}
           />
           
           {/* 環境マップ - 軽量設定 */}

@@ -19,10 +19,43 @@ export function usePerformanceDetector(): PerformanceInfo {
 
   useEffect(() => {
     const detectPerformance = () => {
-      // WebGL サポート検出
+      // WebGL サポート検出 - 強化版
       const canvas = document.createElement('canvas')
-      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
-      const isWebGLSupported = !!gl
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl') as WebGLRenderingContext | null
+      let isWebGLSupported = !!gl
+      
+      // WebGL詳細チェック
+      if (gl && gl instanceof WebGLRenderingContext) {
+        try {
+          // 基本機能テスト
+          const renderer = gl.getParameter(gl.RENDERER)
+          const vendor = gl.getParameter(gl.VENDOR)
+          
+          // ソフトウェアレンダリング検出（避けるべき）
+          const isSoftwareRenderer = renderer && (
+            renderer.toLowerCase().includes('software') ||
+            renderer.toLowerCase().includes('llvmpipe') ||
+            renderer.toLowerCase().includes('mesa')
+          )
+          
+          if (isSoftwareRenderer) {
+            console.warn('🚨 Software WebGL renderer detected, disabling 3D')
+            isWebGLSupported = false
+          }
+          
+          // デバッグ情報
+          if (process.env.NODE_ENV === 'development') {
+            console.log('🎮 WebGL Info:', { renderer, vendor, isSoftwareRenderer })
+          }
+        } catch (error) {
+          console.warn('🚨 WebGL feature detection failed:', error)
+          isWebGLSupported = false
+        }
+        
+        // Canvas cleanup
+        canvas.width = 1
+        canvas.height = 1
+      }
 
       // モバイル端末検出
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
@@ -62,10 +95,10 @@ export function usePerformanceDetector(): PerformanceInfo {
       // 総合的な判断
       const isLowPower = isLowMemory || isLowCPU || isLowBattery || isSlowConnection
 
-      // 3D機能を有効にするかの判断
-      const shouldEnable3D = isWebGLSupported && !isLowPower && (
-        !isMobile || // デスクトップは基本的にOK
-        (!isLowMemory && !isLowCPU) // モバイルでも高性能なら有効
+      // 3D機能を有効にするかの判断 - モバイル向け厳格化
+      const shouldEnable3D = isWebGLSupported && (
+        (!isMobile && !isLowPower) || // デスクトップで高性能
+        (isMobile && !isLowMemory && !isLowCPU && cores >= 4 && memory >= 4) // モバイルは厳しい条件
       )
 
       setPerformanceInfo({

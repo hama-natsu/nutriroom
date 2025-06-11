@@ -195,22 +195,40 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
             </div>
           </div>
           
-          {/* 3D切り替えボタン - パフォーマンス判定により表示制御 */}
+          {/* 3D切り替えボタン - レスポンシブ対応 */}
           {performanceInfo.shouldEnable3D && (
             <button
               onClick={() => setIs3DMode(!is3DMode)}
-              className="ml-4 p-2 text-white text-sm font-medium hover:text-white/80 transition-colors duration-200 rounded-md"
-              style={{ minWidth: '64px' }}
+              className={`p-2 text-white text-sm font-medium hover:text-white/80 transition-colors duration-200 rounded-md ${
+                performanceInfo.isMobile ? 'ml-2' : 'ml-4'
+              }`}
+              style={{ 
+                minWidth: performanceInfo.isMobile ? '48px' : '64px',
+                fontSize: performanceInfo.isMobile ? '12px' : '14px'
+              }}
               title={is3DMode ? '2D表示' : '3D表示'}
             >
               {is3DMode ? '2D' : '3D'}
             </button>
           )}
+          
+          {/* パフォーマンス警告（開発環境のみ） */}
+          {process.env.NODE_ENV === 'development' && !performanceInfo.shouldEnable3D && performanceInfo.isSupported && (
+            <div className="ml-2 text-xs text-white/60">
+              3D無効
+            </div>
+          )}
         </div>
       </div>
 
       {/* メッセージエリア - ヘッダーと入力エリア分のpadding追加 */}
-      <div className={`pt-20 pb-32 flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 smooth-scroll relative z-10 ${is3DMode ? 'bg-black/10 backdrop-blur-sm' : ''}`}>
+      <div className={`pt-20 pb-32 flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 smooth-scroll relative z-10 ${
+        is3DMode 
+          ? performanceInfo.isMobile 
+            ? 'bg-black/20 backdrop-blur-sm' 
+            : 'bg-black/10 backdrop-blur-sm'
+          : ''
+      }`}>
         {messages.map((message, index) => (
           <div
             key={message.id}
@@ -222,17 +240,39 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
               className={`max-w-[85%] sm:max-w-[80%] p-3 sm:p-4 rounded-2xl transition-all duration-200 hover:shadow-md message-bubble ${
                 message.isUser
                   ? 'text-white rounded-br-sm'
-                  : 'bg-white rounded-bl-sm shadow-md'
-              }`}
+                  : 'rounded-bl-sm shadow-md'
+              } ${is3DMode ? 'backdrop-blur-md' : ''}`}
               style={{
-                backgroundColor: message.isUser ? character.colorTheme.primary : undefined,
-                borderLeft: !message.isUser ? `4px solid ${character.colorTheme.primary}` : undefined
+                backgroundColor: message.isUser 
+                  ? character.colorTheme.primary 
+                  : is3DMode 
+                    ? 'rgba(255, 255, 255, 0.95)' 
+                    : '#ffffff',
+                borderLeft: !message.isUser ? `4px solid ${character.colorTheme.primary}` : undefined,
+                boxShadow: is3DMode 
+                  ? '0 8px 32px rgba(0, 0, 0, 0.12), 0 4px 16px rgba(0, 0, 0, 0.08)' 
+                  : undefined
               }}
             >
-              <div className="whitespace-pre-wrap">{message.content}</div>
+              <div 
+                className={`whitespace-pre-wrap ${
+                  is3DMode && !message.isUser ? 'text-gray-800' : ''
+                }`}
+                style={{
+                  textShadow: is3DMode && !message.isUser 
+                    ? '0 1px 2px rgba(255, 255, 255, 0.8)' 
+                    : undefined
+                }}
+              >
+                {message.content}
+              </div>
               <div 
                 className={`text-xs mt-2 ${
-                  message.isUser ? 'text-white opacity-70' : 'text-gray-500'
+                  message.isUser 
+                    ? 'text-white opacity-70' 
+                    : is3DMode 
+                      ? 'text-gray-600' 
+                      : 'text-gray-500'
                 }`}
               >
                 {message.timestamp.toLocaleTimeString('ja-JP', { 
@@ -246,8 +286,19 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
 
         {isLoading && (
           <div className="flex justify-start animate-fadeIn">
-            <div className="bg-white p-4 rounded-2xl rounded-bl-sm shadow-lg border-l-4" 
-                 style={{ borderLeftColor: character.colorTheme.primary }}>
+            <div 
+              className={`p-4 rounded-2xl rounded-bl-sm shadow-lg border-l-4 ${
+                is3DMode ? 'backdrop-blur-md' : 'bg-white'
+              }`}
+              style={{ 
+                borderLeftColor: character.colorTheme.primary,
+                backgroundColor: is3DMode 
+                  ? 'rgba(255, 255, 255, 0.95)' 
+                  : '#ffffff',
+                boxShadow: is3DMode 
+                  ? '0 8px 32px rgba(0, 0, 0, 0.12), 0 4px 16px rgba(0, 0, 0, 0.08)' 
+                  : undefined
+              }}>
               <div className="flex items-center space-x-3">
                 <div 
                   className="w-8 h-8 rounded-full flex items-center justify-center text-sm"
