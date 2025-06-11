@@ -256,6 +256,29 @@ body {
   }
 }
 
+/* ヤフーフリマ風戻るボタン統一スタイル */
+.yahoo-back-button {
+  min-width: 32px;
+  padding: 8px;
+  font-size: 20px;
+  font-weight: normal;
+  color: inherit;
+  background: transparent;
+  border: none;
+  transition: color 0.2s ease;
+  will-change: color;
+}
+
+.yahoo-back-button:hover {
+  opacity: 0.8;
+}
+
+.yahoo-back-button:focus {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 /* 日本標準カラーパレット */
 .jp-text-primary {
   color: #374151; /* gray-700 */
@@ -273,6 +296,23 @@ body {
 .jp-bg-glass-strong {
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(10px);
+}
+
+/* ヤフーフリマ風レイアウト */
+.yahoo-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.yahoo-fixed-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
 }
 
 @media (max-width: 640px) {

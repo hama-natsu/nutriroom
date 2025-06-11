@@ -154,40 +154,41 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
           : `linear-gradient(135deg, ${character.colorTheme.background} 0%, ${character.colorTheme.secondary}20 100%)`
       }}
     >
-      {/* メルカリ風ヘッダー */}
+      {/* ヤフーフリマ風固定ヘッダー */}
       <div 
-        className="p-3 sm:p-4 text-white shadow-lg"
+        className="fixed top-0 left-0 right-0 text-white shadow-md z-50"
         style={{ backgroundColor: character.colorTheme.primary }}
       >
-        <div className="flex items-center max-w-4xl mx-auto">
-          {/* メルカリ風戻るボタン */}
+        <div className="flex items-center px-4 py-3 max-w-4xl mx-auto">
+          {/* ヤフーフリマ風戻るボタン - 囲いなし */}
           <button
             onClick={onBack}
-            className="w-11 h-11 mr-3 flex items-center justify-center text-gray-800 text-lg bg-white/90 backdrop-blur-sm rounded-full shadow-sm hover:bg-white transition-all duration-200 touch-button"
+            className="mr-4 p-2 text-white text-xl font-normal hover:text-white/80 transition-colors duration-200"
+            style={{ minWidth: '32px' }}
             title="戻る"
           >
             ＜
           </button>
           
-          {/* キャラクター情報 */}
-          <div className="flex items-center gap-3">
+          {/* キャラクター情報 - 適切な間隔 */}
+          <div className="flex items-center gap-3 flex-1">
             <div 
-              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-xl sm:text-2xl hover-scale cursor-pointer"
+              className="w-10 h-10 rounded-full flex items-center justify-center text-xl"
               style={{ backgroundColor: character.colorTheme.accent }}
               title={`${character.name} (${character.personalityType})`}
             >
               {character.gender === '男性' ? '👨‍⚕️' : character.gender === '女性' ? '👩‍⚕️' : '🧑‍⚕️'}
             </div>
             <div>
-              <h1 className="text-lg sm:text-xl font-bold">{character.name}</h1>
-              <p className="text-xs sm:text-sm opacity-90">{character.personalityType}</p>
+              <h1 className="font-bold text-lg">{character.name}</h1>
+              <p className="text-sm opacity-90">{character.personalityType}</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* メッセージエリア - モバイル最適化 */}
-      <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 smooth-scroll">
+      {/* メッセージエリア - ヘッダーと入力エリア分のpadding追加 */}
+      <div className="pt-20 pb-32 flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 smooth-scroll">
         {messages.map((message, index) => (
           <div
             key={message.id}
@@ -265,8 +266,8 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* 入力エリア - モバイル最適化 */}
-      <div className="p-3 sm:p-4 bg-white border-t mobile-bottom-action fixed-bottom-safe">
+      {/* 入力エリア - 固定下部配置 */}
+      <div className="fixed bottom-0 left-0 right-0 p-3 sm:p-4 bg-white border-t mobile-bottom-action fixed-bottom-safe z-40">
         <div className="flex space-x-2 sm:space-x-4">
           <div className="flex-1">
             <textarea
