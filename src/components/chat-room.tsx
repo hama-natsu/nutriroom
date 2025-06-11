@@ -34,7 +34,7 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
         behavior: 'smooth',
         block: 'nearest'
       })
-    }, 100) // アニメーション後にスクロール
+    }, 50) // より軽快にスクロール
   }
 
   useEffect(() => {
@@ -180,7 +180,7 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
             }`}
           >
             <div
-              className={`max-w-[80%] p-4 rounded-2xl transition-all duration-300 hover:shadow-lg ${
+              className={`max-w-[80%] p-4 rounded-2xl transition-all duration-200 hover:shadow-md ${
                 message.isUser
                   ? 'text-white rounded-br-sm'
                   : 'bg-white rounded-bl-sm shadow-md'
@@ -269,7 +269,7 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
           <button
             onClick={sendMessage}
             disabled={!inputMessage.trim() || isLoading}
-            className="px-6 py-3 rounded-xl font-medium text-white transition-all duration-200 hover:opacity-90 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 ripple-button shadow-lg hover:shadow-xl"
+            className="px-6 py-3 rounded-xl font-medium text-white transition-all duration-200 hover:opacity-90 hover:scale-102 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 ripple-button shadow-md hover:shadow-lg"
             style={{ backgroundColor: character.colorTheme.primary }}
           >
             {isLoading ? (

@@ -75,11 +75,11 @@ body {
 }
 
 .animate-slideInLeft {
-  animation: slideInLeft 0.4s ease-out;
+  animation: slideInLeft 0.3s ease-out;
 }
 
 .animate-slideInRight {
-  animation: slideInRight 0.4s ease-out;
+  animation: slideInRight 0.3s ease-out;
 }
 
 .animate-ripple {
@@ -93,12 +93,27 @@ body {
 
 /* ホバー効果 */
 .hover-scale {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .hover-scale:hover {
-  transform: scale(1.05);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  transform: scale(1.03);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* カード軽量ホバー効果 */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-hover:hover {
+  transform: scale(1.02) translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+/* ボタン軽量ホバー効果 */
+.hover\:scale-102:hover {
+  transform: scale(1.02);
 }
 
 /* 送信ボタンリップル効果 */
@@ -117,7 +132,7 @@ body {
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.3);
   transform: translate(-50%, -50%);
-  transition: width 0.6s, height 0.6s;
+  transition: width 0.4s, height 0.4s;
 }
 
 .ripple-button:active::before {

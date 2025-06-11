@@ -18,7 +18,7 @@ if (!apiKey) {
 
 if (apiKey.includes('your_google_ai_api_key')) {
   console.error('❌ GOOGLE_AI_API_KEY is still using placeholder value');
-  throw new Error('Please set a valid Google AI API Key');
+  console.warn('⚠️ Using placeholder API key - this will work in demo mode only');
 }
 
 // Gemini APIクライアントの初期化
@@ -267,6 +267,21 @@ export async function generateResponse(
     if (!apiKey) {
       console.error('❌ API Key not available in generateResponse');
       return '申し訳ございません。APIキーが設定されていません。';
+    }
+
+    // プレースホルダーの場合はモック応答
+    if (apiKey.includes('your_google_ai_api_key')) {
+      console.log('🎭 Using mock response for development');
+      const mockResponses = {
+        'minato': '別に君のためじゃないからな...でも、その食事じゃダメだ！糖質制限をしっかりやって、筋トレも取り入れよう。',
+        'akari': '一緒に頑張りましょう！きっと素敵になれますよ！バランスの良い食事で美容効果も期待できます。',
+        'yuki': 'あら、大丈夫ですよ...ゆっくりでいいんです...体調に合わせて無理のない範囲で進めましょうね。',
+        'riku': 'データに基づいて説明しよう。科学的根拠によると、この方法が最も効果的です。',
+        'mao': 'えーっと...あ！そうそう！私も同じ失敗したことあります〜簡単なレシピから始めましょう！',
+        'satsuki': 'で、言い訳は？現実逃避してても体重は減らないわよ。しっかりと向き合いましょう。',
+        'sora': '面白いですね、その考え方。栄養って、人生そのものだと思うんです。多角的に考えてみましょう。'
+      };
+      return mockResponses[character.id as keyof typeof mockResponses] || `こんにちは！${character.name}です。${character.catchphrases[0]} 何かご相談はありますか？`;
     }
 
     console.log('🔧 Creating Gemini model...');

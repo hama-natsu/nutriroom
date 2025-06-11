@@ -53,7 +53,7 @@ export function CharacterSelection({ onBack, onCharacterSelect }: CharacterSelec
             <div
               key={character.id}
               className="animate-fadeIn"
-              style={{ animationDelay: `${index * 0.1}s` }}
+              style={{ animationDelay: `${index * 0.05}s` }}
             >
               <CharacterCard
                 character={character}

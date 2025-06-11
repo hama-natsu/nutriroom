@@ -14,7 +14,7 @@ export function CharacterCard({ character, onSelect }: CharacterCardProps) {
 
   return (
     <div 
-      className="group relative overflow-hidden rounded-xl shadow-lg cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:-translate-y-2 animate-fadeIn"
+      className="group relative overflow-hidden rounded-xl shadow-lg cursor-pointer card-hover animate-fadeIn"
       style={{ 
         background: character.colorTheme.background.includes('gradient') 
           ? character.colorTheme.background 
@@ -99,7 +99,7 @@ export function CharacterCard({ character, onSelect }: CharacterCardProps) {
 
         {/* 選択ボタン */}
         <button
-          className="w-full py-3 rounded-lg font-medium text-white transition-all duration-200 hover:opacity-90 hover:scale-105 ripple-button shadow-md hover:shadow-lg"
+          className="w-full py-3 rounded-lg font-medium text-white transition-all duration-200 hover:opacity-90 hover:scale-102 ripple-button shadow-md hover:shadow-lg"
           style={{ backgroundColor: character.colorTheme.primary }}
         >
           このAI栄養士と相談する
