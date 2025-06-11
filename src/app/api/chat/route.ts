@@ -4,14 +4,37 @@ import { generateResponse } from '@/lib/gemini'
 export async function POST(request: NextRequest) {
   console.log('🚀 Chat API route called');
   console.error('🔥 FORCED ERROR LOG: Chat API route called');
+  console.warn('⚠️ WARNING LOG: Chat API route called');
   
-  // 環境変数の詳細確認 - console.error で強制表示
+  // 強制アラート表示
+  if (typeof global !== 'undefined') {
+    try {
+      // サーバーサイドでも強制ログ
+      console.error('🚨 SERVER ALERT: API ROUTE STARTED');
+    } catch (e) {
+      console.error('Alert error:', e);
+    }
+  }
+  
+  // 環境変数の詳細確認 - 複数ログレベルで強制表示
   console.error('🔑 API_KEY_EXISTS:', !!process.env.GOOGLE_AI_API_KEY);
+  console.warn('🔑 API_KEY_EXISTS:', !!process.env.GOOGLE_AI_API_KEY);
+  console.log('🔑 API_KEY_EXISTS:', !!process.env.GOOGLE_AI_API_KEY);
+  
   console.error('🔑 API_KEY_LENGTH:', process.env.GOOGLE_AI_API_KEY?.length);
+  console.warn('🔑 API_KEY_LENGTH:', process.env.GOOGLE_AI_API_KEY?.length);
+  
   console.error('🔑 API_KEY_START:', process.env.GOOGLE_AI_API_KEY?.substring(0, 10) || 'undefined');
+  console.warn('🔑 API_KEY_START:', process.env.GOOGLE_AI_API_KEY?.substring(0, 10) || 'undefined');
+  
   console.error('🔑 IS_PLACEHOLDER:', process.env.GOOGLE_AI_API_KEY?.includes('your_google_ai_api_key'));
+  console.warn('🔑 IS_PLACEHOLDER:', process.env.GOOGLE_AI_API_KEY?.includes('your_google_ai_api_key'));
+  
   console.error('🌍 NODE_ENV:', process.env.NODE_ENV);
+  console.warn('🌍 NODE_ENV:', process.env.NODE_ENV);
+  
   console.error('🌍 VERCEL_ENV:', process.env.VERCEL_ENV);
+  console.warn('🌍 VERCEL_ENV:', process.env.VERCEL_ENV);
   
   // デバッグ情報を準備
   const debugInfo = {
@@ -46,12 +69,19 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('🔄 Calling generateResponse...');
+    console.warn('🔄 Calling generateResponse...');
+    console.error('🔄 Calling generateResponse...');
+    
     console.log('🤖 GEMINI_MODEL_INIT: 開始');
+    console.warn('🤖 GEMINI_MODEL_INIT: 開始');
+    console.error('🤖 GEMINI_MODEL_INIT: 開始');
     
     // Gemini APIを使用してレスポンスを生成
     const response = await generateResponse(characterId, message, conversationHistory)
     
     console.log('🤖 GEMINI_MODEL_INIT: 完了');
+    console.warn('🤖 GEMINI_MODEL_INIT: 完了');
+    console.error('🤖 GEMINI_MODEL_INIT: 完了');
 
     console.log('✅ Response generated:', {
       responseLength: response.length,
@@ -63,26 +93,40 @@ export async function POST(request: NextRequest) {
       debug: {
         ...debugInfo,
         success: true,
-        responseLength: response.length
+        responseLength: response.length,
+        timestamp: new Date().toISOString(),
+        forceVisible: true,
+        serverAlert: 'SUCCESS: API completed successfully'
       }
     })
   } catch (error: unknown) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const err = error as any;
     
-    // 本番環境用の詳細ログ出力
+    // 本番環境用の詳細ログ出力 - 全ログレベルで強制表示
     console.log('🔥 PRODUCTION ERROR DETAILS START 🔥');
+    console.warn('🔥 PRODUCTION ERROR DETAILS START 🔥');
+    console.error('🔥 PRODUCTION ERROR DETAILS START 🔥');
+    
     console.log('ERROR_MESSAGE:', err.message);
+    console.warn('ERROR_MESSAGE:', err.message);
+    console.error('ERROR_MESSAGE:', err.message);
+    
     console.log('ERROR_STACK:', err.stack);
+    console.warn('ERROR_STACK:', err.stack);
+    console.error('ERROR_STACK:', err.stack);
+    
     console.log('ERROR_STATUS:', err.status);
+    console.warn('ERROR_STATUS:', err.status);
+    console.error('ERROR_STATUS:', err.status);
+    
     console.log('ERROR_CODE:', err.code);
-    console.log('ERROR_NAME:', err.name);
-    console.log('ERROR_CAUSE:', err.cause);
-    console.log('ERROR_DETAILS:', err.details);
-    console.log('API_KEY_EXISTS_IN_ERROR:', !!process.env.GOOGLE_AI_API_KEY);
-    console.log('NODE_ENV_IN_ERROR:', process.env.NODE_ENV);
-    console.log('TIMESTAMP:', new Date().toISOString());
+    console.warn('ERROR_CODE:', err.code);
+    console.error('ERROR_CODE:', err.code);
+    
     console.log('🔥 PRODUCTION ERROR DETAILS END 🔥');
+    console.warn('🔥 PRODUCTION ERROR DETAILS END 🔥');
+    console.error('🔥 PRODUCTION ERROR DETAILS END 🔥');
     
     console.error('❌ COMPLETE CHAT API ERROR DETAILS:', {
       // Basic error info
@@ -159,7 +203,10 @@ export async function POST(request: NextRequest) {
           errorCode: err.code,
           errorDetails: err.details,
           errorCause: err.cause,
-          fullErrorJson: JSON.stringify(err, Object.getOwnPropertyNames(err), 2).substring(0, 1000)
+          fullErrorJson: JSON.stringify(err, Object.getOwnPropertyNames(err), 2).substring(0, 1000),
+          forceVisible: true,
+          serverAlert: 'ERROR: API failed with error - ' + err.message?.substring(0, 100),
+          logLevels: 'ALL LEVELS (log, warn, error) used for visibility'
         }
       },
       { status: statusCode }

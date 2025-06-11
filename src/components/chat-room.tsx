@@ -39,6 +39,9 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
   const sendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return
 
+    // 強制アラート表示
+    alert('DEBUG: メッセージ送信開始 - ' + new Date().toISOString());
+
     // ユーザーメッセージを追加
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -75,7 +78,15 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
 
       // デバッグ情報を強制表示
       if (data.debug) {
+        console.log('🔥 FRONTEND DEBUG INFO:', data.debug);
+        console.warn('🔥 FRONTEND DEBUG INFO:', data.debug);
         console.error('🔥 FRONTEND DEBUG INFO:', data.debug);
+        
+        // 成功時もアラート表示
+        if (data.debug.success === true) {
+          alert('DEBUG SUCCESS: ' + JSON.stringify(data.debug, null, 2));
+        }
+        
         // アラートでも確実に表示
         if (data.debug.success === false) {
           alert('DEBUG ERROR INFO: ' + JSON.stringify(data.debug, null, 2));
