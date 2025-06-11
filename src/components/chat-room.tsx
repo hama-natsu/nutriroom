@@ -135,10 +135,13 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
     }
   }
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      sendMessage()
+  // 日本語入力対応 - Enterキー自動送信を無効化
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Enterキーでの自動送信は行わない（改行ボタンに委ねる）
+    // 日本語入力（あいうえお）でShift+Enterは非現実的なため
+    if (e.key === 'Enter') {
+      // 何もしない - テキストエリアの標準動作（改行）を維持
+      return
     }
   }
 
@@ -269,8 +272,8 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
             <textarea
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder={`${character.name}に相談してみましょう...`}
+              onKeyDown={handleKeyDown}
+              placeholder="改行ボタンで改行、送信ボタンで送信できます"
               className="w-full p-3 text-base border border-gray-300 rounded-xl resize-none focus:outline-none focus:ring-2 focus:border-transparent"
               style={{ 
                 '--tw-ring-color': character.colorTheme.primary + '50'
@@ -297,7 +300,7 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
         </div>
         
         <div className="mt-2 text-xs text-gray-500 text-center">
-          Enterキーで送信 / Shift+Enterで改行
+          改行ボタンで改行 / 送信ボタンで送信
         </div>
       </div>
     </div>
