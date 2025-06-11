@@ -76,6 +76,15 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
 
       const data = await response.json()
 
+      // 実際のGemini レスポンスを強制表示
+      console.error('🔥 FRONTEND - ACTUAL GEMINI RESPONSE:', data.actualGeminiResponse);
+      console.error('🔥 FRONTEND - RESPONSE FIELD:', data.response);
+      
+      // レスポンステキストをアラート表示
+      if (data.actualGeminiResponse) {
+        alert('ACTUAL GEMINI RESPONSE: ' + data.actualGeminiResponse);
+      }
+      
       // デバッグ情報を強制表示
       if (data.debug) {
         console.log('🔥 FRONTEND DEBUG INFO:', data.debug);
@@ -84,7 +93,7 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
         
         // 成功時もアラート表示
         if (data.debug.success === true) {
-          alert('DEBUG SUCCESS: ' + JSON.stringify(data.debug, null, 2));
+          alert('DEBUG SUCCESS - ACTUAL RESPONSE: ' + data.debug.actualResponseText);
         }
         
         // アラートでも確実に表示
@@ -93,11 +102,14 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
         }
       }
 
-      // AIの応答を追加（デバッグ情報も含める）
+      // AIの応答を追加（実際のGeminiレスポンスを表示）
+      const actualResponse = data.actualGeminiResponse || data.response;
       const debugText = data.debug ? `\n\n[DEBUG] ${JSON.stringify(data.debug, null, 2)}` : '';
+      const actualResponseText = `[ACTUAL GEMINI RESPONSE]\n${actualResponse}\n\n[API RESPONSE FIELD]\n${data.response}`;
+      
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: data.response + (process.env.NODE_ENV === 'development' ? debugText : ''),
+        content: actualResponseText + (process.env.NODE_ENV === 'development' ? debugText : ''),
         isUser: false,
         timestamp: new Date()
       }

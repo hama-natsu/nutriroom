@@ -83,6 +83,13 @@ export async function POST(request: NextRequest) {
     console.warn('🤖 GEMINI_MODEL_INIT: 完了');
     console.error('🤖 GEMINI_MODEL_INIT: 完了');
 
+    // 実際のレスポンステキストを詳細ログ
+    console.error('🔥 API ROUTE - ACTUAL GEMINI RESPONSE:', response);
+    console.error('🔥 API ROUTE - RESPONSE TYPE:', typeof response);
+    console.error('🔥 API ROUTE - RESPONSE LENGTH:', response.length);
+    console.error('🔥 API ROUTE - RESPONSE PREVIEW:', response.substring(0, 200));
+    console.error('🔥 API ROUTE - IS ERROR RESPONSE?', response.toLowerCase().includes('error'));
+
     console.log('✅ Response generated:', {
       responseLength: response.length,
       success: true
@@ -90,13 +97,16 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       response,
+      actualGeminiResponse: response,
       debug: {
         ...debugInfo,
         success: true,
         responseLength: response.length,
         timestamp: new Date().toISOString(),
         forceVisible: true,
-        serverAlert: 'SUCCESS: API completed successfully'
+        serverAlert: 'SUCCESS: API completed successfully',
+        actualResponseText: response,
+        responsePreview: response.substring(0, 200)
       }
     })
   } catch (error: unknown) {

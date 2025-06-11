@@ -479,6 +479,13 @@ export async function generateResponse(
       responseText = response.text();
       
       console.error('🔥 TEXT EXTRACTION SUCCESS');
+      console.error('🔥 ACTUAL GEMINI RESPONSE TEXT (FULL):', responseText);
+      console.error('🔥 GEMINI RESPONSE LENGTH:', responseText.length);
+      console.error('🔥 GEMINI RESPONSE TYPE:', typeof responseText);
+      console.error('🔥 GEMINI RESPONSE PREVIEW:', responseText.substring(0, 500));
+      console.error('🔥 IS RESPONSE EMPTY?', responseText.length === 0);
+      console.error('🔥 RESPONSE CONTAINS ERROR?', responseText.toLowerCase().includes('error'));
+      
       console.log('✅ Response processed successfully:', {
         responseLength: responseText.length,
         character: character.name,
@@ -490,7 +497,8 @@ export async function generateResponse(
         responseStart: responseText.substring(0, 200) + '...',
         responseType: typeof responseText,
         hasContent: !!responseText,
-        isEmpty: responseText.length === 0
+        isEmpty: responseText.length === 0,
+        fullResponse: responseText
       });
     } catch (textError: unknown) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -519,12 +527,16 @@ export async function generateResponse(
     }
     
     console.error('🔥 FINAL SUCCESS - RETURNING RESPONSE TEXT');
-    console.error('🔥 FINAL RESPONSE:', {
+    console.error('🔥 FINAL RESPONSE BEFORE RETURN:', {
       textLength: responseText.length,
       textStart: responseText.substring(0, 100) + '...',
       success: true,
-      character: character.name
+      character: character.name,
+      fullResponseText: responseText
     });
+    console.error('🔥 ABOUT TO RETURN THIS TEXT:', responseText);
+    console.warn('🔥 FINAL GEMINI RESPONSE (WARN LEVEL):', responseText);
+    console.log('🔥 FINAL GEMINI RESPONSE (LOG LEVEL):', responseText);
     
     return responseText;
   } catch (error: unknown) {
