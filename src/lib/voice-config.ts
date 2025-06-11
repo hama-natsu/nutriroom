@@ -170,14 +170,33 @@ export const getUserNameCallingPattern = (characterId: string, userName?: string
 
 // 音声生成判定
 export const shouldGenerateVoice = (text: string, priority: VoicePriority): boolean => {
-  switch (priority) {
-    case VoicePriority.USER_NAME_CALLING:
-      return true // 常に音声生成
-    case VoicePriority.CHARACTER_LINES:
-      return text.length <= 50 // 短い定型文のみ
-    case VoicePriority.GENERAL_CHAT:
-      return false // テキストのみ
-    default:
-      return false
-  }
+  const decision = (() => {
+    switch (priority) {
+      case VoicePriority.USER_NAME_CALLING:
+        return true // 常に音声生成
+      case VoicePriority.CHARACTER_LINES:
+        return text.length <= 50 // 短い定型文のみ
+      case VoicePriority.GENERAL_CHAT:
+        return text.length <= 100 // 100文字以下のみ音声生成（調整）
+      default:
+        return false
+    }
+  })()
+
+  console.log('🤔 Voice generation decision:', {
+    text: text.substring(0, 30),
+    textLength: text.length,
+    priority,
+    shouldGenerate: decision,
+    reason: decision 
+      ? priority === VoicePriority.USER_NAME_CALLING ? 'user_name_calling'
+        : priority === VoicePriority.CHARACTER_LINES ? 'character_lines'
+        : priority === VoicePriority.GENERAL_CHAT ? 'general_chat_short'
+        : 'unknown'
+      : priority === VoicePriority.GENERAL_CHAT ? 'text_too_long'
+        : priority === VoicePriority.CHARACTER_LINES ? 'text_too_long'
+        : 'low_priority'
+  })
+
+  return decision
 }

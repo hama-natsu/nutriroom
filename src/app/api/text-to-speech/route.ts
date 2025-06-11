@@ -6,14 +6,25 @@ import { VoiceConfig } from '@/lib/voice-config'
 let ttsClient: TextToSpeechClient | null = null
 
 function initTTSClient() {
-  if (ttsClient) return ttsClient
+  if (ttsClient) {
+    console.log('🔄 Using existing TTS client')
+    return ttsClient
+  }
 
   try {
     // 環境変数からAPIキーを取得
     const apiKey = process.env.GOOGLE_CLOUD_TTS_API_KEY
     
+    console.log('🔑 TTS API Key check:', {
+      exists: !!apiKey,
+      length: apiKey?.length || 0,
+      starts: apiKey?.substring(0, 7) || 'none',
+      isPlaceholder: apiKey?.includes('your_google_tts_api_key') || false,
+      env: process.env.NODE_ENV
+    })
+    
     if (!apiKey) {
-      console.error('❌ GOOGLE_CLOUD_TTS_API_KEY is not set')
+      console.error('❌ GOOGLE_CLOUD_TTS_API_KEY is not set in environment variables')
       return null
     }
 
@@ -23,11 +34,12 @@ function initTTSClient() {
     }
 
     // APIキーを使用してクライアントを初期化
+    console.log('🚀 Initializing Google Cloud TTS client...')
     ttsClient = new TextToSpeechClient({
       apiKey: apiKey
     })
 
-    console.log('✅ Google Cloud TTS client initialized')
+    console.log('✅ Google Cloud TTS client initialized successfully')
     return ttsClient
 
   } catch (error) {
