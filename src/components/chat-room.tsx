@@ -163,7 +163,7 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
           <div className="flex items-center space-x-4">
             <button
               onClick={onBack}
-              className="text-white hover:text-gray-200 transition-colors p-2 rounded-lg min-h-[44px] min-w-[64px] flex items-center justify-center touch-button"
+              className="text-white hover:text-gray-200 transition-colors p-2 rounded-lg min-h-[44px] min-w-[64px] flex items-center justify-center touch-button font-medium bg-white bg-opacity-10 hover:bg-opacity-20"
             >
               ← 戻る
             </button>
@@ -273,7 +273,7 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="改行ボタンで改行、送信ボタンで送信できます"
+              placeholder="栄養について相談してみましょう"
               className="w-full p-3 text-base border border-gray-300 rounded-xl resize-none focus:outline-none focus:ring-2 focus:border-transparent"
               style={{ 
                 '--tw-ring-color': character.colorTheme.primary + '50'
@@ -300,7 +300,7 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
         </div>
         
         <div className="mt-2 text-xs text-gray-500 text-center">
-          改行ボタンで改行 / 送信ボタンで送信
+          送信ボタンで送信
         </div>
       </div>
     </div>
