@@ -25,37 +25,37 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* チャットアニメーション */
+/* チャットアニメーション - GPU アクセラレーション最適化 */
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(10px) translateZ(0);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) translateZ(0);
   }
 }
 
 @keyframes slideInLeft {
   from {
     opacity: 0;
-    transform: translateX(-20px);
+    transform: translateX(-20px) translateZ(0);
   }
   to {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateX(0) translateZ(0);
   }
 }
 
 @keyframes slideInRight {
   from {
     opacity: 0;
-    transform: translateX(20px);
+    transform: translateX(20px) translateZ(0);
   }
   to {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateX(0) translateZ(0);
   }
 }
 
@@ -72,14 +72,17 @@ body {
 
 .animate-fadeIn {
   animation: fadeIn 0.3s ease-out;
+  will-change: transform, opacity;
 }
 
 .animate-slideInLeft {
   animation: slideInLeft 0.3s ease-out;
+  will-change: transform, opacity;
 }
 
 .animate-slideInRight {
   animation: slideInRight 0.3s ease-out;
+  will-change: transform, opacity;
 }
 
 .animate-ripple {
@@ -91,29 +94,121 @@ body {
   scroll-behavior: smooth;
 }
 
-/* ホバー効果 */
+/* ホバー効果 - GPU アクセラレーション最適化 */
 .hover-scale {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  will-change: transform;
 }
 
 .hover-scale:hover {
-  transform: scale(1.03);
+  transform: scale(1.03) translateZ(0);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* カード軽量ホバー効果 */
 .card-hover {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  will-change: transform;
 }
 
 .card-hover:hover {
-  transform: scale(1.02) translateY(-2px);
+  transform: scale(1.02) translateY(-2px) translateZ(0);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
 }
 
 /* ボタン軽量ホバー効果 */
 .hover\:scale-102:hover {
-  transform: scale(1.02);
+  transform: scale(1.02) translateZ(0);
+}
+
+/* タッチフィードバック強化 */
+.touch-button {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  will-change: transform;
+}
+
+.touch-button:active {
+  transform: scale(0.95) translateZ(0);
+}
+
+.touch-button:hover {
+  transform: scale(1.02) translateZ(0);
+}
+
+/* スムーズスクロール改善 */
+.smooth-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* モバイル最適化 */
+@media (max-width: 640px) {
+  /* iOS Safari のズーム防止 */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  textarea {
+    font-size: 16px !important;
+  }
+  
+  /* メッセージバブルの最適化 */
+  .message-bubble {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  
+  /* 小さな画面での余白調整 */
+  .mobile-compact {
+    padding: 0.75rem;
+  }
+}
+
+/* キーボード対応 */
+.keyboard-aware {
+  /* iOS Safari キーボード対応 */
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+/* メッセージエリアの安全な高さ設定 */
+.message-area-safe {
+  height: calc(100vh - 140px);
+  height: calc(100dvh - 140px);
+}
+
+@supports (-webkit-touch-callout: none) {
+  /* iOS Safari 専用スタイル */
+  .keyboard-aware {
+    min-height: -webkit-fill-available;
+  }
+  
+  .message-area-safe {
+    height: calc(100vh - 140px);
+  }
+}
+
+/* 片手操作最適化 */
+.thumb-zone {
+  /* スマホ画面の片手操作エリア（下部3分の1）に重要ボタンを配置 */
+  bottom: 0;
+  position: relative;
+}
+
+.fixed-bottom-safe {
+  /* iOS Safari のセーフエリア考慮 */
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: constant(safe-area-inset-bottom);
+}
+
+@media (max-width: 640px) {
+  /* モバイル専用の片手操作最適化 */
+  .mobile-bottom-action {
+    position: sticky;
+    bottom: 0;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+    z-index: 10;
+  }
 }
 
 /* 送信ボタンリップル効果 */

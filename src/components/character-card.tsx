@@ -97,9 +97,9 @@ export function CharacterCard({ character, onSelect }: CharacterCardProps) {
           <p className="text-sm text-gray-600">{character.description}</p>
         </div>
 
-        {/* 選択ボタン */}
+        {/* 選択ボタン - タッチターゲット拡大 */}
         <button
-          className="w-full py-3 rounded-lg font-medium text-white transition-all duration-200 hover:opacity-90 hover:scale-102 ripple-button shadow-md hover:shadow-lg"
+          className="w-full py-4 rounded-lg font-medium text-white transition-all duration-200 hover:opacity-90 ripple-button shadow-md hover:shadow-lg min-h-[48px] touch-button"
           style={{ backgroundColor: character.colorTheme.primary }}
         >
           このAI栄養士と相談する

@@ -17,15 +17,15 @@ export function CharacterSelection({ onBack, onCharacterSelect }: CharacterSelec
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
       {/* ヘッダー */}
       <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">AI栄養士を選んでください</h1>
-              <p className="text-gray-600 mt-1">あなたに最適な栄養士を見つけて、理想の食生活を始めましょう</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">AI栄養士を選んでください</h1>
+              <p className="text-sm sm:text-base text-gray-600 mt-1">あなたに最適な栄養士を見つけて、理想の食生活を始めましょう</p>
             </div>
             <button
               onClick={onBack}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-4 py-3 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors min-h-[44px] min-w-[80px] flex items-center justify-center touch-button"
             >
               ← 戻る
             </button>
@@ -34,7 +34,7 @@ export function CharacterSelection({ onBack, onCharacterSelect }: CharacterSelec
       </div>
 
       {/* キャラクター選択エリア */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* 説明セクション */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center px-4 py-2 rounded-full bg-purple-100 text-purple-800 text-sm font-medium mb-4">
@@ -47,8 +47,8 @@ export function CharacterSelection({ onBack, onCharacterSelect }: CharacterSelec
           </p>
         </div>
 
-        {/* キャラクターグリッド */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {/* キャラクターグリッド - モバイルファースト */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {characters.map((character, index) => (
             <div
               key={character.id}

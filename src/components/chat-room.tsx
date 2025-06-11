@@ -37,6 +37,19 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
     }, 50) // より軽快にスクロール
   }
 
+  // キーボード表示時の処理
+  useEffect(() => {
+    const handleResize = () => {
+      // モバイルでキーボードが表示された場合の処理
+      if (window.innerHeight < window.screen.height * 0.75) {
+        scrollToBottom()
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
   useEffect(() => {
     scrollToBottom()
   }, [messages])
@@ -131,47 +144,47 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
 
   return (
     <div 
-      className="h-screen flex flex-col"
+      className="h-screen flex flex-col keyboard-aware"
       style={{ 
         background: character.colorTheme.background.includes('gradient') 
           ? character.colorTheme.background 
           : `linear-gradient(135deg, ${character.colorTheme.background} 0%, ${character.colorTheme.secondary}20 100%)`
       }}
     >
-      {/* ヘッダー */}
+      {/* ヘッダー - モバイル最適化 */}
       <div 
-        className="p-4 text-white shadow-lg"
+        className="p-3 sm:p-4 text-white shadow-lg"
         style={{ backgroundColor: character.colorTheme.primary }}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <button
               onClick={onBack}
-              className="text-white hover:text-gray-200 transition-colors"
+              className="text-white hover:text-gray-200 transition-colors p-2 rounded-lg min-h-[44px] min-w-[64px] flex items-center justify-center touch-button"
             >
               ← 戻る
             </button>
             <div 
-              className="w-12 h-12 rounded-full flex items-center justify-center text-2xl hover-scale cursor-pointer"
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-xl sm:text-2xl hover-scale cursor-pointer"
               style={{ backgroundColor: character.colorTheme.accent }}
               title={`${character.name} (${character.personalityType})`}
             >
               {character.gender === '男性' ? '👨‍⚕️' : character.gender === '女性' ? '👩‍⚕️' : '🧑‍⚕️'}
             </div>
             <div>
-              <h1 className="text-xl font-bold">{character.name}</h1>
-              <p className="text-sm opacity-90">{character.personalityType}</p>
+              <h1 className="text-lg sm:text-xl font-bold">{character.name}</h1>
+              <p className="text-xs sm:text-sm opacity-90">{character.personalityType}</p>
             </div>
           </div>
-          <div className="text-right">
+          <div className="text-right hidden sm:block">
             <div className="text-xs opacity-80">専門分野</div>
             <div className="text-sm">{character.specialties.join('・')}</div>
           </div>
         </div>
       </div>
 
-      {/* メッセージエリア */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 smooth-scroll">
+      {/* メッセージエリア - モバイル最適化 */}
+      <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 smooth-scroll">
         {messages.map((message, index) => (
           <div
             key={message.id}
@@ -180,7 +193,7 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
             }`}
           >
             <div
-              className={`max-w-[80%] p-4 rounded-2xl transition-all duration-200 hover:shadow-md ${
+              className={`max-w-[85%] sm:max-w-[80%] p-3 sm:p-4 rounded-2xl transition-all duration-200 hover:shadow-md message-bubble ${
                 message.isUser
                   ? 'text-white rounded-br-sm'
                   : 'bg-white rounded-bl-sm shadow-md'
@@ -249,16 +262,16 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* 入力エリア */}
-      <div className="p-4 bg-white border-t">
-        <div className="flex space-x-4">
+      {/* 入力エリア - モバイル最適化 */}
+      <div className="p-3 sm:p-4 bg-white border-t mobile-bottom-action fixed-bottom-safe">
+        <div className="flex space-x-2 sm:space-x-4">
           <div className="flex-1">
             <textarea
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder={`${character.name}に相談してみましょう...`}
-              className="w-full p-3 border border-gray-300 rounded-xl resize-none focus:outline-none focus:ring-2 focus:border-transparent"
+              className="w-full p-3 text-base border border-gray-300 rounded-xl resize-none focus:outline-none focus:ring-2 focus:border-transparent"
               style={{ 
                 '--tw-ring-color': character.colorTheme.primary + '50'
               } as React.CSSProperties}
@@ -269,7 +282,7 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
           <button
             onClick={sendMessage}
             disabled={!inputMessage.trim() || isLoading}
-            className="px-6 py-3 rounded-xl font-medium text-white transition-all duration-200 hover:opacity-90 hover:scale-102 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 ripple-button shadow-md hover:shadow-lg"
+            className="px-4 sm:px-6 py-3 rounded-xl font-medium text-white transition-all duration-200 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed ripple-button shadow-md hover:shadow-lg min-w-[64px] min-h-[44px] flex items-center justify-center touch-button"
             style={{ backgroundColor: character.colorTheme.primary }}
           >
             {isLoading ? (
