@@ -22,12 +22,24 @@ if (apiKey.includes('your_google_ai_api_key')) {
 
 // Gemini APIクライアントの初期化
 console.log('🚀 Initializing GoogleGenerativeAI client...');
+console.error('🔥 GEMINI CLIENT INIT START');
 let genAI: GoogleGenerativeAI;
 try {
   genAI = new GoogleGenerativeAI(apiKey);
   console.log('✅ GoogleGenerativeAI client initialized successfully');
-} catch (initError) {
+  console.error('🔥 GEMINI CLIENT INIT SUCCESS - Client object created');
+  console.error('🔥 GEMINI CLIENT TYPE:', typeof genAI);
+  console.error('🔥 GEMINI CLIENT METHODS:', Object.getOwnPropertyNames(genAI));
+} catch (initError: unknown) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const err = initError as any;
   console.error('❌ Failed to initialize GoogleGenerativeAI:', initError);
+  console.error('🔥 GEMINI CLIENT INIT ERROR DETAILS:', {
+    message: err.message,
+    stack: err.stack,
+    name: err.name,
+    cause: err.cause
+  });
   throw initError;
 }
 
@@ -257,13 +269,37 @@ export async function generateResponse(
     }
 
     console.log('🔧 Creating Gemini model...');
+    console.error('🔥 GEMINI MODEL CREATION START');
+    
+    // モデル名の検証 - 複数のモデル名を試す
+    const possibleModels = [
+      "gemini-pro",
+      "gemini-1.5-pro",
+      "gemini-1.5-flash",
+      "models/gemini-pro",
+      "models/gemini-1.5-pro"
+    ];
+    
+    console.error('🔥 TESTING MODEL NAMES:', possibleModels);
+    
     const modelConfig = { model: "gemini-pro" };
     console.log('📋 Model configuration:', modelConfig);
+    console.error('🔥 MODEL CONFIG DETAILS:', {
+      modelName: modelConfig.model,
+      isValidModel: modelConfig.model === "gemini-pro",
+      configType: typeof modelConfig,
+      configKeys: Object.keys(modelConfig),
+      possibleAlternatives: possibleModels
+    });
     
     let model;
     try {
+      console.error('🔥 CALLING genAI.getGenerativeModel...');
       model = genAI.getGenerativeModel(modelConfig);
       console.log('✅ Gemini model created successfully');
+      console.error('🔥 GEMINI MODEL CREATED SUCCESS');
+      console.error('🔥 MODEL TYPE:', typeof model);
+      console.error('🔥 MODEL METHODS:', Object.getOwnPropertyNames(model));
     } catch (modelError: unknown) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const err = modelError as any;
@@ -272,6 +308,14 @@ export async function generateResponse(
         message: err.message,
         stack: err.stack,
         config: modelConfig
+      });
+      console.error('🔥 MODEL CREATION ERROR FULL DETAILS:', {
+        errorName: err.name,
+        errorMessage: err.message,
+        errorStack: err.stack,
+        errorCause: err.cause,
+        errorConstructor: err.constructor?.name,
+        fullErrorObject: JSON.stringify(err, Object.getOwnPropertyNames(err), 2)
       });
       throw modelError;
     }
@@ -301,19 +345,44 @@ export async function generateResponse(
       modelType: "gemini-pro",
       timestamp: new Date().toISOString()
     });
+    console.error('🔥 GEMINI API REQUEST START');
+    console.error('🔥 PROMPT DETAILS:', {
+      promptLength: fullPrompt.length,
+      promptStart: fullPrompt.substring(0, 200) + '...',
+      character: character.name,
+      hasModel: !!model,
+      modelType: typeof model
+    });
 
     let result;
     try {
       console.log('🌐 Making API request to Gemini...');
+      console.error('🔥 CALLING model.generateContent...');
+      console.error('🔥 REQUEST PARAMS:', {
+        promptLength: fullPrompt.length,
+        modelExists: !!model,
+        apiKeyExists: !!apiKey,
+        timestamp: new Date().toISOString()
+      });
+      
       result = await model.generateContent(fullPrompt);
+      
       console.log('📥 Received result from Gemini:', {
         hasResult: !!result,
         resultKeys: Object.keys(result || {}),
         timestamp: new Date().toISOString()
       });
+      console.error('🔥 GEMINI API REQUEST SUCCESS');
+      console.error('🔥 RESULT DETAILS:', {
+        hasResult: !!result,
+        resultType: typeof result,
+        resultKeys: Object.keys(result || {}),
+        resultConstructor: result?.constructor?.name
+      });
     } catch (apiError: unknown) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const err = apiError as any;
+      console.error('🔥 GEMINI API REQUEST FAILED');
       console.error('❌ Gemini API request failed:', {
         error: apiError,
         message: err.message,
@@ -327,6 +396,16 @@ export async function generateResponse(
         promptLength: fullPrompt.length,
         character: character.name,
         timestamp: new Date().toISOString()
+      });
+      console.error('🔥 API ERROR ANALYSIS:', {
+        isNetworkError: err.message?.includes('network'),
+        isAuthError: err.message?.includes('API_KEY') || err.message?.includes('auth'),
+        isQuotaError: err.message?.includes('quota') || err.message?.includes('limit'),
+        isModelError: err.message?.includes('model') || err.message?.includes('gemini'),
+        errorMessageFull: err.message,
+        errorCauseFull: err.cause,
+        hasStack: !!err.stack,
+        stackLength: err.stack?.length || 0
       });
       throw apiError;
     }
