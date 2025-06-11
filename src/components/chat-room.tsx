@@ -163,9 +163,10 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
           <div className="flex items-center space-x-4">
             <button
               onClick={onBack}
-              className="text-white hover:text-gray-200 transition-colors p-2 rounded-lg min-h-[44px] min-w-[64px] flex items-center justify-center touch-button font-medium bg-white bg-opacity-10 hover:bg-opacity-20"
+              className="w-12 h-12 bg-white bg-opacity-20 backdrop-blur-sm rounded-xl flex items-center justify-center hover:bg-opacity-30 transition-colors touch-button text-white text-xl font-bold"
+              title="戻る"
             >
-              ← 戻る
+              ←
             </button>
             <div 
               className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-xl sm:text-2xl hover-scale cursor-pointer"
