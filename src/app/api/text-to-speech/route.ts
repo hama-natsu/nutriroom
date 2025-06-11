@@ -98,9 +98,25 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    // SSML対応チェック
+    const hasSSMLTags = text.includes('<') && text.includes('>')
+    const inputType = hasSSMLTags ? 'ssml' : 'text'
+    
+    // SSMLの場合は適切にラップ
+    const processedInput = hasSSMLTags 
+      ? { ssml: `<speak>${text}</speak>` }
+      : { text }
+
+    console.log('🎭 Input processing:', {
+      hasSSMLTags,
+      inputType,
+      textPreview: text.substring(0, 100),
+      characterId
+    })
+
     // Google Cloud TTS リクエスト構築
     const request_payload = {
-      input: { text },
+      input: processedInput,
       voice: {
         languageCode: voiceConfig.languageCode,
         name: voiceConfig.name,
@@ -111,7 +127,8 @@ export async function POST(request: NextRequest) {
         pitch: voiceConfig.pitch,
         speakingRate: voiceConfig.speakingRate,
         volumeGainDb: voiceConfig.volumeGainDb,
-        sampleRateHertz: 24000
+        sampleRateHertz: 24000,
+        effectsProfileId: ['telephony-class-application'] // 音質向上
       }
     }
 

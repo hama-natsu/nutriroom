@@ -17,9 +17,9 @@ export const characterVoiceConfigs: Record<string, VoiceConfig> = {
     languageCode: 'ja-JP',
     name: 'ja-JP-Neural2-C', // 男性の声
     gender: 'MALE',
-    pitch: -2.0,      // 少し低めで落ち着いた声
-    speakingRate: 0.95, // やや早口
-    volumeGainDb: 2.0,
+    pitch: -3.5,      // より低めでクールに
+    speakingRate: 0.92, // やや遅めで落ち着いた感じ
+    volumeGainDb: 3.0,
     personality: 'ツンデレ・スパルタ'
   },
 
@@ -28,9 +28,9 @@ export const characterVoiceConfigs: Record<string, VoiceConfig> = {
     languageCode: 'ja-JP',
     name: 'ja-JP-Neural2-B', // 明るい女性の声
     gender: 'FEMALE',
-    pitch: 3.0,       // 高めで明るい声
-    speakingRate: 1.1,  // 元気よく早め
-    volumeGainDb: 4.0,
+    pitch: 4.5,       // より高めで弾んだ声
+    speakingRate: 1.15,  // 元気よく早め
+    volumeGainDb: 4.5,
     personality: '元気・応援'
   },
 
@@ -39,9 +39,9 @@ export const characterVoiceConfigs: Record<string, VoiceConfig> = {
     languageCode: 'ja-JP',
     name: 'ja-JP-Neural2-D', // 優しい女性の声
     gender: 'FEMALE',
-    pitch: 0.5,       // やや高め
-    speakingRate: 0.8,  // ゆっくり話す
-    volumeGainDb: 1.0,
+    pitch: 1.5,       // 優しく穏やかに
+    speakingRate: 0.75,  // よりゆっくりと癒し系
+    volumeGainDb: 2.0,
     personality: '癒し・おっとり'
   },
 
@@ -50,9 +50,9 @@ export const characterVoiceConfigs: Record<string, VoiceConfig> = {
     languageCode: 'ja-JP',
     name: 'ja-JP-Neural2-C', // 落ち着いた男性の声
     gender: 'MALE',
-    pitch: -1.0,      // やや低め
-    speakingRate: 0.9,  // 冷静にゆっくり
-    volumeGainDb: 0.0,
+    pitch: -2.5,      // より低めで威厳のある声
+    speakingRate: 0.85,  // ゆっくり丁寧に
+    volumeGainDb: 1.5,
     personality: 'クール・理論派'
   },
 
@@ -61,9 +61,9 @@ export const characterVoiceConfigs: Record<string, VoiceConfig> = {
     languageCode: 'ja-JP',
     name: 'ja-JP-Neural2-A', // 可愛らしい女性の声
     gender: 'FEMALE',
-    pitch: 4.0,       // 高めで可愛い声
-    speakingRate: 1.0,  // 普通の速度
-    volumeGainDb: 3.0,
+    pitch: 5.0,       // 高めで可愛らしく
+    speakingRate: 0.95,  // 少しふわふわした感じ
+    volumeGainDb: 3.5,
     personality: '天然・うっかり'
   },
 
@@ -72,9 +72,9 @@ export const characterVoiceConfigs: Record<string, VoiceConfig> = {
     languageCode: 'ja-JP',
     name: 'ja-JP-Neural2-D', // しっかりした女性の声
     gender: 'FEMALE',
-    pitch: -0.5,      // やや低めでクール
-    speakingRate: 1.05, // はっきりと早め
-    volumeGainDb: 2.0,
+    pitch: -1.0,      // 低めでシャープに
+    speakingRate: 1.08, // きびきびとはっきり
+    volumeGainDb: 2.5,
     personality: '毒舌・リアリスト'
   },
 
@@ -83,9 +83,9 @@ export const characterVoiceConfigs: Record<string, VoiceConfig> = {
     languageCode: 'ja-JP',
     name: 'ja-JP-Neural2-C', // 中性的な声
     gender: 'NEUTRAL',
-    pitch: 1.0,       // 中間的な高さ
-    speakingRate: 0.95, // ゆったりと
-    volumeGainDb: 1.5,
+    pitch: 0.5,       // 自然な中間
+    speakingRate: 0.88, // ゆったりと哲学的に
+    volumeGainDb: 2.0,
     personality: '中性的・哲学的'
   }
 }
@@ -255,17 +255,116 @@ export const shouldGenerateVoice = (text: string, priority: VoicePriority): bool
   return shouldGenerate
 }
 
+// キャラクター別感情表現パターン
+export const emotionalExpressions: Record<string, {
+  emphasis: string[]  // 強調表現
+  pauses: string[]    // 間の取り方
+  interjections: string[] // 感嘆詞
+}> = {
+  minato: {
+    emphasis: ['別に', 'はぁ？', 'ダメだ', 'しょうがない'],
+    pauses: ['...', '、', '。'],
+    interjections: ['はぁ？', 'ちっ', 'まあ']
+  },
+  akari: {
+    emphasis: ['わぁ〜', 'すごい', 'ファイト', '頑張り'],
+    pauses: ['♪', '〜', '！'],
+    interjections: ['わぁ', 'きゃー', 'えへへ']
+  },
+  yuki: {
+    emphasis: ['あら', 'ゆっくり', '大丈夫', '無理しない'],
+    pauses: ['...', 'ね', 'よ'],
+    interjections: ['あら', 'ふふ', 'そうですね']
+  },
+  riku: {
+    emphasis: ['データ', '科学的', '論理的', 'エビデンス'],
+    pauses: ['。', '、', 'つまり'],
+    interjections: ['なるほど', 'そうですね', 'では']
+  },
+  mao: {
+    emphasis: ['えーっと', 'あ！', 'うっかり', 'わかります'],
+    pauses: ['〜', 'あ、', 'えーっと'],
+    interjections: ['あ！', 'えー', 'うーん']
+  },
+  satsuki: {
+    emphasis: ['はっきり', '現実', '甘え', '結果'],
+    pauses: ['よ', 'わ', 'の'],
+    interjections: ['はい', 'で？', 'それで？']
+  },
+  sora: {
+    emphasis: ['面白い', '人生', '多角的', 'あなたらしい'],
+    pauses: ['...', 'ね', 'でしょう'],
+    interjections: ['そうですね', 'なるほど', 'ふむ']
+  }
+}
+
+// 感情表現を強化したテキスト加工
+export const enhanceTextWithEmotion = (text: string, characterId: string): string => {
+  const expressions = emotionalExpressions[characterId]
+  if (!expressions) return text
+
+  let enhancedText = text
+
+  // 強調する単語を<emphasis>タグで囲む
+  expressions.emphasis.forEach(word => {
+    const regex = new RegExp(`(${word})`, 'g')
+    enhancedText = enhancedText.replace(regex, `<emphasis level="strong">$1</emphasis>`)
+  })
+
+  // 句読点に適切な間を追加
+  enhancedText = enhancedText.replace(/。/g, '。<break time="0.5s"/>')
+  enhancedText = enhancedText.replace(/、/g, '、<break time="0.3s"/>')
+  enhancedText = enhancedText.replace(/！/g, '！<break time="0.4s"/>')
+  enhancedText = enhancedText.replace(/？/g, '？<break time="0.4s"/>')
+
+  // キャラクター別の特殊な間の取り方
+  switch (characterId) {
+    case 'minato':
+      enhancedText = enhancedText.replace(/\.\.\./g, '<break time="0.8s"/>')
+      break
+    case 'akari':
+      enhancedText = enhancedText.replace(/〜/g, '<prosody rate="fast">〜</prosody>')
+      break
+    case 'yuki':
+      enhancedText = enhancedText.replace(/ね/g, '<prosody pitch="+10%">ね</prosody>')
+      break
+    case 'riku':
+      enhancedText = enhancedText.replace(/(データ|科学的|論理的)/g, '<emphasis level="moderate">$1</emphasis>')
+      break
+    case 'mao':
+      enhancedText = enhancedText.replace(/あ！/g, '<prosody pitch="+20%" rate="fast">あ！</prosody>')
+      break
+    case 'satsuki':
+      enhancedText = enhancedText.replace(/(はっきり|現実)/g, '<emphasis level="strong">$1</emphasis>')
+      break
+    case 'sora':
+      enhancedText = enhancedText.replace(/\.\.\./g, '<break time="0.6s"/>')
+      break
+  }
+
+  console.log('🎭 Enhanced text with emotion:', {
+    characterId,
+    original: text.substring(0, 30) + '...',
+    enhanced: enhancedText.substring(0, 50) + '...',
+    hasEmphasis: enhancedText.includes('<emphasis'),
+    hasBreaks: enhancedText.includes('<break'),
+    hasProsody: enhancedText.includes('<prosody')
+  })
+
+  return enhancedText
+}
+
 // 長文テキストの要約処理（音声生成用）
 export const getSummarizedTextForVoice = (text: string, characterId: string): string => {
   const textLength = text.length
   
-  // 短文・中文の場合はそのまま返す
+  // 短文・中文の場合は感情表現を強化して返す
   if (textLength <= VOICE_LIMITS.NORMAL_GENERATE) {
-    console.log('📝 Text processing: no summary needed', { textLength, limit: VOICE_LIMITS.NORMAL_GENERATE })
-    return text
+    console.log('📝 Text processing: enhancing emotion for short/medium text', { textLength, limit: VOICE_LIMITS.NORMAL_GENERATE })
+    return enhanceTextWithEmotion(text, characterId)
   }
   
-  // 長文の場合は要約処理
+  // 長文の場合は要約処理 + 感情表現強化
   if (textLength <= VOICE_LIMITS.SUMMARY_GENERATE) {
     // 最初の100文字 + キャラクター性格に応じた締めの言葉
     const summary = text.substring(0, 100)
@@ -273,15 +372,17 @@ export const getSummarizedTextForVoice = (text: string, characterId: string): st
     const endingLine = characterLines[Math.floor(Math.random() * characterLines.length)] || '...以上です'
     
     const summarizedText = `${summary}... ${endingLine}`
+    const enhancedText = enhanceTextWithEmotion(summarizedText, characterId)
     
-    console.log('📝 Text summarized for voice:', {
+    console.log('📝 Text summarized and enhanced for voice:', {
       originalLength: textLength,
       summarizedLength: summarizedText.length,
+      enhancedLength: enhancedText.length,
       characterId,
-      summary: summarizedText.substring(0, 50) + '...'
+      summary: enhancedText.substring(0, 50) + '...'
     })
     
-    return summarizedText
+    return enhancedText
   }
   
   // 300文字を超える場合は音声生成しない

@@ -162,7 +162,7 @@ export class VoiceService {
     }
   }
 
-  // 音声を再生
+  // 音声を再生（改善版 - 途切れ問題対策）
   async playVoice(audioUrl: string): Promise<void> {
     if (!this.isInitialized) {
       console.warn('⚠️ VoiceService not initialized - cannot play audio')
@@ -170,39 +170,108 @@ export class VoiceService {
     }
 
     try {
-      console.log('🔊 Starting audio playback:', audioUrl.substring(0, 50) + '...')
+      console.log('🔊 Starting enhanced audio playback:', audioUrl.substring(0, 50) + '...')
       const audio = new Audio(audioUrl)
       
-      // モバイル対応
+      // 音声バッファリング強化設定
       audio.preload = 'auto'
-      audio.volume = 0.8 // 音量設定
+      audio.volume = 0.85 // 音量設定
+      audio.crossOrigin = 'anonymous' // CORS対応
       
-      console.log('🎵 Audio element created, attempting to play...')
+      // 音声再生品質向上のための設定
+      if ('webkitAudioContext' in window || 'AudioContext' in window) {
+        console.log('🎧 Enhanced audio context available')
+      }
+      
+      console.log('🎵 Audio element created with enhanced settings...')
       
       return new Promise((resolve, reject) => {
-        audio.onended = () => {
-          console.log('✅ Audio playback completed')
-          resolve()
+        let isResolved = false
+        const timeout = setTimeout(() => {
+          if (!isResolved) {
+            console.warn('⏰ Audio playback timeout (30s)')
+            isResolved = true
+            reject(new Error('Audio playback timeout'))
+          }
+        }, 30000) // 30秒タイムアウト
+
+        // 完了時の処理
+        const handleComplete = () => {
+          if (!isResolved) {
+            console.log('✅ Audio playback completed successfully')
+            clearTimeout(timeout)
+            isResolved = true
+            resolve()
+          }
         }
-        
-        audio.onerror = (event) => {
-          console.error('❌ Audio playback error:', event)
-          reject(new Error('Audio playback failed'))
+
+        // エラー処理
+        const handleError = () => {
+          if (!isResolved) {
+            console.error('❌ Audio playback error:', {
+              currentTime: audio.currentTime,
+              duration: audio.duration,
+              readyState: audio.readyState,
+              networkState: audio.networkState
+            })
+            clearTimeout(timeout)
+            isResolved = true
+            reject(new Error('Audio playback failed'))
+          }
         }
+
+        // イベントリスナー設定
+        audio.onended = handleComplete
+        audio.onerror = handleError
+        audio.onabort = handleError
         
+        // 進行状況の詳細ログ
         audio.onloadstart = () => console.log('📥 Audio loading started')
+        audio.onloadeddata = () => console.log('📊 Audio data loaded')
         audio.oncanplay = () => console.log('▶️ Audio ready to play')
+        audio.oncanplaythrough = () => console.log('🎯 Audio can play through')
+        audio.onprogress = () => {
+          if (audio.buffered.length > 0) {
+            const bufferedEnd = audio.buffered.end(audio.buffered.length - 1)
+            const duration = audio.duration || 0
+            const bufferedPercent = duration > 0 ? (bufferedEnd / duration * 100).toFixed(1) : '0'
+            console.log(`📊 Audio buffered: ${bufferedPercent}%`)
+          }
+        }
         
-        // ユーザー操作による再生（モバイル対応）
-        audio.play().then(() => {
-          console.log('🎵 Audio playback started successfully')
-        }).catch(error => {
-          console.warn('⚠️ Audio autoplay failed (expected on mobile):', error)
-          reject(error)
-        })
+        // 音声データの完全ロード待機
+        const attemptPlay = () => {
+          if (audio.readyState >= 2) { // HAVE_CURRENT_DATA以上
+            console.log('🎵 Starting audio playback (readyState:', audio.readyState, ')')
+            audio.play().then(() => {
+              console.log('🎵 Audio playback started successfully:', {
+                duration: audio.duration,
+                currentTime: audio.currentTime,
+                volume: audio.volume,
+                readyState: audio.readyState
+              })
+            }).catch(error => {
+              console.warn('⚠️ Audio autoplay failed:', error)
+              if (!isResolved) {
+                clearTimeout(timeout)
+                isResolved = true
+                reject(error)
+              }
+            })
+          } else {
+            console.log('⏳ Waiting for audio data to load (readyState:', audio.readyState, ')')
+            setTimeout(attemptPlay, 100) // 100ms後に再試行
+          }
+        }
+
+        // ロード完了時に再生開始
+        audio.oncanplay = () => {
+          console.log('▶️ Audio ready to play, attempting playback...')
+          attemptPlay()
+        }
       })
     } catch (error) {
-      console.error('❌ Audio playback error:', {
+      console.error('❌ Audio playback setup error:', {
         error: error instanceof Error ? error.message : String(error),
         audioUrl: audioUrl.substring(0, 50) + '...'
       })
