@@ -20,7 +20,9 @@ function initTTSClient() {
       length: apiKey?.length || 0,
       starts: apiKey?.substring(0, 7) || 'none',
       isPlaceholder: apiKey?.includes('your_google_tts_api_key') || false,
-      env: process.env.NODE_ENV
+      isValidFormat: apiKey?.startsWith('AIza') || false,
+      env: process.env.NODE_ENV,
+      timestamp: new Date().toISOString()
     })
     
     if (!apiKey) {

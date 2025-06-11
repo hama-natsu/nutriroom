@@ -168,35 +168,173 @@ export const getUserNameCallingPattern = (characterId: string, userName?: string
   return characterPatterns[Math.floor(Math.random() * characterPatterns.length)]
 }
 
+// 段階的音声生成システムの文字数制限設定
+export const VOICE_LIMITS = {
+  ALWAYS_GENERATE: 50,      // 0-50文字: 必ず音声生成
+  NORMAL_GENERATE: 150,     // 51-150文字: 音声生成（通常）
+  SUMMARY_GENERATE: 300,    // 151-300文字: 音声生成（要約版）
+  TEXT_ONLY: Infinity       // 300文字以上: テキストのみ表示
+} as const
+
+// 文字数に応じた音声生成タイプ
+export enum VoiceGenerationType {
+  ALWAYS = 'always',        // 必ず生成
+  NORMAL = 'normal',        // 通常生成
+  SUMMARY = 'summary',      // 要約版生成
+  SKIP = 'skip'            // スキップ
+}
+
 // 音声生成判定
 export const shouldGenerateVoice = (text: string, priority: VoicePriority): boolean => {
-  const decision = (() => {
-    switch (priority) {
-      case VoicePriority.USER_NAME_CALLING:
-        return true // 常に音声生成
-      case VoicePriority.CHARACTER_LINES:
-        return text.length <= 50 // 短い定型文のみ
-      case VoicePriority.GENERAL_CHAT:
-        return text.length <= 100 // 100文字以下のみ音声生成（調整）
-      default:
-        return false
-    }
-  })()
-
-  console.log('🤔 Voice generation decision:', {
-    text: text.substring(0, 30),
-    textLength: text.length,
-    priority,
-    shouldGenerate: decision,
-    reason: decision 
-      ? priority === VoicePriority.USER_NAME_CALLING ? 'user_name_calling'
-        : priority === VoicePriority.CHARACTER_LINES ? 'character_lines'
-        : priority === VoicePriority.GENERAL_CHAT ? 'general_chat_short'
-        : 'unknown'
-      : priority === VoicePriority.GENERAL_CHAT ? 'text_too_long'
-        : priority === VoicePriority.CHARACTER_LINES ? 'text_too_long'
-        : 'low_priority'
+  const textLength = text.length
+  
+  // 文字数制限値をコンソールに表示
+  console.log('📏 Voice generation limits:', {
+    ALWAYS_GENERATE: VOICE_LIMITS.ALWAYS_GENERATE,
+    NORMAL_GENERATE: VOICE_LIMITS.NORMAL_GENERATE,
+    SUMMARY_GENERATE: VOICE_LIMITS.SUMMARY_GENERATE,
+    currentTextLength: textLength
   })
 
-  return decision
+  // 段階的音声生成ロジック
+  const getGenerationType = (): VoiceGenerationType => {
+    if (priority === VoicePriority.USER_NAME_CALLING) {
+      return VoiceGenerationType.ALWAYS // ユーザー名呼びかけは常に生成
+    }
+    
+    if (textLength <= VOICE_LIMITS.ALWAYS_GENERATE) {
+      return VoiceGenerationType.ALWAYS // 0-50文字: 必ず音声生成
+    } else if (textLength <= VOICE_LIMITS.NORMAL_GENERATE) {
+      return VoiceGenerationType.NORMAL // 51-150文字: 音声生成（通常）
+    } else if (textLength <= VOICE_LIMITS.SUMMARY_GENERATE) {
+      return VoiceGenerationType.SUMMARY // 151-300文字: 音声生成（要約版）
+    } else {
+      return VoiceGenerationType.SKIP // 300文字以上: テキストのみ表示
+    }
+  }
+
+  const generationType = getGenerationType()
+  const shouldGenerate = generationType !== VoiceGenerationType.SKIP
+
+  // 判定理由の詳細表示
+  const getReason = (): string => {
+    if (priority === VoicePriority.USER_NAME_CALLING) {
+      return 'user_name_calling_priority'
+    }
+    
+    switch (generationType) {
+      case VoiceGenerationType.ALWAYS:
+        return `short_text_${textLength}chars`
+      case VoiceGenerationType.NORMAL:
+        return `normal_length_${textLength}chars`
+      case VoiceGenerationType.SUMMARY:
+        return `long_text_summary_${textLength}chars`
+      case VoiceGenerationType.SKIP:
+        return `text_too_long_${textLength}chars_limit_${VOICE_LIMITS.SUMMARY_GENERATE}`
+      default:
+        return 'unknown'
+    }
+  }
+
+  console.log('🤔 Voice generation decision:', {
+    text: text.substring(0, 30) + (textLength > 30 ? '...' : ''),
+    textLength,
+    priority: Object.keys(VoicePriority)[Object.values(VoicePriority).indexOf(priority)],
+    generationType,
+    shouldGenerate,
+    reason: getReason(),
+    limits: {
+      current: textLength,
+      always: `≤${VOICE_LIMITS.ALWAYS_GENERATE}`,
+      normal: `≤${VOICE_LIMITS.NORMAL_GENERATE}`,
+      summary: `≤${VOICE_LIMITS.SUMMARY_GENERATE}`,
+      skip: `>${VOICE_LIMITS.SUMMARY_GENERATE}`
+    }
+  })
+
+  return shouldGenerate
+}
+
+// 長文テキストの要約処理（音声生成用）
+export const getSummarizedTextForVoice = (text: string, characterId: string): string => {
+  const textLength = text.length
+  
+  // 短文・中文の場合はそのまま返す
+  if (textLength <= VOICE_LIMITS.NORMAL_GENERATE) {
+    console.log('📝 Text processing: no summary needed', { textLength, limit: VOICE_LIMITS.NORMAL_GENERATE })
+    return text
+  }
+  
+  // 長文の場合は要約処理
+  if (textLength <= VOICE_LIMITS.SUMMARY_GENERATE) {
+    // 最初の100文字 + キャラクター性格に応じた締めの言葉
+    const summary = text.substring(0, 100)
+    const characterLines = characterVoiceLines[characterId] || []
+    const endingLine = characterLines[Math.floor(Math.random() * characterLines.length)] || '...以上です'
+    
+    const summarizedText = `${summary}... ${endingLine}`
+    
+    console.log('📝 Text summarized for voice:', {
+      originalLength: textLength,
+      summarizedLength: summarizedText.length,
+      characterId,
+      summary: summarizedText.substring(0, 50) + '...'
+    })
+    
+    return summarizedText
+  }
+  
+  // 300文字を超える場合は音声生成しない
+  console.log('📝 Text too long for voice generation:', { textLength, limit: VOICE_LIMITS.SUMMARY_GENERATE })
+  return text
+}
+
+// テストケース用の関数
+export const getVoiceTestCases = () => {
+  return {
+    shortTest: {
+      text: 'こんにちは',
+      description: '短文テスト（5文字）',
+      expectedGeneration: true
+    },
+    mediumTest: {
+      text: '今日の食事についてアドバイスをお願いします。栄養バランスを考えた献立を教えてください。',
+      description: '中文テスト（40文字）',
+      expectedGeneration: true
+    },
+    longTest: {
+      text: '最近、仕事が忙しくて食事の時間が不規則になっています。朝は時間がないのでコーヒーだけ、昼は忙しくてコンビニ弁当、夜は疲れてカップ麺という生活が続いています。この生活習慣を改善して、健康的な食生活を送りたいのですが、具体的にどのような点に注意すればよいでしょうか。また、忙しい中でも実践できる簡単な栄養改善方法があれば教えてください。',
+      description: '長文テスト（150文字以上）',
+      expectedGeneration: true
+    },
+    extraLongTest: {
+      text: '私は最近、健康について真剣に考えるようになりました。今まで食事についてはあまり気にせず、好きなものを好きなだけ食べるという生活を送ってきました。しかし、年齢を重ねるにつれて体調の変化を感じるようになり、特に疲れやすくなったり、肌の調子が悪くなったりすることが増えました。友人からも「最近顔色が悪い」と指摘されることがあり、これは食生活に問題があるのではないかと思うようになりました。そこで、栄養士の方に相談して、自分の食生活を根本的に見直したいと考えています。まず、どこから始めればよいでしょうか。また、無理なく続けられる改善方法があれば、詳しく教えていただきたいです。特に、忙しい平日でも実践できる方法を重視したいと思います。',
+      description: '超長文テスト（300文字以上）',
+      expectedGeneration: false
+    }
+  }
+}
+
+// デバッグ用: 音声生成テスト実行
+export const runVoiceGenerationTests = (characterId: string = 'minato') => {
+  const testCases = getVoiceTestCases()
+  
+  console.log('🧪 Running voice generation tests for character:', characterId)
+  console.log('=' .repeat(60))
+  
+  Object.entries(testCases).forEach(([testName, testCase]) => {
+    console.log(`\n🔬 ${testName.toUpperCase()}:`)
+    console.log(`📝 ${testCase.description}`)
+    console.log(`📏 Text length: ${testCase.text.length} characters`)
+    console.log(`🎯 Expected generation: ${testCase.expectedGeneration}`)
+    
+    const actualGeneration = shouldGenerateVoice(testCase.text, VoicePriority.GENERAL_CHAT)
+    const passed = actualGeneration === testCase.expectedGeneration
+    
+    console.log(`✅ Actual generation: ${actualGeneration}`)
+    console.log(`${passed ? '✅ PASS' : '❌ FAIL'}: Test ${passed ? 'passed' : 'failed'}`)
+    console.log('-'.repeat(40))
+  })
+  
+  console.log('\n🏁 Voice generation tests completed')
 }

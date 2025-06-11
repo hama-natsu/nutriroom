@@ -1,6 +1,6 @@
 'use client'
 
-import { characterVoiceConfigs, VoiceConfig, VoicePriority, shouldGenerateVoice } from './voice-config'
+import { characterVoiceConfigs, VoiceConfig, VoicePriority, shouldGenerateVoice, getSummarizedTextForVoice } from './voice-config'
 
 // 音声キャッシュシステム
 class VoiceCache {
@@ -61,22 +61,33 @@ export class VoiceService {
 
     // 音声生成の必要性を判定
     if (!shouldGenerateVoice(text, priority)) {
+      console.log('⏭️ Voice generation skipped by policy')
       return null
     }
 
-    // キャッシュチェック
-    const cacheKey = this.cache.getCacheKey(text, characterId)
+    // 長文の場合は要約処理を実行
+    const processedText = getSummarizedTextForVoice(text, characterId)
+
+    // キャッシュチェック（処理済みテキストでキャッシュキーを生成）
+    const cacheKey = this.cache.getCacheKey(processedText, characterId)
     const cachedAudio = this.cache.get(cacheKey)
     if (cachedAudio) {
-      console.log('🎵 Using cached voice:', text.substring(0, 30))
+      console.log('🎵 Using cached voice:', {
+        originalText: text.substring(0, 30) + (text.length > 30 ? '...' : ''),
+        processedText: processedText.substring(0, 30) + (processedText.length > 30 ? '...' : ''),
+        cacheKey: cacheKey.substring(0, 30) + '...'
+      })
       return cachedAudio
     }
 
     try {
       console.log('🎤 Generating voice for:', {
         characterId,
-        text: text.substring(0, 30),
-        textLength: text.length,
+        originalText: text.substring(0, 30) + (text.length > 30 ? '...' : ''),
+        originalLength: text.length,
+        processedText: processedText.substring(0, 30) + (processedText.length > 30 ? '...' : ''),
+        processedLength: processedText.length,
+        wasProcessed: text !== processedText,
         priority,
         timestamp: new Date().toISOString()
       })
@@ -102,7 +113,7 @@ export class VoiceService {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          text: text.substring(0, 200), // 200文字制限
+          text: processedText.substring(0, 200), // 処理済みテキストを使用、200文字制限
           characterId,
           voiceConfig
         })
