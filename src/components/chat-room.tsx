@@ -233,6 +233,7 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
             className={`flex ${message.isUser ? 'justify-end' : 'justify-start'} ${
               index >= messages.length - 3 ? (message.isUser ? 'animate-slideInRight' : 'animate-slideInLeft') : ''
             }`}
+            data-ai-message={!message.isUser ? "true" : undefined}
           >
             <div
               className={`max-w-[85%] sm:max-w-[80%] p-3 sm:p-4 rounded-2xl transition-all duration-200 hover:shadow-md message-bubble ${
@@ -294,10 +295,10 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
         ))}
 
         {isLoading && (
-          <div className="flex justify-start animate-fadeIn">
+          <div className="flex justify-start animate-fadeIn" data-ai-message="true">
             <div 
               className={`p-4 rounded-2xl rounded-bl-sm shadow-lg border-l-4 ${
-                is3DMode ? 'backdrop-blur-md' : 'bg-white'
+                is3DMode ? 'backdrop-blur-md message-3d-enhanced' : 'bg-white'
               }`}
               style={{ 
                 borderLeftColor: character.colorTheme.primary,
@@ -339,7 +340,18 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
                       }}
                     ></div>
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div 
+                    className={`text-xs mt-1 ${
+                      is3DMode ? 'text-enhanced-3d' : 'text-gray-500'
+                    }`}
+                    style={{
+                      color: is3DMode ? '#000000' : undefined,
+                      fontWeight: is3DMode ? '700' : undefined,
+                      textShadow: is3DMode 
+                        ? '0 2px 4px rgba(0, 0, 0, 1), 0 1px 3px rgba(255, 255, 255, 1)'
+                        : undefined
+                    }}
+                  >
                     {character.name}が入力中...
                   </div>
                 </div>
@@ -370,9 +382,18 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="栄養について相談してみましょう"
-              className="w-full p-3 text-base border border-gray-300 rounded-xl resize-none focus:outline-none focus:ring-2 focus:border-transparent"
+              className={`w-full p-3 text-base border rounded-xl resize-none focus:outline-none focus:ring-2 focus:border-transparent ${
+                is3DMode ? 'input-3d-enhanced' : 'border-gray-300'
+              }`}
               style={{ 
-                '--tw-ring-color': character.colorTheme.primary + '50'
+                '--tw-ring-color': character.colorTheme.primary + '50',
+                backgroundColor: '#ffffff',
+                color: '#000000',
+                fontWeight: '600',
+                border: is3DMode ? '2px solid rgba(0, 0, 0, 0.3)' : undefined,
+                boxShadow: is3DMode 
+                  ? '0 8px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 1)'
+                  : undefined
               } as React.CSSProperties}
               rows={2}
               disabled={isLoading}
@@ -395,7 +416,18 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
           </button>
         </div>
         
-        <div className="mt-2 text-xs text-gray-500 text-center">
+        <div 
+          className={`mt-2 text-xs text-center ${
+            is3DMode ? 'text-enhanced-3d' : 'text-gray-500'
+          }`}
+          style={{
+            color: is3DMode ? '#000000' : undefined,
+            fontWeight: is3DMode ? '700' : undefined,
+            textShadow: is3DMode 
+              ? '0 2px 4px rgba(0, 0, 0, 1), 0 1px 3px rgba(255, 255, 255, 1)'
+              : undefined
+          }}
+        >
           送信ボタンで送信
         </div>
       </div>
