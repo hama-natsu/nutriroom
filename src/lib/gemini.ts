@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { Character } from './characters';
 
 // 環境変数チェック
 const apiKey = process.env.GOOGLE_AI_API_KEY;
@@ -251,12 +252,12 @@ const characterPrompts = {
 };
 
 export async function generateResponse(
-  characterId: string,
+  character: Character,
   userMessage: string,
   conversationHistory: string[] = []
 ): Promise<string> {
   console.log('🤖 generateResponse called:', {
-    characterId,
+    characterId: character.id,
     userMessageLength: userMessage.length,
     conversationHistoryLength: conversationHistory.length
   });
@@ -320,18 +321,11 @@ export async function generateResponse(
       throw modelError;
     }
     
-    // キャラクター情報を取得
-    const character = characterPrompts[characterId as keyof typeof characterPrompts];
-    
-    if (!character) {
-      console.error('❌ Character not found:', characterId);
-      return 'すみません、そのキャラクターは見つかりませんでした。';
-    }
-
     console.log('✅ Character found:', character.name);
 
     // キャラクター別プロンプト作成（個性重視）
-    let fullPrompt = character.prompt;
+    const characterPromptData = characterPrompts[character.id as keyof typeof characterPrompts];
+    let fullPrompt = characterPromptData?.prompt || `あなたは${character.name}という栄養士です。${character.personalityType}の性格で、${character.specialties.join('、')}を専門としています。`;
     
     // 会話履歴を追加
     if (conversationHistory.length > 0) {
@@ -339,16 +333,16 @@ export async function generateResponse(
     }
     
     // ユーザーの質問を追加
-    fullPrompt += `\n【ユーザーからの質問・相談】\n${userMessage}\n\n上記に対して、${character.name}の性格で回答してください。必ず以下の特徴を含めてください：\n- ${character.catchphrases[0]}\n- ${character.personality}らしい話し方\n- 200文字程度で簡潔に\n- 専門分野（${character.specialty}）を活かした内容`;
+    fullPrompt += `\n【ユーザーからの質問・相談】\n${userMessage}\n\n上記に対して、${character.name}の性格で回答してください。必ず以下の特徴を含めてください：\n- ${character.catchphrases[0]}\n- ${character.personalityType}らしい話し方\n- 200文字程度で簡潔に\n- 専門分野（${character.specialties[0]}）を活かした内容`;
     
     console.error('🔥 CHARACTER SPECIFIC PROMPT CREATED:', {
       characterName: character.name,
-      personality: character.personality,
+      personality: character.personalityType,
       catchphrase: character.catchphrases[0],
-      specialty: character.specialty
+      specialty: character.specialties[0]
     });
     
-    console.error('🔥 ORIGINAL CHARACTER PROMPT LENGTH:', character.prompt.length);
+    console.error('🔥 ORIGINAL CHARACTER PROMPT LENGTH:', characterPromptData?.prompt?.length || 0);
     console.error('🔥 FINAL PROMPT LENGTH:', fullPrompt.length);
     console.error('🔥 PROMPT SAFETY CHECK:', {
       hasJapanese: /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(fullPrompt),
@@ -649,7 +643,7 @@ export async function generateResponse(
       errorConstructor: err.constructor?.name,
       
       // Context
-      characterId,
+      characterId: character.id,
       userMessage: userMessage.substring(0, 100),
       userMessageLength: userMessage.length,
       

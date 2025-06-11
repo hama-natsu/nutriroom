@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateResponse } from '@/lib/gemini'
+import { characters } from '@/lib/characters'
 
 export async function POST(request: NextRequest) {
   console.log('🚀 Chat API route called');
@@ -76,8 +77,18 @@ export async function POST(request: NextRequest) {
     console.warn('🤖 GEMINI_MODEL_INIT: 開始');
     console.error('🤖 GEMINI_MODEL_INIT: 開始');
     
+    // キャラクターを取得
+    const character = characters.find(c => c.id === characterId);
+    if (!character) {
+      console.error('❌ Character not found:', characterId);
+      return NextResponse.json(
+        { error: 'キャラクターが見つかりません' },
+        { status: 404 }
+      );
+    }
+
     // Gemini APIを使用してレスポンスを生成
-    const response = await generateResponse(characterId, message, conversationHistory)
+    const response = await generateResponse(character, message, conversationHistory)
     
     console.log('🤖 GEMINI_MODEL_INIT: 完了');
     console.warn('🤖 GEMINI_MODEL_INIT: 完了');

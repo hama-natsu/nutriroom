@@ -69,7 +69,7 @@ export function CharacterSelected({ character, onBack, onStartChat }: CharacterS
                       {character.name}からのメッセージ
                     </p>
                     <p className="text-gray-700 italic">
-                      「{character.catchphrase}」
+                      「{character.catchphrases[0]}」
                     </p>
                   </div>
                 </div>

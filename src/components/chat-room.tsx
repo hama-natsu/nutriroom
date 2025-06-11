@@ -19,7 +19,7 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      content: character.catchphrase || `こんにちは！${character.name}です。何かご相談はありますか？`,
+      content: character.catchphrases[0] || `こんにちは！${character.name}です。何かご相談はありますか？`,
       isUser: false,
       timestamp: new Date()
     }
@@ -29,7 +29,12 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'nearest'
+      })
+    }, 100) // アニメーション後にスクロール
   }
 
   useEffect(() => {
@@ -147,8 +152,9 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
               ← 戻る
             </button>
             <div 
-              className="w-12 h-12 rounded-full flex items-center justify-center text-2xl"
+              className="w-12 h-12 rounded-full flex items-center justify-center text-2xl hover-scale cursor-pointer"
               style={{ backgroundColor: character.colorTheme.accent }}
+              title={`${character.name} (${character.personalityType})`}
             >
               {character.gender === '男性' ? '👨‍⚕️' : character.gender === '女性' ? '👩‍⚕️' : '🧑‍⚕️'}
             </div>
@@ -165,14 +171,16 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
       </div>
 
       {/* メッセージエリア */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => (
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 smooth-scroll">
+        {messages.map((message, index) => (
           <div
             key={message.id}
-            className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
+            className={`flex ${message.isUser ? 'justify-end' : 'justify-start'} ${
+              index >= messages.length - 3 ? (message.isUser ? 'animate-slideInRight' : 'animate-slideInLeft') : ''
+            }`}
           >
             <div
-              className={`max-w-[80%] p-4 rounded-2xl ${
+              className={`max-w-[80%] p-4 rounded-2xl transition-all duration-300 hover:shadow-lg ${
                 message.isUser
                   ? 'text-white rounded-br-sm'
                   : 'bg-white rounded-bl-sm shadow-md'
@@ -198,12 +206,41 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
         ))}
 
         {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-white p-4 rounded-2xl rounded-bl-sm shadow-md">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+          <div className="flex justify-start animate-fadeIn">
+            <div className="bg-white p-4 rounded-2xl rounded-bl-sm shadow-lg border-l-4" 
+                 style={{ borderLeftColor: character.colorTheme.primary }}>
+              <div className="flex items-center space-x-3">
+                <div 
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-sm"
+                  style={{ backgroundColor: character.colorTheme.accent }}
+                >
+                  {character.gender === '男性' ? '👨‍⚕️' : character.gender === '女性' ? '👩‍⚕️' : '🧑‍⚕️'}
+                </div>
+                <div className="flex flex-col">
+                  <div className="flex items-center space-x-2">
+                    <div 
+                      className="w-2 h-2 rounded-full animate-pulse"
+                      style={{ backgroundColor: character.colorTheme.primary }}
+                    ></div>
+                    <div 
+                      className="w-2 h-2 rounded-full animate-pulse"
+                      style={{ 
+                        backgroundColor: character.colorTheme.primary,
+                        animationDelay: '0.2s' 
+                      }}
+                    ></div>
+                    <div 
+                      className="w-2 h-2 rounded-full animate-pulse"
+                      style={{ 
+                        backgroundColor: character.colorTheme.primary,
+                        animationDelay: '0.4s' 
+                      }}
+                    ></div>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {character.name}が入力中...
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -232,10 +269,17 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
           <button
             onClick={sendMessage}
             disabled={!inputMessage.trim() || isLoading}
-            className="px-6 py-3 rounded-xl font-medium text-white transition-all duration-200 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-3 rounded-xl font-medium text-white transition-all duration-200 hover:opacity-90 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 ripple-button shadow-lg hover:shadow-xl"
             style={{ backgroundColor: character.colorTheme.primary }}
           >
-            送信
+            {isLoading ? (
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>送信中...</span>
+              </div>
+            ) : (
+              '送信'
+            )}
           </button>
         </div>
         

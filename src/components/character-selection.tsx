@@ -49,12 +49,17 @@ export function CharacterSelection({ onBack, onCharacterSelect }: CharacterSelec
 
         {/* キャラクターグリッド */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {characters.map((character) => (
-            <CharacterCard
+          {characters.map((character, index) => (
+            <div
               key={character.id}
-              character={character}
-              onSelect={handleCharacterSelect}
-            />
+              className="animate-fadeIn"
+              style={{ animationDelay: `${index * 0.1}s` }}
+            >
+              <CharacterCard
+                character={character}
+                onSelect={handleCharacterSelect}
+              />
+            </div>
           ))}
         </div>
 
