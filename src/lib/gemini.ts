@@ -330,27 +330,23 @@ export async function generateResponse(
 
     console.log('✅ Character found:', character.name);
 
-    // まずはシンプルなテストプロンプトで動作確認
-    const isTestMode = userMessage.toLowerCase().includes('test') || userMessage.toLowerCase().includes('テスト');
+    // キャラクター別プロンプト作成（個性重視）
+    let fullPrompt = character.prompt;
     
-    let fullPrompt;
-    if (isTestMode) {
-      // シンプルな英語テストプロンプト
-      fullPrompt = "Hello, please give me a simple nutrition tip in one sentence.";
-      console.error('🔥 USING SIMPLE TEST PROMPT:', fullPrompt);
-    } else {
-      // 安全性フィルター回避のため、プロンプトを簡略化
-      fullPrompt = `You are a nutritionist named ${character.name}. Please respond briefly and helpfully to this question: "${userMessage}"`;
-      console.error('🔥 USING SIMPLIFIED PROMPT:', fullPrompt);
-    }
-    
-    // 元のプロンプト（参考用）
-    const originalPrompt = character.prompt;
+    // 会話履歴を追加
     if (conversationHistory.length > 0) {
-      // 会話履歴は簡略化
-      const shortHistory = conversationHistory.slice(-2); // 最新2件のみ
-      fullPrompt += `\n\nRecent context: ${shortHistory.join('. ')}`;
+      fullPrompt += `\n\n【これまでの会話履歴】\n${conversationHistory.slice(-3).join('\n')}\n`;
     }
+    
+    // ユーザーの質問を追加
+    fullPrompt += `\n【ユーザーからの質問・相談】\n${userMessage}\n\n上記に対して、${character.name}の性格で回答してください。必ず以下の特徴を含めてください：\n- ${character.catchphrases[0]}\n- ${character.personalityType}らしい話し方\n- 200文字程度で簡潔に\n- 専門分野（${character.specialty}）を活かした内容`;
+    
+    console.error('🔥 CHARACTER SPECIFIC PROMPT CREATED:', {
+      characterName: character.name,
+      personality: character.personalityType,
+      catchphrase: character.catchphrases[0],
+      specialty: character.specialty
+    });
     
     console.error('🔥 ORIGINAL CHARACTER PROMPT LENGTH:', originalPrompt.length);
     console.error('🔥 FINAL PROMPT LENGTH:', fullPrompt.length);

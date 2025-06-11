@@ -97,17 +97,16 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       response,
-      actualGeminiResponse: response,
-      debug: {
-        ...debugInfo,
-        success: true,
-        responseLength: response.length,
-        timestamp: new Date().toISOString(),
-        forceVisible: true,
-        serverAlert: 'SUCCESS: API completed successfully',
-        actualResponseText: response,
-        responsePreview: response.substring(0, 200)
-      }
+      // デバッグ情報は開発環境でのみ
+      ...(process.env.NODE_ENV === 'development' && {
+        debug: {
+          ...debugInfo,
+          success: true,
+          responseLength: response.length,
+          timestamp: new Date().toISOString(),
+          actualResponseText: response
+        }
+      })
     })
   } catch (error: unknown) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

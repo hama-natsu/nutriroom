@@ -39,8 +39,10 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
   const sendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return
 
-    // 強制アラート表示
-    alert('DEBUG: メッセージ送信開始 - ' + new Date().toISOString());
+    // デバッグアラートは開発環境でのみ
+    if (process.env.NODE_ENV === 'development') {
+      console.log('DEBUG: メッセージ送信開始 - ' + new Date().toISOString());
+    }
 
     // ユーザーメッセージを追加
     const userMessage: Message = {
@@ -76,40 +78,18 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
 
       const data = await response.json()
 
-      // 実際のGemini レスポンスを強制表示
-      console.error('🔥 FRONTEND - ACTUAL GEMINI RESPONSE:', data.actualGeminiResponse);
-      console.error('🔥 FRONTEND - RESPONSE FIELD:', data.response);
-      
-      // レスポンステキストをアラート表示
-      if (data.actualGeminiResponse) {
-        alert('ACTUAL GEMINI RESPONSE: ' + data.actualGeminiResponse);
-      }
-      
-      // デバッグ情報を強制表示
-      if (data.debug) {
+      // デバッグ情報は開発環境でのみ表示
+      if (process.env.NODE_ENV === 'development') {
         console.log('🔥 FRONTEND DEBUG INFO:', data.debug);
-        console.warn('🔥 FRONTEND DEBUG INFO:', data.debug);
-        console.error('🔥 FRONTEND DEBUG INFO:', data.debug);
-        
-        // 成功時もアラート表示
-        if (data.debug.success === true) {
-          alert('DEBUG SUCCESS - ACTUAL RESPONSE: ' + data.debug.actualResponseText);
-        }
-        
-        // アラートでも確実に表示
-        if (data.debug.success === false) {
-          alert('DEBUG ERROR INFO: ' + JSON.stringify(data.debug, null, 2));
+        if (data.debug && data.debug.success === false) {
+          console.error('DEBUG ERROR INFO:', data.debug);
         }
       }
 
-      // AIの応答を追加（実際のGeminiレスポンスを表示）
-      const actualResponse = data.actualGeminiResponse || data.response;
-      const debugText = data.debug ? `\n\n[DEBUG] ${JSON.stringify(data.debug, null, 2)}` : '';
-      const actualResponseText = `[ACTUAL GEMINI RESPONSE]\n${actualResponse}\n\n[API RESPONSE FIELD]\n${data.response}`;
-      
+      // AIの応答を追加（本番環境では通常表示）
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: actualResponseText + (process.env.NODE_ENV === 'development' ? debugText : ''),
+        content: data.response,
         isUser: false,
         timestamp: new Date()
       }
@@ -117,15 +97,16 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
       setMessages(prev => [...prev, aiMessage])
     } catch (error) {
       console.error('エラー:', error)
-      console.error('🔥 FRONTEND CATCH ERROR:', error);
       
-      // アラートで確実にエラー表示
-      alert('FRONTEND ERROR: ' + JSON.stringify(error, null, 2));
+      // エラー詳細は開発環境でのみ表示
+      if (process.env.NODE_ENV === 'development') {
+        console.error('🔥 FRONTEND CATCH ERROR:', error);
+      }
       
       // エラーメッセージを追加
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: 'すみません、今は応答できません。少し時間をおいてもう一度お試しください。\n\n[ERROR DEBUG] ' + JSON.stringify(error, null, 2),
+        content: 'すみません、今は応答できません。少し時間をおいてもう一度お試しください。',
         isUser: false,
         timestamp: new Date()
       }
