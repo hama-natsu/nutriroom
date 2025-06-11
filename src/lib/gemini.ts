@@ -271,22 +271,22 @@ export async function generateResponse(
     console.log('🔧 Creating Gemini model...');
     console.error('🔥 GEMINI MODEL CREATION START');
     
-    // モデル名の検証 - 複数のモデル名を試す
+    // モデル名の検証 - Google公式推奨モデル使用
     const possibleModels = [
-      "gemini-pro",
+      "gemini-1.5-flash",  // 推奨・安定版
       "gemini-1.5-pro",
-      "gemini-1.5-flash",
-      "models/gemini-pro",
+      "models/gemini-1.5-flash",
       "models/gemini-1.5-pro"
     ];
     
     console.error('🔥 TESTING MODEL NAMES:', possibleModels);
     
-    const modelConfig = { model: "gemini-pro" };
+    const modelConfig = { model: "gemini-1.5-flash" };
     console.log('📋 Model configuration:', modelConfig);
     console.error('🔥 MODEL CONFIG DETAILS:', {
       modelName: modelConfig.model,
-      isValidModel: modelConfig.model === "gemini-pro",
+      isValidModel: modelConfig.model === "gemini-1.5-flash",
+      isRecommendedModel: true,
       configType: typeof modelConfig,
       configKeys: Object.keys(modelConfig),
       possibleAlternatives: possibleModels
@@ -363,7 +363,7 @@ export async function generateResponse(
     console.log('💬 Sending prompt to Gemini...', {
       promptLength: fullPrompt.length,
       character: character.name,
-      modelType: "gemini-pro",
+      modelType: "gemini-1.5-flash",
       timestamp: new Date().toISOString()
     });
     console.error('🔥 GEMINI API REQUEST START');
