@@ -31,7 +31,7 @@ export function CharacterSelection({ onBack, onCharacterSelect }: CharacterSelec
       </div>
 
       {/* コンテンツエリア - ヘッダー分のpadding-top追加 */}
-      <div className="pt-16 px-4 py-6">
+      <div className="pt-20 px-4 py-6">
         {/* 説明文 */}
         <div className="text-center mb-8">
           <p className="text-gray-600 text-lg leading-relaxed max-w-2xl mx-auto">
