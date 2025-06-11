@@ -477,9 +477,11 @@ export async function generateResponse(
       });
       
       // Gemini レスポンスの安全性チェック
-      if (result && result.candidates) {
-        console.error('🔥 GEMINI CANDIDATES:', result.candidates);
-        result.candidates.forEach((candidate: unknown, index: number) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const resultObj = result as any;
+      if (resultObj && resultObj.candidates) {
+        console.error('🔥 GEMINI CANDIDATES:', resultObj.candidates);
+        resultObj.candidates.forEach((candidate: unknown, index: number) => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const candidateObj = candidate as any;
           console.error(`🔥 CANDIDATE ${index}:`, {
@@ -490,8 +492,8 @@ export async function generateResponse(
         });
       }
       
-      if (result && result.promptFeedback) {
-        console.error('🔥 PROMPT FEEDBACK:', result.promptFeedback);
+      if (resultObj && resultObj.promptFeedback) {
+        console.error('🔥 PROMPT FEEDBACK:', resultObj.promptFeedback);
       }
       
       console.error('🔥 CALLING result.response...');
