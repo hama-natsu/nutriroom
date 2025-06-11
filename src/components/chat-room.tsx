@@ -154,20 +154,23 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
           : `linear-gradient(135deg, ${character.colorTheme.background} 0%, ${character.colorTheme.secondary}20 100%)`
       }}
     >
-      {/* ヘッダー - モバイル最適化 */}
+      {/* メルカリ風ヘッダー */}
       <div 
         className="p-3 sm:p-4 text-white shadow-lg"
         style={{ backgroundColor: character.colorTheme.primary }}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={onBack}
-              className="w-12 h-12 bg-white bg-opacity-30 backdrop-blur-sm rounded-xl border border-white border-opacity-40 flex items-center justify-center hover:bg-opacity-50 transition-all duration-200 touch-button text-white text-xl font-bold shadow-lg"
-              title="戻る"
-            >
-              ←
-            </button>
+        <div className="flex items-center max-w-4xl mx-auto">
+          {/* メルカリ風戻るボタン */}
+          <button
+            onClick={onBack}
+            className="w-11 h-11 mr-3 flex items-center justify-center text-gray-800 text-lg bg-white/90 backdrop-blur-sm rounded-full shadow-sm hover:bg-white transition-all duration-200 touch-button"
+            title="戻る"
+          >
+            ＜
+          </button>
+          
+          {/* キャラクター情報 */}
+          <div className="flex items-center gap-3">
             <div 
               className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-xl sm:text-2xl hover-scale cursor-pointer"
               style={{ backgroundColor: character.colorTheme.accent }}
@@ -179,10 +182,6 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
               <h1 className="text-lg sm:text-xl font-bold">{character.name}</h1>
               <p className="text-xs sm:text-sm opacity-90">{character.personalityType}</p>
             </div>
-          </div>
-          <div className="text-right hidden sm:block">
-            <div className="text-xs opacity-80">専門分野</div>
-            <div className="text-sm">{character.specialties.join('・')}</div>
           </div>
         </div>
       </div>

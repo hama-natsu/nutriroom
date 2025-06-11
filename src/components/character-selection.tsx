@@ -15,21 +15,21 @@ export function CharacterSelection({ onBack, onCharacterSelect }: CharacterSelec
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
+      {/* メルカリ風戻るボタン - 左上固定 */}
+      <button
+        onClick={onBack}
+        className="fixed top-4 left-4 z-50 w-11 h-11 flex items-center justify-center text-gray-700 text-lg bg-white/80 backdrop-blur-sm rounded-full shadow-sm border border-gray-200 hover:bg-white hover:shadow-md transition-all duration-200 touch-button"
+        title="戻る"
+      >
+        ＜
+      </button>
+
       {/* ヘッダー */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">AI栄養士を選んでください</h1>
-              <p className="text-sm sm:text-base text-gray-600 mt-1">あなたに最適な栄養士を見つけて、理想の食生活を始めましょう</p>
-            </div>
-            <button
-              onClick={onBack}
-              className="w-12 h-12 bg-white/90 backdrop-blur-sm rounded-xl border-2 border-gray-300 shadow-lg flex items-center justify-center hover:bg-white hover:border-gray-400 transition-all duration-200 touch-button text-gray-700 text-xl font-bold"
-              title="戻る"
-            >
-              ←
-            </button>
+          <div className="text-center">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">AI栄養士を選んでください</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">あなたに最適な栄養士を見つけて、理想の食生活を始めましょう</p>
           </div>
         </div>
       </div>
