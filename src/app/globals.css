@@ -200,6 +200,27 @@ body {
   padding-bottom: constant(safe-area-inset-bottom);
 }
 
+/* iOS Safe Area 完全対応 */
+.header-with-safe-area {
+  padding-top: env(safe-area-inset-top);
+  padding-top: constant(safe-area-inset-top);
+}
+
+.safe-area-top {
+  margin-top: env(safe-area-inset-top);
+  margin-top: constant(safe-area-inset-top);
+}
+
+/* 戻るボタン統一スタイル */
+.back-button-unified {
+  width: 48px;
+  height: 48px;
+  font-size: 20px;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  will-change: transform, background-color;
+}
+
 @media (max-width: 640px) {
   /* モバイル専用の片手操作最適化 */
   .mobile-bottom-action {

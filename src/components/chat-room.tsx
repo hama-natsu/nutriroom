@@ -163,7 +163,7 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
           <div className="flex items-center space-x-4">
             <button
               onClick={onBack}
-              className="w-12 h-12 bg-white bg-opacity-20 backdrop-blur-sm rounded-xl flex items-center justify-center hover:bg-opacity-30 transition-colors touch-button text-white text-xl font-bold"
+              className="w-12 h-12 bg-white bg-opacity-30 backdrop-blur-sm rounded-xl border border-white border-opacity-40 flex items-center justify-center hover:bg-opacity-50 transition-all duration-200 touch-button text-white text-xl font-bold shadow-lg"
               title="戻る"
             >
               ←

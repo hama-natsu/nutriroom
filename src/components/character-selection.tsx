@@ -25,7 +25,7 @@ export function CharacterSelection({ onBack, onCharacterSelect }: CharacterSelec
             </div>
             <button
               onClick={onBack}
-              className="w-12 h-12 bg-white border border-gray-200 rounded-xl shadow-sm flex items-center justify-center hover:bg-gray-50 transition-colors touch-button text-xl text-gray-700 hover:text-gray-900"
+              className="w-12 h-12 bg-white/90 backdrop-blur-sm rounded-xl border-2 border-gray-300 shadow-lg flex items-center justify-center hover:bg-white hover:border-gray-400 transition-all duration-200 touch-button text-gray-700 text-xl font-bold"
               title="戻る"
             >
               ←
