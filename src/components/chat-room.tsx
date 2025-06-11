@@ -222,7 +222,7 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
       </div>
 
       {/* メッセージエリア - ヘッダーと入力エリア分のpadding追加 */}
-      <div className={`pt-20 pb-32 flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 smooth-scroll relative z-10 ${
+      <div className={`pt-24 sm:pt-24 pb-32 flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 smooth-scroll relative z-10 ${
         is3DMode 
           ? 'bg-black/30 backdrop-blur-md' // 背景を濃くしてコントラストを強化
           : ''

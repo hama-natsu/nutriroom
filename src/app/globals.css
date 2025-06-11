@@ -324,6 +324,11 @@ body {
     border-top: 1px solid #e5e7eb;
     z-index: 10;
   }
+  
+  /* モバイルでのヘッダー重なり防止 */
+  .mobile-header-spacing {
+    padding-top: 6rem; /* 96px - モバイル用 */
+  }
 }
 
 /* 送信ボタンリップル効果 */
