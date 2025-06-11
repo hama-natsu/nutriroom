@@ -479,11 +479,13 @@ export async function generateResponse(
       // Gemini レスポンスの安全性チェック
       if (result && result.candidates) {
         console.error('🔥 GEMINI CANDIDATES:', result.candidates);
-        result.candidates.forEach((candidate: any, index: number) => {
+        result.candidates.forEach((candidate: unknown, index: number) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const candidateObj = candidate as any;
           console.error(`🔥 CANDIDATE ${index}:`, {
-            finishReason: candidate.finishReason,
-            safetyRatings: candidate.safetyRatings,
-            hasContent: !!candidate.content
+            finishReason: candidateObj.finishReason,
+            safetyRatings: candidateObj.safetyRatings,
+            hasContent: !!candidateObj.content
           });
         });
       }
