@@ -348,12 +348,12 @@ export async function generateResponse(
       specialty: character.specialty
     });
     
-    console.error('🔥 ORIGINAL CHARACTER PROMPT LENGTH:', originalPrompt.length);
+    console.error('🔥 ORIGINAL CHARACTER PROMPT LENGTH:', character.prompt.length);
     console.error('🔥 FINAL PROMPT LENGTH:', fullPrompt.length);
     console.error('🔥 PROMPT SAFETY CHECK:', {
       hasJapanese: /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(fullPrompt),
       length: fullPrompt.length,
-      isTestMode: isTestMode
+      isCharacterBased: true
     });
 
     console.log('💬 Sending prompt to Gemini...', {
