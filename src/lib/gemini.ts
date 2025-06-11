@@ -413,15 +413,35 @@ export async function generateResponse(
     let response;
     try {
       console.log('📝 Processing response...');
+      console.error('🔥 RESPONSE PROCESSING START');
+      console.error('🔥 RESULT OBJECT DETAILS:', {
+        hasResult: !!result,
+        resultType: typeof result,
+        resultKeys: Object.keys(result || {}),
+        resultConstructor: result?.constructor?.name,
+        resultString: JSON.stringify(result, null, 2).substring(0, 500)
+      });
+      
+      console.error('🔥 CALLING result.response...');
       response = await result.response;
+      
       console.log('✅ Response object received:', {
         hasResponse: !!response,
         responseKeys: Object.keys(response || {}),
         timestamp: new Date().toISOString()
       });
+      console.error('🔥 RESPONSE OBJECT SUCCESS');
+      console.error('🔥 RESPONSE OBJECT DETAILS:', {
+        hasResponse: !!response,
+        responseType: typeof response,
+        responseKeys: Object.keys(response || {}),
+        responseConstructor: response?.constructor?.name,
+        responseString: JSON.stringify(response, null, 2).substring(0, 500)
+      });
     } catch (responseError: unknown) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const err = responseError as any;
+      console.error('🔥 RESPONSE PROCESSING FAILED');
       console.error('❌ Failed to get response object:', {
         error: responseError,
         message: err.message,
@@ -432,22 +452,50 @@ export async function generateResponse(
         fullError: JSON.stringify(err, null, 2),
         timestamp: new Date().toISOString()
       });
+      console.error('🔥 RESPONSE ERROR ANALYSIS:', {
+        errorAtResultResponse: true,
+        resultWasValid: !!result,
+        errorType: typeof err,
+        errorName: err.name,
+        errorMessage: err.message,
+        hasErrorStack: !!err.stack
+      });
       throw responseError;
     }
     
     let responseText;
     try {
       console.log('📄 Extracting response text...');
+      console.error('🔥 TEXT EXTRACTION START');
+      console.error('🔥 CALLING response.text()...');
+      console.error('🔥 RESPONSE BEFORE TEXT CALL:', {
+        hasResponse: !!response,
+        responseType: typeof response,
+        responseHasTextMethod: typeof response?.text === 'function',
+        responseKeys: Object.keys(response || {}),
+        responsePrototype: Object.getPrototypeOf(response || {})?.constructor?.name
+      });
+      
       responseText = response.text();
+      
+      console.error('🔥 TEXT EXTRACTION SUCCESS');
       console.log('✅ Response processed successfully:', {
         responseLength: responseText.length,
         character: character.name,
         hasContent: !!responseText,
         timestamp: new Date().toISOString()
       });
+      console.error('🔥 RESPONSE TEXT DETAILS:', {
+        responseLength: responseText.length,
+        responseStart: responseText.substring(0, 200) + '...',
+        responseType: typeof responseText,
+        hasContent: !!responseText,
+        isEmpty: responseText.length === 0
+      });
     } catch (textError: unknown) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const err = textError as any;
+      console.error('🔥 TEXT EXTRACTION FAILED');
       console.error('❌ Failed to extract response text:', {
         error: textError,
         message: err.message,
@@ -458,13 +506,38 @@ export async function generateResponse(
         fullError: JSON.stringify(err, null, 2),
         timestamp: new Date().toISOString()
       });
+      console.error('🔥 TEXT ERROR ANALYSIS:', {
+        errorAtResponseText: true,
+        responseWasValid: !!response,
+        responseHadTextMethod: typeof response?.text === 'function',
+        errorType: typeof err,
+        errorName: err.name,
+        errorMessage: err.message,
+        hasErrorStack: !!err.stack
+      });
       throw textError;
     }
+    
+    console.error('🔥 FINAL SUCCESS - RETURNING RESPONSE TEXT');
+    console.error('🔥 FINAL RESPONSE:', {
+      textLength: responseText.length,
+      textStart: responseText.substring(0, 100) + '...',
+      success: true,
+      character: character.name
+    });
     
     return responseText;
   } catch (error: unknown) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const err = error as any;
+    
+    console.error('🔥 FINAL ERROR CATCH - DETERMINING ERROR STAGE');
+    console.error('🔥 ERROR STAGE ANALYSIS:', {
+      errorInMainCatch: true,
+      errorMessage: err.message,
+      errorStack: err.stack?.substring(0, 300),
+      timestamp: new Date().toISOString()
+    });
     
     console.error('❌ COMPLETE GEMINI API ERROR DETAILS:', {
       // Basic error info
