@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@google-cloud/text-to-speech": "^6.1.0",
     "@google/generative-ai": "^0.21.0",
     "@react-three/drei": "^10.2.0",
     "@react-three/fiber": "^9.1.2",

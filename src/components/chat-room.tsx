@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from 'react'
 import { Character } from '@/lib/characters'
 import { ThreeDRoom } from './3d-room'
 import { usePerformanceDetector } from './3d-performance-detector'
+import { voiceService } from '@/lib/voice-service'
+import { VoicePriority } from '@/lib/voice-config'
 
 interface Message {
   id: string
@@ -29,6 +31,8 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
   const [inputMessage, setInputMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [is3DMode, setIs3DMode] = useState(false)
+  const [isVoiceMode, setIsVoiceMode] = useState(false)
+  const [isPlayingVoice, setIsPlayingVoice] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const performanceInfo = usePerformanceDetector()
 
@@ -117,6 +121,36 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
       }
 
       setMessages(prev => [...prev, aiMessage])
+
+      // 音声モードの場合は音声を生成・再生
+      if (isVoiceMode && voiceService.isVoiceSupported()) {
+        try {
+          setIsPlayingVoice(true)
+          
+          // ユーザー名呼びかけパターンを含むかチェック
+          const userName = 'ユーザー' // TODO: 実際のユーザー名を取得
+          const hasUserNameCalling = data.response.includes(userName)
+          
+          const priority = hasUserNameCalling 
+            ? VoicePriority.USER_NAME_CALLING 
+            : VoicePriority.CHARACTER_LINES
+
+          const voiceGenerated = await voiceService.generateAndPlay(
+            data.response,
+            character.id,
+            priority
+          )
+
+          if (!voiceGenerated) {
+            console.log('音声生成をスキップ - テキスト表示のみ')
+          }
+        } catch (voiceError) {
+          console.error('音声再生エラー:', voiceError)
+          // 音声エラーでもテキストは表示されているので、エラーメッセージは表示しない
+        } finally {
+          setIsPlayingVoice(false)
+        }
+      }
     } catch (error) {
       console.error('エラー:', error)
       
@@ -158,10 +192,38 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
           : `linear-gradient(135deg, ${character.colorTheme.background} 0%, ${character.colorTheme.secondary}20 100%)`
       }}
     >
-      {/* 3D背景レイヤー */}
-      {is3DMode && (
+      {/* 3D背景レイヤー（音声モード時のみ） */}
+      {isVoiceMode && is3DMode && (
         <div className="absolute inset-0 z-0">
           <ThreeDRoom />
+        </div>
+      )}
+
+      {/* 音声モード時の背景（2D） */}
+      {isVoiceMode && !is3DMode && (
+        <div 
+          className="absolute inset-0 z-0"
+          style={{
+            background: `linear-gradient(135deg, ${character.colorTheme.background} 0%, ${character.colorTheme.secondary}20 100%)`,
+            backgroundImage: `
+              radial-gradient(circle at 20% 80%, ${character.colorTheme.primary}15 0%, transparent 50%),
+              radial-gradient(circle at 80% 20%, ${character.colorTheme.accent}15 0%, transparent 50%)
+            `
+          }}
+        >
+          {/* キャラクター立ち絵エリア（将来の実装用） */}
+          <div className="absolute bottom-0 right-4 w-48 h-64 bg-gradient-to-t from-black/10 to-transparent rounded-t-3xl">
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-6xl">
+              {character.gender === '男性' ? '👨‍⚕️' : character.gender === '女性' ? '👩‍⚕️' : '🧑‍⚕️'}
+            </div>
+            {isPlayingVoice && (
+              <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 animate-bounce">
+                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                  🎵
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
       {/* ヤフーフリマ風固定ヘッダー */}
@@ -195,27 +257,45 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
             </div>
           </div>
           
-          {/* 3D切り替えボタン - レスポンシブ対応 */}
-          {performanceInfo.shouldEnable3D && (
+          {/* Voice/Text切り替えボタン */}
+          <button
+            onClick={() => {
+              setIsVoiceMode(!isVoiceMode)
+              if (isVoiceMode) {
+                setIs3DMode(false) // 音声モード終了時は3Dも無効
+              }
+            }}
+            className={`p-2 text-white text-sm font-medium hover:text-white/80 transition-colors duration-200 rounded-md ${
+              performanceInfo.isMobile ? 'ml-2' : 'ml-4'
+            }`}
+            style={{ 
+              minWidth: performanceInfo.isMobile ? '56px' : '72px',
+              fontSize: performanceInfo.isMobile ? '12px' : '14px'
+            }}
+            title={isVoiceMode ? 'テキストモード' : '音声モード'}
+          >
+            {isVoiceMode ? '💬テキスト' : '🎙️音声'}
+          </button>
+
+          {/* 3D表示ボタン（音声モード時のみ表示） */}
+          {isVoiceMode && performanceInfo.shouldEnable3D && (
             <button
               onClick={() => setIs3DMode(!is3DMode)}
-              className={`p-2 text-white text-sm font-medium hover:text-white/80 transition-colors duration-200 rounded-md ${
-                performanceInfo.isMobile ? 'ml-2' : 'ml-4'
-              }`}
+              className={`p-2 text-white text-xs font-medium hover:text-white/80 transition-colors duration-200 rounded-md ml-1`}
               style={{ 
-                minWidth: performanceInfo.isMobile ? '48px' : '64px',
-                fontSize: performanceInfo.isMobile ? '12px' : '14px'
+                minWidth: '32px',
+                fontSize: '10px'
               }}
-              title={is3DMode ? '2D表示' : '3D表示'}
+              title={is3DMode ? '2D背景' : '3D背景'}
             >
               {is3DMode ? '2D' : '3D'}
             </button>
           )}
           
-          {/* パフォーマンス警告（開発環境のみ） */}
-          {process.env.NODE_ENV === 'development' && !performanceInfo.shouldEnable3D && performanceInfo.isSupported && (
-            <div className="ml-2 text-xs text-white/60">
-              3D無効
+          {/* 音声再生インジケーター */}
+          {isPlayingVoice && (
+            <div className="ml-2 text-xs text-white/80 animate-pulse">
+              🔊再生中
             </div>
           )}
         </div>
@@ -223,10 +303,12 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
 
       {/* メッセージエリア - ヘッダーと入力エリア分のpadding追加 */}
       <div className={`pt-24 sm:pt-24 pb-32 flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 smooth-scroll relative z-10 ${
-        is3DMode 
-          ? 'bg-black/30 backdrop-blur-md' // 背景を濃くしてコントラストを強化
+        (isVoiceMode && is3DMode) || (!isVoiceMode && is3DMode)
+          ? 'bg-black/30 backdrop-blur-md' // 3D背景時はコントラスト強化
+          : isVoiceMode && !is3DMode
+          ? 'bg-black/10 backdrop-blur-sm' // 音声2Dモード時は軽いオーバーレイ
           : ''
-      }`}>
+      } ${isVoiceMode ? 'pr-52' : ''}`}> {/* 音声モード時は右側に立ち絵スペース確保 */}
         {messages.map((message, index) => (
           <div
             key={message.id}
@@ -240,7 +322,7 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
                 message.isUser
                   ? 'text-white rounded-br-sm'
                   : 'rounded-bl-sm shadow-md'
-              } ${is3DMode && !message.isUser ? 'message-3d-enhanced' : is3DMode ? 'backdrop-blur-md' : ''}`}
+              } ${((isVoiceMode && is3DMode) || (!isVoiceMode && is3DMode)) && !message.isUser ? 'message-3d-enhanced' : ((isVoiceMode && is3DMode) || (!isVoiceMode && is3DMode)) ? 'backdrop-blur-md' : ''}`}
               style={{
                 backgroundColor: message.isUser 
                   ? character.colorTheme.primary 
