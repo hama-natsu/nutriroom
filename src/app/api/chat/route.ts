@@ -3,14 +3,26 @@ import { generateResponse } from '@/lib/gemini'
 
 export async function POST(request: NextRequest) {
   console.log('🚀 Chat API route called');
+  console.error('🔥 FORCED ERROR LOG: Chat API route called');
   
-  // 環境変数の詳細確認
-  console.log('🔑 API_KEY_EXISTS:', !!process.env.GOOGLE_AI_API_KEY);
-  console.log('🔑 API_KEY_LENGTH:', process.env.GOOGLE_AI_API_KEY?.length);
-  console.log('🔑 API_KEY_START:', process.env.GOOGLE_AI_API_KEY?.substring(0, 10) || 'undefined');
-  console.log('🔑 IS_PLACEHOLDER:', process.env.GOOGLE_AI_API_KEY?.includes('your_google_ai_api_key'));
-  console.log('🌍 NODE_ENV:', process.env.NODE_ENV);
-  console.log('🌍 VERCEL_ENV:', process.env.VERCEL_ENV);
+  // 環境変数の詳細確認 - console.error で強制表示
+  console.error('🔑 API_KEY_EXISTS:', !!process.env.GOOGLE_AI_API_KEY);
+  console.error('🔑 API_KEY_LENGTH:', process.env.GOOGLE_AI_API_KEY?.length);
+  console.error('🔑 API_KEY_START:', process.env.GOOGLE_AI_API_KEY?.substring(0, 10) || 'undefined');
+  console.error('🔑 IS_PLACEHOLDER:', process.env.GOOGLE_AI_API_KEY?.includes('your_google_ai_api_key'));
+  console.error('🌍 NODE_ENV:', process.env.NODE_ENV);
+  console.error('🌍 VERCEL_ENV:', process.env.VERCEL_ENV);
+  
+  // デバッグ情報を準備
+  const debugInfo = {
+    apiKeyExists: !!process.env.GOOGLE_AI_API_KEY,
+    apiKeyLength: process.env.GOOGLE_AI_API_KEY?.length || 0,
+    apiKeyStart: process.env.GOOGLE_AI_API_KEY?.substring(0, 10) || 'undefined',
+    isPlaceholder: process.env.GOOGLE_AI_API_KEY?.includes('your_google_ai_api_key') || false,
+    nodeEnv: process.env.NODE_ENV,
+    vercelEnv: process.env.VERCEL_ENV,
+    timestamp: new Date().toISOString()
+  };
   
   try {
     console.log('📥 Parsing request body...');
@@ -46,7 +58,14 @@ export async function POST(request: NextRequest) {
       success: true
     });
 
-    return NextResponse.json({ response })
+    return NextResponse.json({ 
+      response,
+      debug: {
+        ...debugInfo,
+        success: true,
+        responseLength: response.length
+      }
+    })
   } catch (error: unknown) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const err = error as any;
@@ -127,9 +146,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { 
         error: errorMessage,
-        details: process.env.NODE_ENV === 'development' ? err.message : undefined,
+        details: err.message, // 本番環境でも表示
         errorCode: err.code,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        debug: {
+          ...debugInfo,
+          success: false,
+          errorName: err.name,
+          errorMessage: err.message,
+          errorStack: err.stack?.substring(0, 500) || 'No stack',
+          errorStatus: err.status,
+          errorCode: err.code,
+          errorDetails: err.details,
+          errorCause: err.cause,
+          fullErrorJson: JSON.stringify(err, Object.getOwnPropertyNames(err), 2).substring(0, 1000)
+        }
       },
       { status: statusCode }
     )

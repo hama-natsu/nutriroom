@@ -73,10 +73,20 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
 
       const data = await response.json()
 
-      // AIの応答を追加
+      // デバッグ情報を強制表示
+      if (data.debug) {
+        console.error('🔥 FRONTEND DEBUG INFO:', data.debug);
+        // アラートでも確実に表示
+        if (data.debug.success === false) {
+          alert('DEBUG ERROR INFO: ' + JSON.stringify(data.debug, null, 2));
+        }
+      }
+
+      // AIの応答を追加（デバッグ情報も含める）
+      const debugText = data.debug ? `\n\n[DEBUG] ${JSON.stringify(data.debug, null, 2)}` : '';
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: data.response,
+        content: data.response + (process.env.NODE_ENV === 'development' ? debugText : ''),
         isUser: false,
         timestamp: new Date()
       }
@@ -84,11 +94,15 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
       setMessages(prev => [...prev, aiMessage])
     } catch (error) {
       console.error('エラー:', error)
+      console.error('🔥 FRONTEND CATCH ERROR:', error);
+      
+      // アラートで確実にエラー表示
+      alert('FRONTEND ERROR: ' + JSON.stringify(error, null, 2));
       
       // エラーメッセージを追加
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: 'すみません、今は応答できません。少し時間をおいてもう一度お試しください。',
+        content: 'すみません、今は応答できません。少し時間をおいてもう一度お試しください。\n\n[ERROR DEBUG] ' + JSON.stringify(error, null, 2),
         isUser: false,
         timestamp: new Date()
       }
