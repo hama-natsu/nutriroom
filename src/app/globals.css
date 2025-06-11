@@ -352,17 +352,38 @@ body {
 
 /* 3Dモード用テキスト強調 */
 .text-enhanced-3d {
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(255, 255, 255, 0.8);
-  font-weight: 500;
+  text-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.8), 
+    0 1px 2px rgba(255, 255, 255, 1),
+    0 0 6px rgba(255, 255, 255, 0.8);
+  font-weight: 600;
+  color: #000000 !important;
 }
 
-/* 3Dモード用背景パネル */
+/* 3Dモード用背景パネル強化 */
 .panel-3d {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #ffffff !important;
+  backdrop-filter: blur(15px);
+  border: 3px solid rgba(0, 0, 0, 0.15) !important;
   box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.12),
-    0 4px 16px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    0 16px 64px rgba(0, 0, 0, 0.35),
+    0 12px 32px rgba(0, 0, 0, 0.25),
+    0 8px 16px rgba(0, 0, 0, 0.15),
+    inset 0 2px 0 rgba(255, 255, 255, 1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* 3Dモード用メッセージバブル強化 */
+.message-3d-enhanced {
+  background: #ffffff !important;
+  color: #000000 !important;
+  font-weight: 600 !important;
+  text-shadow: 
+    0 1px 2px rgba(255, 255, 255, 1),
+    0 0 4px rgba(255, 255, 255, 0.8) !important;
+  border: 2px solid rgba(0, 0, 0, 0.2) !important;
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.3),
+    0 8px 24px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 1) !important;
 }

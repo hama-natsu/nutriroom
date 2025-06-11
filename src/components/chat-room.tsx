@@ -224,9 +224,7 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
       {/* メッセージエリア - ヘッダーと入力エリア分のpadding追加 */}
       <div className={`pt-20 pb-32 flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 smooth-scroll relative z-10 ${
         is3DMode 
-          ? performanceInfo.isMobile 
-            ? 'bg-black/20 backdrop-blur-sm' 
-            : 'bg-black/10 backdrop-blur-sm'
+          ? 'bg-black/30 backdrop-blur-md' // 背景を濃くしてコントラストを強化
           : ''
       }`}>
         {messages.map((message, index) => (
@@ -241,38 +239,36 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
                 message.isUser
                   ? 'text-white rounded-br-sm'
                   : 'rounded-bl-sm shadow-md'
-              } ${is3DMode ? 'backdrop-blur-md' : ''}`}
+              } ${is3DMode && !message.isUser ? 'message-3d-enhanced' : is3DMode ? 'backdrop-blur-md' : ''}`}
               style={{
                 backgroundColor: message.isUser 
                   ? character.colorTheme.primary 
                   : is3DMode 
-                    ? 'rgba(255, 255, 255, 0.95)' 
+                    ? '#ffffff' // 3Dモードでは完全不透明に変更
                     : '#ffffff',
                 borderLeft: !message.isUser ? `4px solid ${character.colorTheme.primary}` : undefined,
+                border: is3DMode && !message.isUser 
+                  ? `2px solid ${character.colorTheme.primary}20` // 3Dモードでボーダー追加
+                  : undefined,
                 boxShadow: is3DMode 
-                  ? '0 8px 32px rgba(0, 0, 0, 0.12), 0 4px 16px rgba(0, 0, 0, 0.08)' 
-                  : undefined
+                  ? '0 12px 40px rgba(0, 0, 0, 0.25), 0 8px 24px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.8)' // シャドウ強化
+                  : '0 2px 8px rgba(0, 0, 0, 0.1)'
               }}
             >
               <div 
                 className={`whitespace-pre-wrap ${
-                  is3DMode && !message.isUser ? 'text-gray-800' : ''
+                  is3DMode && !message.isUser ? 'text-enhanced-3d' : 'font-medium'
                 }`}
-                style={{
-                  textShadow: is3DMode && !message.isUser 
-                    ? '0 1px 2px rgba(255, 255, 255, 0.8)' 
-                    : undefined
-                }}
               >
                 {message.content}
               </div>
               <div 
                 className={`text-xs mt-2 ${
                   message.isUser 
-                    ? 'text-white opacity-70' 
+                    ? 'text-white opacity-70 font-medium' 
                     : is3DMode 
-                      ? 'text-gray-600' 
-                      : 'text-gray-500'
+                      ? 'text-enhanced-3d' 
+                      : 'text-gray-500 font-medium'
                 }`}
               >
                 {message.timestamp.toLocaleTimeString('ja-JP', { 
@@ -293,11 +289,14 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
               style={{ 
                 borderLeftColor: character.colorTheme.primary,
                 backgroundColor: is3DMode 
-                  ? 'rgba(255, 255, 255, 0.95)' 
+                  ? '#ffffff' // ローディング表示も完全不透明に
                   : '#ffffff',
+                border: is3DMode 
+                  ? `2px solid ${character.colorTheme.primary}20` 
+                  : undefined,
                 boxShadow: is3DMode 
-                  ? '0 8px 32px rgba(0, 0, 0, 0.12), 0 4px 16px rgba(0, 0, 0, 0.08)' 
-                  : undefined
+                  ? '0 12px 40px rgba(0, 0, 0, 0.25), 0 8px 24px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.8)' 
+                  : '0 2px 8px rgba(0, 0, 0, 0.1)'
               }}>
               <div className="flex items-center space-x-3">
                 <div 
@@ -340,7 +339,17 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
       </div>
 
       {/* 入力エリア - 固定下部配置 */}
-      <div className={`fixed bottom-0 left-0 right-0 p-3 sm:p-4 border-t mobile-bottom-action fixed-bottom-safe z-40 ${is3DMode ? 'bg-white/90 backdrop-blur-md' : 'bg-white'}`}>
+      <div className={`fixed bottom-0 left-0 right-0 p-3 sm:p-4 border-t mobile-bottom-action fixed-bottom-safe z-40 ${
+        is3DMode ? 'bg-white backdrop-blur-md' : 'bg-white'
+      }`}
+      style={{
+        boxShadow: is3DMode 
+          ? '0 -8px 32px rgba(0, 0, 0, 0.25), 0 -4px 16px rgba(0, 0, 0, 0.15)' 
+          : undefined,
+        borderTop: is3DMode 
+          ? '2px solid rgba(0, 0, 0, 0.1)' 
+          : undefined
+      }}>
         <div className="flex space-x-2 sm:space-x-4">
           <div className="flex-1">
             <textarea
