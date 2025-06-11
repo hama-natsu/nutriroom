@@ -76,10 +76,13 @@ export function CharacterCard({ character, onSelect }: CharacterCardProps) {
         <div className="mb-4">
           <h4 className="text-sm font-semibold text-gray-700 mb-2">口癖</h4>
           <p 
-            className="text-sm italic p-3 rounded-lg"
+            className="text-sm italic p-3 rounded-lg font-bold"
             style={{ 
-              backgroundColor: character.colorTheme.secondary + '10',
-              borderLeft: `4px solid ${character.colorTheme.primary}`
+              backgroundColor: '#ffffff',
+              border: `2px solid ${character.colorTheme.primary}`,
+              color: '#000000',
+              textShadow: '0 1px 2px rgba(255, 255, 255, 1)',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
             }}
           >
             「{character.catchphrases[0]}」
@@ -89,12 +92,32 @@ export function CharacterCard({ character, onSelect }: CharacterCardProps) {
         {/* 部屋の雰囲気 */}
         <div className="mb-4">
           <h4 className="text-sm font-semibold text-gray-700 mb-2">部屋の雰囲気</h4>
-          <p className="text-sm text-gray-600">{character.roomAtmosphere}</p>
+          <p 
+            className="text-sm font-medium p-2 rounded-lg"
+            style={{
+              backgroundColor: '#ffffff',
+              color: '#000000',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+            }}
+          >
+            {character.roomAtmosphere}
+          </p>
         </div>
 
         {/* 説明 */}
         <div className="mb-6">
-          <p className="text-sm text-gray-600">{character.description}</p>
+          <p 
+            className="text-sm font-medium p-2 rounded-lg"
+            style={{
+              backgroundColor: '#ffffff',
+              color: '#000000',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+            }}
+          >
+            {character.description}
+          </p>
         </div>
 
         {/* 選択ボタン - タッチターゲット拡大 */}

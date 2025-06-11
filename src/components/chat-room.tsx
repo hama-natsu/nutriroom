@@ -243,22 +243,28 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
               style={{
                 backgroundColor: message.isUser 
                   ? character.colorTheme.primary 
-                  : is3DMode 
-                    ? '#ffffff' // 3Dモードでは完全不透明に変更
-                    : '#ffffff',
+                  : '#ffffff', // 常に白背景を強制
                 borderLeft: !message.isUser ? `4px solid ${character.colorTheme.primary}` : undefined,
                 border: is3DMode && !message.isUser 
-                  ? `2px solid ${character.colorTheme.primary}20` // 3Dモードでボーダー追加
+                  ? `3px solid rgba(0, 0, 0, 0.3)` // より濃いボーダー
                   : undefined,
                 boxShadow: is3DMode 
-                  ? '0 12px 40px rgba(0, 0, 0, 0.25), 0 8px 24px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.8)' // シャドウ強化
-                  : '0 2px 8px rgba(0, 0, 0, 0.1)'
+                  ? '0 16px 48px rgba(0, 0, 0, 0.4), 0 12px 32px rgba(0, 0, 0, 0.3), 0 8px 16px rgba(0, 0, 0, 0.2), inset 0 2px 0 rgba(255, 255, 255, 1)'
+                  : '0 2px 8px rgba(0, 0, 0, 0.1)',
+                color: is3DMode && !message.isUser ? '#000000' : undefined // 強制的に黒文字
               }}
             >
               <div 
                 className={`whitespace-pre-wrap ${
                   is3DMode && !message.isUser ? 'text-enhanced-3d' : 'font-medium'
                 }`}
+                style={{
+                  color: is3DMode && !message.isUser ? '#000000 !important' : undefined,
+                  fontWeight: is3DMode && !message.isUser ? '700 !important' : undefined,
+                  textShadow: is3DMode && !message.isUser 
+                    ? '0 2px 4px rgba(0, 0, 0, 1), 0 1px 3px rgba(255, 255, 255, 1), 1px 1px 2px rgba(0, 0, 0, 0.8), -1px -1px 2px rgba(0, 0, 0, 0.8)'
+                    : undefined
+                }}
               >
                 {message.content}
               </div>
@@ -270,6 +276,13 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
                       ? 'text-enhanced-3d' 
                       : 'text-gray-500 font-medium'
                 }`}
+                style={{
+                  color: is3DMode && !message.isUser ? '#000000 !important' : undefined,
+                  fontWeight: is3DMode && !message.isUser ? '700 !important' : undefined,
+                  textShadow: is3DMode && !message.isUser 
+                    ? '0 2px 4px rgba(0, 0, 0, 1), 0 1px 3px rgba(255, 255, 255, 1)'
+                    : undefined
+                }}
               >
                 {message.timestamp.toLocaleTimeString('ja-JP', { 
                   hour: '2-digit', 

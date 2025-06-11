@@ -350,14 +350,18 @@ body {
   height: 300px;
 }
 
-/* 3Dモード用テキスト強調 */
-.text-enhanced-3d {
-  text-shadow: 
-    0 2px 4px rgba(0, 0, 0, 0.8), 
-    0 1px 2px rgba(255, 255, 255, 1),
-    0 0 6px rgba(255, 255, 255, 0.8);
-  font-weight: 600;
+/* 3Dモード用テキスト強調 - 最強優先度 */
+.text-enhanced-3d,
+.text-enhanced-3d * {
   color: #000000 !important;
+  font-weight: 700 !important;
+  text-shadow: 
+    0 2px 4px rgba(0, 0, 0, 1) !important, 
+    0 1px 3px rgba(255, 255, 255, 1) !important,
+    0 0 8px rgba(255, 255, 255, 1) !important,
+    1px 1px 2px rgba(0, 0, 0, 0.8) !important,
+    -1px -1px 2px rgba(0, 0, 0, 0.8) !important;
+  -webkit-text-stroke: 0.5px rgba(0, 0, 0, 0.5) !important;
 }
 
 /* 3Dモード用背景パネル強化 */
@@ -373,17 +377,28 @@ body {
     inset 0 -1px 0 rgba(0, 0, 0, 0.1);
 }
 
-/* 3Dモード用メッセージバブル強化 */
-.message-3d-enhanced {
+/* 3Dモード用メッセージバブル強化 - 最強優先度 */
+.message-3d-enhanced,
+.message-3d-enhanced *,
+.message-3d-enhanced div,
+.message-3d-enhanced span,
+.message-3d-enhanced p {
   background: #ffffff !important;
+  background-color: #ffffff !important;
   color: #000000 !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
   text-shadow: 
-    0 1px 2px rgba(255, 255, 255, 1),
-    0 0 4px rgba(255, 255, 255, 0.8) !important;
-  border: 2px solid rgba(0, 0, 0, 0.2) !important;
+    0 2px 4px rgba(0, 0, 0, 1) !important,
+    0 1px 3px rgba(255, 255, 255, 1) !important,
+    0 0 8px rgba(255, 255, 255, 1) !important,
+    1px 1px 2px rgba(0, 0, 0, 0.8) !important,
+    -1px -1px 2px rgba(0, 0, 0, 0.8) !important;
+  border: 3px solid rgba(0, 0, 0, 0.3) !important;
   box-shadow: 
-    0 12px 40px rgba(0, 0, 0, 0.3),
-    0 8px 24px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 1) !important;
+    0 16px 48px rgba(0, 0, 0, 0.4) !important,
+    0 12px 32px rgba(0, 0, 0, 0.3) !important,
+    0 8px 16px rgba(0, 0, 0, 0.2) !important,
+    inset 0 2px 0 rgba(255, 255, 255, 1) !important,
+    inset 0 0 0 1px rgba(255, 255, 255, 0.8) !important;
+  -webkit-text-stroke: 0.5px rgba(0, 0, 0, 0.5) !important;
 }
