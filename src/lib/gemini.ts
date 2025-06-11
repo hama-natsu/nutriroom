@@ -339,11 +339,11 @@ export async function generateResponse(
     }
     
     // ユーザーの質問を追加
-    fullPrompt += `\n【ユーザーからの質問・相談】\n${userMessage}\n\n上記に対して、${character.name}の性格で回答してください。必ず以下の特徴を含めてください：\n- ${character.catchphrases[0]}\n- ${character.personalityType}らしい話し方\n- 200文字程度で簡潔に\n- 専門分野（${character.specialty}）を活かした内容`;
+    fullPrompt += `\n【ユーザーからの質問・相談】\n${userMessage}\n\n上記に対して、${character.name}の性格で回答してください。必ず以下の特徴を含めてください：\n- ${character.catchphrases[0]}\n- ${character.personality}らしい話し方\n- 200文字程度で簡潔に\n- 専門分野（${character.specialty}）を活かした内容`;
     
     console.error('🔥 CHARACTER SPECIFIC PROMPT CREATED:', {
       characterName: character.name,
-      personality: character.personalityType,
+      personality: character.personality,
       catchphrase: character.catchphrases[0],
       specialty: character.specialty
     });
