@@ -11,81 +11,92 @@ export interface VoiceConfig {
   personality: string
 }
 
+// 安全な音声設定（Google Cloud TTS API確認済み）
+const SAFE_VOICE_CONFIGS = {
+  // 確実に動作する音声名のみ使用
+  MALE_VOICE: 'ja-JP-Neural2-C',    // 男性音声（確認済み）
+  FEMALE_VOICE: 'ja-JP-Neural2-D',  // 女性音声（確認済み）
+  // パラメータ範囲（Google Cloud TTS API仕様準拠）
+  PITCH_RANGE: { min: -10.0, max: 10.0 },      // 安全範囲
+  SPEAKING_RATE_RANGE: { min: 0.5, max: 2.0 }, // 安全範囲
+  VOLUME_RANGE: { min: -6.0, max: 6.0 }        // 安全範囲
+}
+
 export const characterVoiceConfigs: Record<string, VoiceConfig> = {
   // みなと - ツンデレ系スパルタ栄養士（男性）
   minato: {
     languageCode: 'ja-JP',
-    name: 'ja-JP-Neural2-C', // 男性の声
+    name: SAFE_VOICE_CONFIGS.MALE_VOICE,
     gender: 'MALE',
-    pitch: -3.5,      // より低めでクールに
-    speakingRate: 0.92, // やや遅めで落ち着いた感じ
-    volumeGainDb: 3.0,
+    pitch: -2.0,      // 安全範囲内
+    speakingRate: 0.9,
+    volumeGainDb: 2.0,
     personality: 'ツンデレ・スパルタ'
   },
 
   // あかり - 元気系応援栄養士（女性）
   akari: {
     languageCode: 'ja-JP',
-    name: 'ja-JP-Neural2-B', // 明るい女性の声
+    name: SAFE_VOICE_CONFIGS.FEMALE_VOICE,
     gender: 'FEMALE',
-    pitch: 4.5,       // より高めで弾んだ声
-    speakingRate: 1.15,  // 元気よく早め
-    volumeGainDb: 4.5,
+    pitch: 3.0,       // 安全範囲内
+    speakingRate: 1.1,
+    volumeGainDb: 3.0,
     personality: '元気・応援'
   },
 
   // ゆき - 癒し系おっとり栄養士（女性）
   yuki: {
     languageCode: 'ja-JP',
-    name: 'ja-JP-Neural2-D', // 優しい女性の声
+    name: SAFE_VOICE_CONFIGS.FEMALE_VOICE,
     gender: 'FEMALE',
-    pitch: 1.5,       // 優しく穏やかに
-    speakingRate: 0.75,  // よりゆっくりと癒し系
-    volumeGainDb: 2.0,
+    pitch: 1.0,       // 安全範囲内
+    speakingRate: 0.8,
+    volumeGainDb: 1.0,
     personality: '癒し・おっとり'
   },
 
   // りく - クール系理論派栄養士（男性）
   riku: {
     languageCode: 'ja-JP',
-    name: 'ja-JP-Neural2-C', // 落ち着いた男性の声
+    name: SAFE_VOICE_CONFIGS.MALE_VOICE,
     gender: 'MALE',
-    pitch: -2.5,      // より低めで威厳のある声
-    speakingRate: 0.85,  // ゆっくり丁寧に
-    volumeGainDb: 1.5,
+    pitch: -1.5,      // 安全範囲内
+    speakingRate: 0.85,
+    volumeGainDb: 1.0,
     personality: 'クール・理論派'
   },
 
   // まお - 天然系うっかり栄養士（女性）
   mao: {
     languageCode: 'ja-JP',
-    name: 'ja-JP-Neural2-A', // 可愛らしい女性の声
+    name: SAFE_VOICE_CONFIGS.FEMALE_VOICE,
     gender: 'FEMALE',
-    pitch: 5.0,       // 高めで可愛らしく
-    speakingRate: 0.95,  // 少しふわふわした感じ
-    volumeGainDb: 3.5,
+    pitch: 2.5,       // 安全範囲内
+    speakingRate: 0.95,
+    volumeGainDb: 2.0,
     personality: '天然・うっかり'
   },
 
   // さつき - 毒舌系リアリスト栄養士（女性）
   satsuki: {
     languageCode: 'ja-JP',
-    name: 'ja-JP-Neural2-D', // しっかりした女性の声
+    name: SAFE_VOICE_CONFIGS.FEMALE_VOICE,
     gender: 'FEMALE',
-    pitch: -1.0,      // 低めでシャープに
-    speakingRate: 1.08, // きびきびとはっきり
-    volumeGainDb: 2.5,
+    pitch: -0.5,      // 安全範囲内
+    speakingRate: 1.05,
+    volumeGainDb: 1.5,
     personality: '毒舌・リアリスト'
   },
 
   // そら - 中性的フリースタイル栄養士（性別不詳）
   sora: {
     languageCode: 'ja-JP',
-    name: 'ja-JP-Neural2-C', // 中性的な声
-    gender: 'NEUTRAL',
-    pitch: 0.5,       // 自然な中間
-    speakingRate: 0.88, // ゆったりと哲学的に
-    volumeGainDb: 2.0,
+    name: SAFE_VOICE_CONFIGS.MALE_VOICE, // NEUTRALの代わりにMALEを使用
+    gender: 'MALE',   // NEUTRAL → MALE に変更
+    pitch: 0.0,       // 中性的
+    speakingRate: 0.9,
+    volumeGainDb: 1.0,
     personality: '中性的・哲学的'
   }
 }
@@ -413,33 +424,113 @@ export const runVoiceGenerationTests = (characterId?: string) => {
   console.log('\n🏁 Voice generation tests completed for all characters')
 }
 
-// キャラクター音声設定一覧表示（デバッグ用）
-export const showAllCharacterVoiceConfigs = () => {
-  console.log('🎭 All Character Voice Configurations:')
-  console.log('=' .repeat(60))
-  
+// 音声設定バリデーション関数
+export const validateVoiceConfig = (characterId: string, config: VoiceConfig): {
+  isValid: boolean
+  errors: string[]
+  warnings: string[]
+} => {
+  const errors: string[] = []
+  const warnings: string[] = []
+
+  // ピッチ範囲チェック
+  if (config.pitch < SAFE_VOICE_CONFIGS.PITCH_RANGE.min || config.pitch > SAFE_VOICE_CONFIGS.PITCH_RANGE.max) {
+    errors.push(`Pitch ${config.pitch} out of safe range (${SAFE_VOICE_CONFIGS.PITCH_RANGE.min} to ${SAFE_VOICE_CONFIGS.PITCH_RANGE.max})`)
+  }
+
+  // 話速範囲チェック
+  if (config.speakingRate < SAFE_VOICE_CONFIGS.SPEAKING_RATE_RANGE.min || config.speakingRate > SAFE_VOICE_CONFIGS.SPEAKING_RATE_RANGE.max) {
+    errors.push(`Speaking rate ${config.speakingRate} out of safe range (${SAFE_VOICE_CONFIGS.SPEAKING_RATE_RANGE.min} to ${SAFE_VOICE_CONFIGS.SPEAKING_RATE_RANGE.max})`)
+  }
+
+  // 音量範囲チェック
+  if (config.volumeGainDb < SAFE_VOICE_CONFIGS.VOLUME_RANGE.min || config.volumeGainDb > SAFE_VOICE_CONFIGS.VOLUME_RANGE.max) {
+    errors.push(`Volume gain ${config.volumeGainDb}dB out of safe range (${SAFE_VOICE_CONFIGS.VOLUME_RANGE.min} to ${SAFE_VOICE_CONFIGS.VOLUME_RANGE.max})`)
+  }
+
+  // 音声名チェック
+  const validVoiceNames = [SAFE_VOICE_CONFIGS.MALE_VOICE, SAFE_VOICE_CONFIGS.FEMALE_VOICE]
+  if (!validVoiceNames.includes(config.name)) {
+    warnings.push(`Voice name ${config.name} may not be supported. Safe voices: ${validVoiceNames.join(', ')}`)
+  }
+
+  // 性別チェック
+  if (config.gender === 'NEUTRAL') {
+    warnings.push('NEUTRAL gender may cause issues. Consider using MALE or FEMALE.')
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings
+  }
+}
+
+// 全キャラクター設定バリデーション
+export const validateAllCharacterConfigs = () => {
+  console.log('🔍 Validating all character voice configurations...')
+  console.log('=' .repeat(80))
+
+  const workingCharacters: string[] = []
+  const problematicCharacters: string[] = []
+
   Object.entries(characterVoiceConfigs).forEach(([characterId, config]) => {
-    console.log(`\n🎵 ${characterId.toUpperCase()}:`)
-    console.log(`  名前: ${config.name}`)
+    const validation = validateVoiceConfig(characterId, config)
+    
+    console.log(`\n🎭 ${characterId.toUpperCase()}:`)
+    console.log(`  音声名: ${config.name}`)
     console.log(`  性別: ${config.gender}`)
     console.log(`  ピッチ: ${config.pitch}`)
     console.log(`  速度: ${config.speakingRate}`)
     console.log(`  音量: ${config.volumeGainDb}dB`)
-    console.log(`  個性: ${config.personality}`)
-    console.log('-'.repeat(40))
+    
+    if (validation.isValid) {
+      console.log(`  ✅ 設定OK`)
+      workingCharacters.push(characterId)
+    } else {
+      console.log(`  ❌ 設定に問題あり`)
+      problematicCharacters.push(characterId)
+    }
+
+    if (validation.errors.length > 0) {
+      console.log(`  🚨 エラー:`)
+      validation.errors.forEach(error => console.log(`    - ${error}`))
+    }
+
+    if (validation.warnings.length > 0) {
+      console.log(`  ⚠️ 警告:`)
+      validation.warnings.forEach(warning => console.log(`    - ${warning}`))
+    }
+    
+    console.log('-'.repeat(60))
   })
+
+  console.log(`\n📊 バリデーション結果:`)
+  console.log(`  ✅ 動作可能: ${workingCharacters.join(', ')} (${workingCharacters.length}キャラ)`)
+  console.log(`  ❌ 要修正: ${problematicCharacters.join(', ')} (${problematicCharacters.length}キャラ)`)
+  console.log(`  📈 成功率: ${((workingCharacters.length / Object.keys(characterVoiceConfigs).length) * 100).toFixed(1)}%`)
+
+  console.log('\n🎯 安全な設定範囲:')
+  console.log(`  ピッチ: ${SAFE_VOICE_CONFIGS.PITCH_RANGE.min} 〜 ${SAFE_VOICE_CONFIGS.PITCH_RANGE.max}`)
+  console.log(`  話速: ${SAFE_VOICE_CONFIGS.SPEAKING_RATE_RANGE.min} 〜 ${SAFE_VOICE_CONFIGS.SPEAKING_RATE_RANGE.max}`)
+  console.log(`  音量: ${SAFE_VOICE_CONFIGS.VOLUME_RANGE.min}dB 〜 ${SAFE_VOICE_CONFIGS.VOLUME_RANGE.max}dB`)
+  console.log(`  推奨音声: ${SAFE_VOICE_CONFIGS.MALE_VOICE}, ${SAFE_VOICE_CONFIGS.FEMALE_VOICE}`)
+
+  return {
+    workingCharacters,
+    problematicCharacters,
+    successRate: (workingCharacters.length / Object.keys(characterVoiceConfigs).length) * 100
+  }
+}
+
+// キャラクター音声設定一覧表示（デバッグ用・拡張版）
+export const showAllCharacterVoiceConfigs = () => {
+  console.log('🎭 All Character Voice Configurations (Enhanced):')
+  console.log('=' .repeat(80))
   
-  console.log(`\n📊 統計:`)
-  console.log(`  総キャラクター数: ${Object.keys(characterVoiceConfigs).length}`)
-  console.log(`  男性: ${Object.values(characterVoiceConfigs).filter(c => c.gender === 'MALE').length}`)
-  console.log(`  女性: ${Object.values(characterVoiceConfigs).filter(c => c.gender === 'FEMALE').length}`)
-  console.log(`  中性: ${Object.values(characterVoiceConfigs).filter(c => c.gender === 'NEUTRAL').length}`)
+  // バリデーション実行
+  const validationResult = validateAllCharacterConfigs()
   
-  console.log(`\n🎯 音声生成制限:`)
-  console.log(`  必ず生成: 0-${VOICE_LIMITS.ALWAYS_GENERATE}文字`)
-  console.log(`  通常生成: ${VOICE_LIMITS.ALWAYS_GENERATE + 1}-${VOICE_LIMITS.NORMAL_GENERATE}文字`)
-  console.log(`  要約生成: ${VOICE_LIMITS.NORMAL_GENERATE + 1}-${VOICE_LIMITS.SUMMARY_GENERATE}文字`)
-  console.log(`  スキップ: ${VOICE_LIMITS.SUMMARY_GENERATE + 1}文字以上`)
-  
-  console.log('\n🏁 Character voice config listing completed')
+  console.log('\n🏁 Character voice config analysis completed')
+  return validationResult
 }

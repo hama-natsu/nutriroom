@@ -133,9 +133,11 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('🔊 Sending TTS request to Google Cloud:', {
+      characterId,
       voice: request_payload.voice,
       audioConfig: request_payload.audioConfig,
-      textPreview: text.substring(0, 30)
+      textPreview: text.substring(0, 30),
+      fullPayload: JSON.stringify(request_payload, null, 2)
     })
 
     // TTS API呼び出し
@@ -164,11 +166,15 @@ export async function POST(request: NextRequest) {
     const err = error as { message?: string; code?: number; details?: string; stack?: string; name?: string }
     
     console.error('❌ TTS API Error:', {
+      characterId,
       message: err.message,
       stack: err.stack,
       name: err.name,
       code: err.code,
-      details: err.details
+      details: err.details,
+      voiceConfig,
+      textLength: text.length,
+      textPreview: text.substring(0, 50)
     })
 
     // エラーの種類に応じて適切なレスポンスを返す
