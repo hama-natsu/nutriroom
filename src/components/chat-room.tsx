@@ -125,6 +125,24 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
         try {
           setIsPlayingVoice(true)
           
+          // キャラクター別音声生成デバッグ情報
+          console.log('🎭 Character voice generation details:', {
+            characterId: character.id,
+            characterName: character.name,
+            voiceMode: isVoiceMode,
+            responseText: data.response.substring(0, 50) + '...',
+            responseLength: data.response.length,
+            timestamp: new Date().toISOString()
+          })
+
+          // 音声設定確認
+          const voiceConfig = voiceService.getVoiceConfig(character.id)
+          console.log('🎵 Voice config check for character:', {
+            characterId: character.id,
+            configFound: !!voiceConfig,
+            config: voiceConfig
+          })
+
           // ユーザー名呼びかけパターンを含むかチェック
           const userName = 'ユーザー' // TODO: 実際のユーザー名を取得
           const hasUserNameCalling = data.response.includes(userName)
@@ -133,21 +151,54 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
             ? VoicePriority.USER_NAME_CALLING 
             : VoicePriority.CHARACTER_LINES
 
+          console.log('🎯 Voice generation priority decision:', {
+            characterId: character.id,
+            hasUserNameCalling,
+            priority,
+            priorityName: Object.keys(VoicePriority)[Object.values(VoicePriority).indexOf(priority)]
+          })
+
           const voiceGenerated = await voiceService.generateAndPlay(
             data.response,
             character.id,
             priority
           )
 
+          console.log('🎤 Voice generation result:', {
+            characterId: character.id,
+            voiceGenerated,
+            responseLength: data.response.length,
+            success: voiceGenerated
+          })
+
           if (!voiceGenerated) {
-            console.log('音声生成をスキップ - テキスト表示のみ')
+            console.log('⏭️ 音声生成をスキップ - テキスト表示のみ:', {
+              characterId: character.id,
+              reason: 'shouldGenerateVoice returned false or generation failed'
+            })
+          } else {
+            console.log('✅ 音声生成・再生完了:', {
+              characterId: character.id,
+              responseLength: data.response.length
+            })
           }
         } catch (voiceError) {
-          console.error('音声再生エラー:', voiceError)
+          console.error('❌ 音声再生エラー:', {
+            characterId: character.id,
+            error: voiceError instanceof Error ? voiceError.message : String(voiceError),
+            stack: voiceError instanceof Error ? voiceError.stack : undefined
+          })
           // 音声エラーでもテキストは表示されているので、エラーメッセージは表示しない
         } finally {
           setIsPlayingVoice(false)
         }
+      } else {
+        console.log('🔇 Voice generation skipped:', {
+          isVoiceMode,
+          voiceSupported: voiceService.isVoiceSupported(),
+          characterId: character.id,
+          reason: !isVoiceMode ? 'voice mode disabled' : 'voice not supported'
+        })
       }
     } catch (error) {
       console.error('エラー:', error)

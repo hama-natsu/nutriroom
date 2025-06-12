@@ -168,11 +168,11 @@ export const getUserNameCallingPattern = (characterId: string, userName?: string
   return characterPatterns[Math.floor(Math.random() * characterPatterns.length)]
 }
 
-// 段階的音声生成システムの文字数制限設定
+// 段階的音声生成システムの文字数制限設定（全キャラクター統一）
 export const VOICE_LIMITS = {
-  ALWAYS_GENERATE: 50,      // 0-50文字: 必ず音声生成
-  NORMAL_GENERATE: 150,     // 51-150文字: 音声生成（通常）
-  SUMMARY_GENERATE: 300,    // 151-300文字: 音声生成（要約版）
+  ALWAYS_GENERATE: 100,     // 0-100文字: 必ず音声生成（短文）
+  NORMAL_GENERATE: 200,     // 101-200文字: 音声生成（通常）
+  SUMMARY_GENERATE: 300,    // 201-300文字: 音声生成（要約版）
   TEXT_ONLY: Infinity       // 300文字以上: テキストのみ表示
 } as const
 
@@ -203,11 +203,11 @@ export const shouldGenerateVoice = (text: string, priority: VoicePriority): bool
     }
     
     if (textLength <= VOICE_LIMITS.ALWAYS_GENERATE) {
-      return VoiceGenerationType.ALWAYS // 0-50文字: 必ず音声生成
+      return VoiceGenerationType.ALWAYS // 0-100文字: 必ず音声生成
     } else if (textLength <= VOICE_LIMITS.NORMAL_GENERATE) {
-      return VoiceGenerationType.NORMAL // 51-150文字: 音声生成（通常）
+      return VoiceGenerationType.NORMAL // 101-200文字: 音声生成（通常）
     } else if (textLength <= VOICE_LIMITS.SUMMARY_GENERATE) {
-      return VoiceGenerationType.SUMMARY // 151-300文字: 音声生成（要約版）
+      return VoiceGenerationType.SUMMARY // 201-300文字: 音声生成（要約版）
     } else {
       return VoiceGenerationType.SKIP // 300文字以上: テキストのみ表示
     }
@@ -224,11 +224,11 @@ export const shouldGenerateVoice = (text: string, priority: VoicePriority): bool
     
     switch (generationType) {
       case VoiceGenerationType.ALWAYS:
-        return `short_text_${textLength}chars`
+        return `short_text_${textLength}chars_limit_${VOICE_LIMITS.ALWAYS_GENERATE}`
       case VoiceGenerationType.NORMAL:
-        return `normal_length_${textLength}chars`
+        return `normal_length_${textLength}chars_limit_${VOICE_LIMITS.NORMAL_GENERATE}`
       case VoiceGenerationType.SUMMARY:
-        return `long_text_summary_${textLength}chars`
+        return `long_text_summary_${textLength}chars_limit_${VOICE_LIMITS.SUMMARY_GENERATE}`
       case VoiceGenerationType.SKIP:
         return `text_too_long_${textLength}chars_limit_${VOICE_LIMITS.SUMMARY_GENERATE}`
       default:
@@ -246,8 +246,8 @@ export const shouldGenerateVoice = (text: string, priority: VoicePriority): bool
     limits: {
       current: textLength,
       always: `≤${VOICE_LIMITS.ALWAYS_GENERATE}`,
-      normal: `≤${VOICE_LIMITS.NORMAL_GENERATE}`,
-      summary: `≤${VOICE_LIMITS.SUMMARY_GENERATE}`,
+      normal: `${VOICE_LIMITS.ALWAYS_GENERATE + 1}-${VOICE_LIMITS.NORMAL_GENERATE}`,
+      summary: `${VOICE_LIMITS.NORMAL_GENERATE + 1}-${VOICE_LIMITS.SUMMARY_GENERATE}`,
       skip: `>${VOICE_LIMITS.SUMMARY_GENERATE}`
     }
   })
@@ -399,8 +399,8 @@ export const getVoiceTestCases = () => {
       expectedGeneration: true
     },
     mediumTest: {
-      text: '今日の食事についてアドバイスをお願いします。栄養バランスを考えた献立を教えてください。',
-      description: '中文テスト（40文字）',
+      text: '今日の食事についてアドバイスをお願いします。栄養バランスを考えた献立を教えてください。特にタンパク質と野菜を中心としたメニューが知りたいです。',
+      description: '中文テスト（60文字）',
       expectedGeneration: true
     },
     longTest: {
@@ -438,4 +438,35 @@ export const runVoiceGenerationTests = (characterId: string = 'minato') => {
   })
   
   console.log('\n🏁 Voice generation tests completed')
+}
+
+// キャラクター音声設定一覧表示（デバッグ用）
+export const showAllCharacterVoiceConfigs = () => {
+  console.log('🎭 All Character Voice Configurations:')
+  console.log('=' .repeat(60))
+  
+  Object.entries(characterVoiceConfigs).forEach(([characterId, config]) => {
+    console.log(`\n🎵 ${characterId.toUpperCase()}:`)
+    console.log(`  名前: ${config.name}`)
+    console.log(`  性別: ${config.gender}`)
+    console.log(`  ピッチ: ${config.pitch}`)
+    console.log(`  速度: ${config.speakingRate}`)
+    console.log(`  音量: ${config.volumeGainDb}dB`)
+    console.log(`  個性: ${config.personality}`)
+    console.log('-'.repeat(40))
+  })
+  
+  console.log(`\n📊 統計:`)
+  console.log(`  総キャラクター数: ${Object.keys(characterVoiceConfigs).length}`)
+  console.log(`  男性: ${Object.values(characterVoiceConfigs).filter(c => c.gender === 'MALE').length}`)
+  console.log(`  女性: ${Object.values(characterVoiceConfigs).filter(c => c.gender === 'FEMALE').length}`)
+  console.log(`  中性: ${Object.values(characterVoiceConfigs).filter(c => c.gender === 'NEUTRAL').length}`)
+  
+  console.log(`\n🎯 音声生成制限:`)
+  console.log(`  必ず生成: 0-${VOICE_LIMITS.ALWAYS_GENERATE}文字`)
+  console.log(`  通常生成: ${VOICE_LIMITS.ALWAYS_GENERATE + 1}-${VOICE_LIMITS.NORMAL_GENERATE}文字`)
+  console.log(`  要約生成: ${VOICE_LIMITS.NORMAL_GENERATE + 1}-${VOICE_LIMITS.SUMMARY_GENERATE}文字`)
+  console.log(`  スキップ: ${VOICE_LIMITS.SUMMARY_GENERATE + 1}文字以上`)
+  
+  console.log('\n🏁 Character voice config listing completed')
 }
