@@ -157,7 +157,7 @@ export const shouldUseElevenLabs = (text: string, characterId: string): boolean 
     text.includes('さん') || 
     text.includes('ちゃん') || 
     text.includes('くん') ||
-    text.match(/^[ぁ-んァ-ヶー一-龠a-zA-Z0-9\s]{1,10}[、。！？...]*$/)
+    !!text.match(/^[ぁ-んァ-ヶー一-龠a-zA-Z0-9\s]{1,10}[、。！？...]*$/)
   )
 
   console.log(`🎤 ElevenLabs usage decision:`, {

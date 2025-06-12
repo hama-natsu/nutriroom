@@ -133,9 +133,26 @@ export const testCharacterVoice = async (characterId: string, text: string = '�
   return success
 }
 
+// ElevenLabsテスト関数インターフェース
+interface ElevenLabsTestFunctions {
+  runFullTest: () => Promise<boolean>
+  testConfiguration: () => boolean
+  testNameGeneration: () => void
+  testBasicVoice: (characterId?: string) => Promise<boolean>
+  testNameGreeting: (userName?: string, characterId?: string) => Promise<boolean>
+  testCharacter: (characterId: string, text?: string) => Promise<boolean>
+}
+
+// Window型の拡張
+declare global {
+  interface Window {
+    elevenLabsTest?: ElevenLabsTestFunctions
+  }
+}
+
 // ブラウザコンソール用エクスポート
 if (typeof window !== 'undefined') {
-  (window as any).elevenLabsTest = {
+  window.elevenLabsTest = {
     runFullTest: runFullElevenLabsTest,
     testConfiguration: testElevenLabsConfiguration,
     testNameGeneration: testNameGeneration,

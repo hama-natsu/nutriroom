@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { ElevenLabsApi, ElevenLabsError } from '@elevenlabs/elevenlabs-js'
+import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js'
 import { 
   ElevenLabsVoiceConfig, 
   ELEVENLABS_CONFIG,
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ElevenLabs SDKクライアント初期化
-    const client = new ElevenLabsApi({
+    const client = new ElevenLabsClient({
       apiKey: apiKey
     })
 
@@ -71,14 +71,21 @@ export async function POST(request: NextRequest) {
     })
 
     // ElevenLabs SDKで音声生成
-    const audioBuffer = await client.textToSpeech.convert(voiceConfig.voiceId, {
+    const audioStream = await client.textToSpeech.convert(voiceConfig.voiceId, {
       text: text,
-      model_id: ELEVENLABS_CONFIG.MODEL_ID,
-      voice_settings: {
+      modelId: ELEVENLABS_CONFIG.MODEL_ID,
+      voiceSettings: {
         stability: voiceConfig.stability,
-        similarity_boost: voiceConfig.similarityBoost
+        similarityBoost: voiceConfig.similarityBoost
       }
     })
+
+    // ストリームをバッファに変換
+    const chunks: Buffer[] = []
+    for await (const chunk of audioStream) {
+      chunks.push(chunk)
+    }
+    const audioBuffer = Buffer.concat(chunks)
 
     console.log('📦 ElevenLabs audio generation successful:', {
       characterId,
@@ -98,7 +105,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: unknown) {
-    const err = error as ElevenLabsError | Error
+    const err = error as Error
     
     console.error('❌ ElevenLabs TTS SDK Error:', {
       characterId: characterId || 'unknown',
@@ -110,27 +117,25 @@ export async function POST(request: NextRequest) {
     })
 
     // ElevenLabs SDKエラーハンドリング
-    if (error instanceof ElevenLabsError) {
-      if (err.message.includes('unauthorized') || err.message.includes('401')) {
-        return NextResponse.json(
-          { error: 'Invalid API key' },
-          { status: 401 }
-        )
-      }
-      
-      if (err.message.includes('insufficient') || err.message.includes('402')) {
-        return NextResponse.json(
-          { error: 'Insufficient credits' },
-          { status: 402 }
-        )
-      }
+    if (err.message.includes('unauthorized') || err.message.includes('401')) {
+      return NextResponse.json(
+        { error: 'Invalid API key' },
+        { status: 401 }
+      )
+    }
+    
+    if (err.message.includes('insufficient') || err.message.includes('402')) {
+      return NextResponse.json(
+        { error: 'Insufficient credits' },
+        { status: 402 }
+      )
+    }
 
-      if (err.message.includes('voice') || err.message.includes('422')) {
-        return NextResponse.json(
-          { error: 'Invalid voice ID or parameters' },
-          { status: 422 }
-        )
-      }
+    if (err.message.includes('voice') || err.message.includes('422')) {
+      return NextResponse.json(
+        { error: 'Invalid voice ID or parameters' },
+        { status: 422 }
+      )
     }
 
     return NextResponse.json(
