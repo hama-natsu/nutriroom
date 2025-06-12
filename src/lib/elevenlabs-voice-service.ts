@@ -181,35 +181,38 @@ export class ElevenLabsVoiceService {
     })
 
     try {
-      // 名前読み上げの場合はElevenLabsを優先
+      // ElevenLabsを最優先で試行（APIキー設定時）
       const isNameCall = priority === VoicePriority.USER_NAME_CALLING
       let audioUrl: string | null = null
+      let textToGenerate = text
 
+      // 名前読み上げの場合は専用テキスト生成
       if (isNameCall && userName) {
-        // 名前読み上げ用テキストを生成
-        const nameCallText = generateNameGreeting(userName, characterId)
+        textToGenerate = generateNameGreeting(userName, characterId)
         console.log('👤 Generating name call with ElevenLabs:', {
           characterId,
           userName,
-          nameCallText
+          nameCallText: textToGenerate
         })
-        
-        audioUrl = await this.generateElevenLabsVoice(nameCallText, characterId)
-      } else if (shouldUseElevenLabs(text, characterId)) {
-        // 短いテキストの場合はElevenLabsを試す
-        console.log('🎙️ Trying ElevenLabs for short text:', {
+      } else {
+        console.log('🎙️ Trying ElevenLabs as primary voice service:', {
           characterId,
-          textLength: text.length
+          textLength: text.length,
+          priority
         })
-        
-        audioUrl = await this.generateElevenLabsVoice(text, characterId)
+      }
+
+      // ElevenLabsを最初に試行
+      if (shouldUseElevenLabs(textToGenerate, characterId)) {
+        audioUrl = await this.generateElevenLabsVoice(textToGenerate, characterId)
       }
 
       // ElevenLabsが失敗またはスキップされた場合はGoogle TTSにフォールバック
       if (!audioUrl) {
         console.log('🔄 Falling back to Google TTS:', {
           characterId,
-          reason: 'ElevenLabs failed or skipped'
+          reason: 'ElevenLabs failed, unavailable, or text too long',
+          textLength: textToGenerate.length
         })
         
         audioUrl = await voiceService.generateVoice(text, characterId, priority)
@@ -224,11 +227,14 @@ export class ElevenLabsVoiceService {
       await voiceService.playVoice(audioUrl)
       
       const duration = Date.now() - startTime
+      const usedElevenLabs = audioUrl.startsWith('blob:') && audioUrl.length > 50 // ElevenLabsの場合は比較的長いURL
+      
       console.log('🎉 Integrated voice workflow completed successfully:', {
         characterId,
         text: text.substring(0, 30),
         duration: `${duration}ms`,
-        usedElevenLabs: !audioUrl.includes('blob:'),
+        usedService: usedElevenLabs ? 'ElevenLabs' : 'Google TTS',
+        priority: Object.keys(VoicePriority)[Object.values(VoicePriority).indexOf(priority)] || 'unknown',
         success: true
       })
       return true

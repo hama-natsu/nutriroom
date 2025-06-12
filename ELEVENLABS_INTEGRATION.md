@@ -26,10 +26,10 @@ const audioUrl = await elevenLabsVoiceService.generateNameGreeting(
 )
 ```
 
-### 3. 統合音声システム
+### 3. 統合音声システム（優先使用モード）
 
-- **ElevenLabs優先**: 短いテキストや名前呼びかけに使用
-- **Google TTS フォールバック**: ElevenLabsが失敗した場合の代替
+- **ElevenLabs最優先**: APIキー設定時はすべてのテキスト（500文字以内）でElevenLabsを使用
+- **Google TTS フォールバック**: ElevenLabsが利用不可、失敗、または文字数制限超過時の代替
 
 ## 設定
 
@@ -101,24 +101,31 @@ const greetingText = generateNameGreeting("太郎", "akari")
 const success = await elevenLabsVoiceService.playNameCall("太郎", "akari")
 ```
 
-### 3. 統合音声システム
+### 3. 統合音声システム（優先使用モード）
 
 ```typescript
 import { VoicePriority } from '@/lib/voice-config'
 
-// 一般的なチャット（Google TTS）
+// 一般的なチャット（ElevenLabs優先、Google TTSフォールバック）
 await elevenLabsVoiceService.generateAndPlay(
-  "今日の栄養について説明します...", 
+  "今日の栄養について説明します", 
   "riku",
   VoicePriority.GENERAL_CHAT
 )
 
-// 名前呼びかけ（ElevenLabs優先）
+// 名前呼びかけ（ElevenLabs最優先）
 await elevenLabsVoiceService.generateAndPlay(
   "", 
   "yuki",
   VoicePriority.USER_NAME_CALLING,
   "さくら"
+)
+
+// 長文（500文字以上は自動的にGoogle TTSフォールバック）
+await elevenLabsVoiceService.generateAndPlay(
+  "非常に長いテキスト...", 
+  "minato",
+  VoicePriority.GENERAL_CHAT
 )
 ```
 
@@ -176,11 +183,28 @@ ElevenLabs音声合成API
 - **422**: 無効な音声IDまたはパラメータ
 - **500**: 一般的なサーバーエラー
 
+## 優先システム
+
+### ElevenLabs最優先使用
+
+1. **APIキー確認**: `ELEVENLABS_API_KEY`が設定されている場合
+2. **文字数制限**: 500文字以内のテキスト
+3. **音声ID確認**: キャラクターに対応する音声IDが存在
+
+### Google TTSフォールバック
+
+以下の場合に自動的にGoogle TTSを使用：
+- ElevenLabs APIキーが未設定
+- テキストが500文字を超過
+- ElevenLabs API呼び出しが失敗
+- キャラクターの音声IDが見つからない
+
 ## パフォーマンス
 
 - **キャッシュ**: 音声ファイルを30分間キャッシュ
-- **フォールバック**: ElevenLabs失敗時はGoogle TTSに自動切り替え
+- **自動フォールバック**: ElevenLabs失敗時はGoogle TTSに自動切り替え
 - **最適化**: 日本語専用モデル使用で高品質音声
+- **優先使用**: APIキー設定時はElevenLabsを最大限活用
 
 ## セキュリティ
 

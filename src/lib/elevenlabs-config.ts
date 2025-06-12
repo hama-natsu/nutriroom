@@ -132,7 +132,7 @@ export const generateNameGreeting = (userName: string, characterId: string): str
   return randomPattern
 }
 
-// ElevenLabs音声生成の可否判定
+// ElevenLabs音声生成の可否判定（APIキー設定時は優先使用）
 export const shouldUseElevenLabs = (text: string, characterId: string): boolean => {
   // APIキーの存在確認
   if (!process.env.ELEVENLABS_API_KEY || process.env.ELEVENLABS_API_KEY.includes('your_elevenlabs_api_key')) {
@@ -148,28 +148,24 @@ export const shouldUseElevenLabs = (text: string, characterId: string): boolean 
 
   // テキスト長さ制限
   if (text.length > ELEVENLABS_CONFIG.MAX_TEXT_LENGTH) {
-    console.log(`⚠️ Text too long for ElevenLabs (${text.length}/${ELEVENLABS_CONFIG.MAX_TEXT_LENGTH} chars)`)
+    console.log(`⚠️ Text too long for ElevenLabs (${text.length}/${ELEVENLABS_CONFIG.MAX_TEXT_LENGTH} chars), falling back to Google TTS`)
     return false
   }
 
-  // 名前呼びかけかどうかの判定
-  const isNameCall = text.length <= 20 && (
-    text.includes('さん') || 
-    text.includes('ちゃん') || 
-    text.includes('くん') ||
-    !!text.match(/^[ぁ-んァ-ヶー一-龠a-zA-Z0-9\s]{1,10}[、。！？...]*$/)
-  )
+  // APIキーが設定されていれば、制限範囲内のすべてのテキストでElevenLabsを使用
+  const shouldUse = true
 
-  console.log(`🎤 ElevenLabs usage decision:`, {
+  console.log(`🎤 ElevenLabs usage decision (Priority Mode):`, {
     characterId,
     textLength: text.length,
-    isNameCall,
     hasApiKey: !!process.env.ELEVENLABS_API_KEY,
     hasVoiceId: !!characterVoices[characterId as keyof typeof characterVoices],
-    willUseElevenLabs: isNameCall
+    withinLimits: text.length <= ELEVENLABS_CONFIG.MAX_TEXT_LENGTH,
+    willUseElevenLabs: shouldUse,
+    mode: 'PRIORITY'
   })
 
-  return isNameCall
+  return shouldUse
 }
 
 // デバッグ用: 全キャラクターの音声設定表示
