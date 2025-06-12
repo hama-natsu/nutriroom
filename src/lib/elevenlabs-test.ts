@@ -183,22 +183,53 @@ const debugFunctions = {
   },
 
   testApiKey: () => {
-    console.log('🔑 API Key Test:')
-    const hasKey = !!process.env.ELEVENLABS_API_KEY
-    const isValid = hasKey && process.env.ELEVENLABS_API_KEY ? !process.env.ELEVENLABS_API_KEY.includes('your_elevenlabs_api_key') : false
+    console.log('🔑 ElevenLabs API Key Comprehensive Test:')
+    console.log('=' .repeat(60))
     
+    const rawKey = process.env.ELEVENLABS_API_KEY
+    const hasKey = !!rawKey
+    const isValid = hasKey && rawKey ? !rawKey.includes('your_elevenlabs_api_key') : false
+    const keyLength = rawKey?.length || 0
+    const keyPrefix = rawKey?.substring(0, 8) || 'none'
+    
+    console.log('📋 API Key Status:')
     console.log(`  Has Key: ${hasKey ? '✅' : '❌'}`)
     console.log(`  Is Valid: ${isValid ? '✅' : '❌'}`)
+    console.log(`  Key Length: ${keyLength}`)
+    console.log(`  Key Prefix: ${keyPrefix}`)
     
-    if (hasKey && !isValid) {
-      console.log('  ⚠️ API key appears to be placeholder')
-    }
-    
+    console.log('\n🔍 Detailed Analysis:')
     if (!hasKey) {
-      console.log('  💡 Set ELEVENLABS_API_KEY in your environment')
+      console.log('  ❌ No ELEVENLABS_API_KEY found in environment')
+      console.log('  💡 Add ELEVENLABS_API_KEY to your .env.local file')
+    } else if (!isValid) {
+      console.log('  ⚠️ API key appears to be placeholder value')
+      console.log('  💡 Replace with actual ElevenLabs API key')
+    } else {
+      console.log('  ✅ API key format looks valid')
+      console.log('  💡 Test actual API call to verify functionality')
     }
     
-    addDebugLog(`API key test: hasKey=${hasKey}, isValid=${isValid}`)
+    console.log('\n🎯 Voice Provider Priority:')
+    const willUseElevenLabs = isValid
+    console.log(`  ElevenLabs Priority: ${willUseElevenLabs ? '✅ ENABLED' : '❌ DISABLED'}`)
+    console.log(`  Google TTS Fallback: ✅ AVAILABLE`)
+    
+    console.log('\n🔧 Configuration Check:')
+    const totalCharacters = Object.keys(elevenLabsVoiceConfigs).length
+    console.log(`  Character Voices: ${totalCharacters} configured`)
+    console.log(`  Max Text Length: ${ELEVENLABS_CONFIG.MAX_TEXT_LENGTH} chars`)
+    console.log(`  Model: ${ELEVENLABS_CONFIG.MODEL_ID}`)
+    
+    addDebugLog(`API key test: hasKey=${hasKey}, isValid=${isValid}, length=${keyLength}`)
+    
+    return {
+      hasKey,
+      isValid,
+      keyLength,
+      keyPrefix,
+      willUseElevenLabs
+    }
   },
 
   clearCache: () => {
@@ -311,6 +342,40 @@ const utilityFunctions = {
   }
 }
 
+// ヘルプ表示関数
+const showTestFunctionHelp = () => {
+  console.log('🎯 ElevenLabs test functions available in window.elevenLabsTest')
+  console.log('')
+  console.log('📋 Available Functions:')
+  console.log('  🧪 Basic Tests:')
+  console.log('    - runFullTest(): Complete test suite')
+  console.log('    - testConfiguration(): Check configuration')
+  console.log('    - testNameGeneration(): Test name generation')
+  console.log('    - testBasicVoice(characterId?): Test basic voice generation')
+  console.log('    - testNameGreeting(userName?, characterId?): Test name greeting')
+  console.log('    - testCharacter(characterId, text?): Test specific character')
+  console.log('')
+  console.log('  🐛 Debug Functions:')
+  console.log('    - debug.showConfig(): Show configuration')
+  console.log('    - debug.showCharacters(): Show character configs')
+  console.log('    - debug.testApiKey(): Test API key')
+  console.log('    - debug.clearCache(): Clear voice cache')
+  console.log('    - debug.enableDebugMode(): Enable verbose logging')
+  console.log('    - debug.disableDebugMode(): Disable verbose logging')
+  console.log('    - debug.showLogs(): Show debug logs')
+  console.log('')
+  console.log('  🛠️ Utilities:')
+  console.log('    - utils.listAllCharacters(): List available characters')
+  console.log('    - utils.getCharacterConfig(characterId): Get character config')
+  console.log('    - utils.generateTestText(length): Generate test text')
+  console.log('    - utils.benchmarkVoiceGeneration(characterId, iterations?): Benchmark performance')
+  console.log('')
+  console.log('💡 Quick Start:')
+  console.log('  window.elevenLabsTest.runFullTest()')
+  console.log('  window.elevenLabsTest.debug.showConfig()')
+  console.log('  window.elevenLabsTest.utils.listAllCharacters()')
+}
+
 // ElevenLabsテスト関数インターフェース
 interface ElevenLabsTestFunctions {
   runFullTest: () => Promise<boolean>
@@ -354,11 +419,42 @@ export const initializeElevenLabsTest = () => {
 
   if (window.elevenLabsTest) {
     console.log('✅ ElevenLabs test functions already initialized')
+    // 既に初期化済みでも成功として扱う
     return true
   }
 
   try {
-    registerTestFunctions()
+    // window.elevenLabsTestを強制的に設定
+    const elevenLabsTestModule = {
+      // 基本テスト機能
+      runFullTest: runFullElevenLabsTest,
+      testConfiguration: testElevenLabsConfiguration,
+      testNameGeneration: testNameGeneration,
+      testBasicVoice: testBasicVoiceGeneration,
+      testNameGreeting: testNameGreeting,
+      testCharacter: testCharacterVoice,
+      
+      // デバッグ機能
+      debug: debugFunctions,
+      
+      // ユーティリティ機能
+      utils: utilityFunctions
+    }
+    
+    // window.elevenLabsTestを正しく設定
+    window.elevenLabsTest = elevenLabsTestModule
+    
+    console.log('🎯 ElevenLabs test module registered successfully:', {
+      hasRunFullTest: typeof window.elevenLabsTest.runFullTest === 'function',
+      hasDebug: typeof window.elevenLabsTest.debug === 'object',
+      hasUtils: typeof window.elevenLabsTest.utils === 'object'
+    })
+    
+    addDebugLog('Test functions registered to window object')
+    
+    // 詳細な使用方法表示
+    showTestFunctionHelp()
+    
     return true
   } catch (error) {
     console.error('❌ Failed to initialize ElevenLabs test functions:', error)
@@ -366,62 +462,12 @@ export const initializeElevenLabsTest = () => {
   }
 }
 
-// テスト機能登録
-const registerTestFunctions = () => {
-  if (typeof window === 'undefined') return
-  
-  window.elevenLabsTest = {
-    // 基本テスト機能
-    runFullTest: runFullElevenLabsTest,
-    testConfiguration: testElevenLabsConfiguration,
-    testNameGeneration: testNameGeneration,
-    testBasicVoice: testBasicVoiceGeneration,
-    testNameGreeting: testNameGreeting,
-    testCharacter: testCharacterVoice,
-    
-    // デバッグ機能
-    debug: debugFunctions,
-    
-    // ユーティリティ機能
-    utils: utilityFunctions
-  }
-  
-  // 登録成功をログ出力
-  addDebugLog('Test functions registered to window object')
-  
-  console.log('🎯 ElevenLabs test functions available in window.elevenLabsTest')
-  console.log('')
-  console.log('📋 Available Functions:')
-  console.log('  🧪 Basic Tests:')
-  console.log('    - runFullTest(): Complete test suite')
-  console.log('    - testConfiguration(): Check configuration')
-  console.log('    - testNameGeneration(): Test name generation')
-  console.log('    - testBasicVoice(characterId?): Test basic voice generation')
-  console.log('    - testNameGreeting(userName?, characterId?): Test name greeting')
-  console.log('    - testCharacter(characterId, text?): Test specific character')
-  console.log('')
-  console.log('  🐛 Debug Functions:')
-  console.log('    - debug.showConfig(): Show configuration')
-  console.log('    - debug.showCharacters(): Show character configs')
-  console.log('    - debug.testApiKey(): Test API key')
-  console.log('    - debug.clearCache(): Clear voice cache')
-  console.log('    - debug.enableDebugMode(): Enable verbose logging')
-  console.log('    - debug.disableDebugMode(): Disable verbose logging')
-  console.log('    - debug.showLogs(): Show debug logs')
-  console.log('')
-  console.log('  🛠️ Utilities:')
-  console.log('    - utils.listAllCharacters(): List available characters')
-  console.log('    - utils.getCharacterConfig(characterId): Get character config')
-  console.log('    - utils.generateTestText(length): Generate test text')
-  console.log('    - utils.benchmarkVoiceGeneration(characterId, iterations?): Benchmark performance')
-  console.log('')
-  console.log('💡 Quick Start:')
-  console.log('  window.elevenLabsTest.runFullTest()')
-  console.log('  window.elevenLabsTest.debug.showConfig()')
-  console.log('  window.elevenLabsTest.utils.listAllCharacters()')
-}
-
 // ブラウザコンソール用自動エクスポート
 if (typeof window !== 'undefined') {
-  registerTestFunctions()
+  // 自動初期化を試行
+  try {
+    initializeElevenLabsTest()
+  } catch (error) {
+    console.warn('⚠️ Auto-initialization failed, use initializeElevenLabsTest() manually:', error)
+  }
 }

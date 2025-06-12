@@ -202,20 +202,50 @@ export class ElevenLabsVoiceService {
         })
       }
 
-      // ElevenLabsを最初に試行
-      if (shouldUseElevenLabs(textToGenerate, characterId)) {
-        audioUrl = await this.generateElevenLabsVoice(textToGenerate, characterId)
+      // ElevenLabsを強制優先（APIキーがある場合）
+      const hasElevenLabsKey = !!process.env.ELEVENLABS_API_KEY && 
+                              !process.env.ELEVENLABS_API_KEY.includes('your_elevenlabs_api_key')
+      
+      console.log('🎙️ Voice Provider Selection:', {
+        characterId,
+        textLength: textToGenerate.length,
+        hasElevenLabsKey,
+        priority: Object.keys(VoicePriority)[Object.values(VoicePriority).indexOf(priority)] || 'unknown'
+      })
+      console.log('🔑 ElevenLabs API Key Available:', hasElevenLabsKey)
+
+      if (hasElevenLabsKey) {
+        console.log('🚀 Using ElevenLabs as primary voice provider (forced priority)')
+        
+        // ElevenLabsを試行（文字数制限内の場合）
+        if (shouldUseElevenLabs(textToGenerate, characterId)) {
+          audioUrl = await this.generateElevenLabsVoice(textToGenerate, characterId)
+          
+          if (audioUrl) {
+            console.log('✅ ElevenLabs voice generation successful')
+          } else {
+            console.log('❌ ElevenLabs voice generation failed, falling back to Google TTS')
+          }
+        } else {
+          console.log('⚠️ Text exceeds ElevenLabs limits, using Google TTS')
+        }
+      } else {
+        console.log('🔑 ElevenLabs API key not available, using Google TTS')
       }
 
       // ElevenLabsが失敗またはスキップされた場合はGoogle TTSにフォールバック
       if (!audioUrl) {
         console.log('🔄 Falling back to Google TTS:', {
           characterId,
-          reason: 'ElevenLabs failed, unavailable, or text too long',
+          reason: hasElevenLabsKey ? 'ElevenLabs failed or text too long' : 'No ElevenLabs API key',
           textLength: textToGenerate.length
         })
         
         audioUrl = await voiceService.generateVoice(text, characterId, priority)
+        
+        if (audioUrl) {
+          console.log('✅ Google TTS voice generation successful')
+        }
       }
 
       if (!audioUrl) {
@@ -227,14 +257,25 @@ export class ElevenLabsVoiceService {
       await voiceService.playVoice(audioUrl)
       
       const duration = Date.now() - startTime
-      const usedElevenLabs = audioUrl.startsWith('blob:') && audioUrl.length > 50 // ElevenLabsの場合は比較的長いURL
       
+      // 使用されたサービスの正確な判定
+      let usedService = 'Unknown'
+      if (hasElevenLabsKey && shouldUseElevenLabs(textToGenerate, characterId)) {
+        // ElevenLabsを試行した場合
+        usedService = audioUrl.startsWith('blob:') ? 'ElevenLabs' : 'Google TTS (ElevenLabs fallback)'
+      } else {
+        // 最初からGoogle TTSを使用
+        usedService = 'Google TTS (direct)'
+      }
+      
+      console.log('🎙️ Voice Provider Selected:', usedService)
       console.log('🎉 Integrated voice workflow completed successfully:', {
         characterId,
         text: text.substring(0, 30),
         duration: `${duration}ms`,
-        usedService: usedElevenLabs ? 'ElevenLabs' : 'Google TTS',
+        usedService,
         priority: Object.keys(VoicePriority)[Object.values(VoicePriority).indexOf(priority)] || 'unknown',
+        hasElevenLabsKey,
         success: true
       })
       return true

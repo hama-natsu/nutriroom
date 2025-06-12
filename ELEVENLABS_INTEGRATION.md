@@ -164,8 +164,9 @@ window.elevenLabsTest.debug.showConfig()
 // キャラクター設定表示
 window.elevenLabsTest.debug.showCharacters()
 
-// APIキーテスト
-window.elevenLabsTest.debug.testApiKey()
+// APIキー包括テスト（推奨）
+const keyStatus = window.elevenLabsTest.debug.testApiKey()
+// 結果: { hasKey, isValid, keyLength, keyPrefix, willUseElevenLabs }
 
 // キャッシュクリア
 window.elevenLabsTest.debug.clearCache()
@@ -176,6 +177,18 @@ window.elevenLabsTest.debug.disableDebugMode()
 
 // ログ表示
 window.elevenLabsTest.debug.showLogs()
+```
+
+**APIキー確認例**:
+```javascript
+// 詳細なAPIキー確認
+const result = window.elevenLabsTest.debug.testApiKey()
+
+if (result.willUseElevenLabs) {
+  console.log('✅ ElevenLabs will be used as primary voice provider')
+} else {
+  console.log('❌ Google TTS will be used (ElevenLabs unavailable)')
+}
 ```
 
 #### ユーティリティ機能
@@ -227,13 +240,37 @@ ElevenLabs音声合成API
 - **422**: 無効な音声IDまたはパラメータ
 - **500**: 一般的なサーバーエラー
 
-## 優先システム
+## 強制優先システム
 
-### ElevenLabs最優先使用
+### ElevenLabs強制最優先使用
 
-1. **APIキー確認**: `ELEVENLABS_API_KEY`が設定されている場合
+音声プロバイダーの選択ロジック：
+
+```typescript
+// ElevenLabsを強制優先（APIキーがある場合）
+if (process.env.ELEVENLABS_API_KEY) {
+  return await useElevenLabs(text, characterId);
+} else {
+  return await useGoogleTTS(text, characterId);
+}
+```
+
+**優先順位**:
+1. **APIキー確認**: `ELEVENLABS_API_KEY`が設定され、プレースホルダーでない場合
 2. **文字数制限**: 500文字以内のテキスト
 3. **音声ID確認**: キャラクターに対応する音声IDが存在
+
+### 詳細ログ出力
+
+音声生成時の詳細ログ：
+
+```
+🎙️ Voice Provider Selection: { characterId, textLength, hasElevenLabsKey, priority }
+🔑 ElevenLabs API Key Available: true/false
+🚀 Using ElevenLabs as primary voice provider (forced priority)
+✅ ElevenLabs voice generation successful
+🎙️ Voice Provider Selected: ElevenLabs/Google TTS
+```
 
 ### Google TTSフォールバック
 
