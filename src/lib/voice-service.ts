@@ -59,11 +59,23 @@ export class VoiceService {
       return null
     }
 
-    // 音声生成の必要性を判定
+    // 音声生成の必要性を判定（簡素化）
     if (!shouldGenerateVoice(text, priority)) {
-      console.log('⏭️ Voice generation skipped by policy')
+      console.log('⏭️ Voice generation skipped by policy:', {
+        characterId,
+        textLength: text.length,
+        priority,
+        text: text.substring(0, 30) + '...'
+      })
       return null
     }
+
+    console.log('🎤 Voice generation approved by policy:', {
+      characterId,
+      textLength: text.length,
+      priority,
+      text: text.substring(0, 30) + '...'
+    })
 
     // 長文の場合は要約処理を実行
     const processedText = getSummarizedTextForVoice(text, characterId)
@@ -94,7 +106,11 @@ export class VoiceService {
       
       const voiceConfig = characterVoiceConfigs[characterId]
       if (!voiceConfig) {
-        console.error('❌ Voice config not found for character:', characterId)
+        console.error('❌ Voice config not found for character:', {
+          characterId,
+          availableCharacters: Object.keys(characterVoiceConfigs),
+          totalConfigs: Object.keys(characterVoiceConfigs).length
+        })
         return null
       }
 

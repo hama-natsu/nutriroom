@@ -149,7 +149,7 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
           
           const priority = hasUserNameCalling 
             ? VoicePriority.USER_NAME_CALLING 
-            : VoicePriority.CHARACTER_LINES
+            : VoicePriority.GENERAL_CHAT
 
           console.log('🎯 Voice generation priority decision:', {
             characterId: character.id,

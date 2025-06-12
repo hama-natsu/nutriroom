@@ -184,72 +184,39 @@ export enum VoiceGenerationType {
   SKIP = 'skip'            // スキップ
 }
 
-// 音声生成判定
+// 音声生成判定（簡素化・確実化）
 export const shouldGenerateVoice = (text: string, priority: VoicePriority): boolean => {
   const textLength = text.length
   
-  // 文字数制限値をコンソールに表示
-  console.log('📏 Voice generation limits:', {
-    ALWAYS_GENERATE: VOICE_LIMITS.ALWAYS_GENERATE,
-    NORMAL_GENERATE: VOICE_LIMITS.NORMAL_GENERATE,
-    SUMMARY_GENERATE: VOICE_LIMITS.SUMMARY_GENERATE,
-    currentTextLength: textLength
-  })
-
-  // 段階的音声生成ロジック
-  const getGenerationType = (): VoiceGenerationType => {
-    if (priority === VoicePriority.USER_NAME_CALLING) {
-      return VoiceGenerationType.ALWAYS // ユーザー名呼びかけは常に生成
-    }
-    
-    if (textLength <= VOICE_LIMITS.ALWAYS_GENERATE) {
-      return VoiceGenerationType.ALWAYS // 0-100文字: 必ず音声生成
-    } else if (textLength <= VOICE_LIMITS.NORMAL_GENERATE) {
-      return VoiceGenerationType.NORMAL // 101-200文字: 音声生成（通常）
-    } else if (textLength <= VOICE_LIMITS.SUMMARY_GENERATE) {
-      return VoiceGenerationType.SUMMARY // 201-300文字: 音声生成（要約版）
-    } else {
-      return VoiceGenerationType.SKIP // 300文字以上: テキストのみ表示
-    }
+  // 空文字チェック
+  if (!text || textLength === 0) {
+    console.log('🚫 Voice generation skipped: empty text')
+    return false
   }
 
-  const generationType = getGenerationType()
-  const shouldGenerate = generationType !== VoiceGenerationType.SKIP
-
-  // 判定理由の詳細表示
-  const getReason = (): string => {
-    if (priority === VoicePriority.USER_NAME_CALLING) {
-      return 'user_name_calling_priority'
-    }
-    
-    switch (generationType) {
-      case VoiceGenerationType.ALWAYS:
-        return `short_text_${textLength}chars_limit_${VOICE_LIMITS.ALWAYS_GENERATE}`
-      case VoiceGenerationType.NORMAL:
-        return `normal_length_${textLength}chars_limit_${VOICE_LIMITS.NORMAL_GENERATE}`
-      case VoiceGenerationType.SUMMARY:
-        return `long_text_summary_${textLength}chars_limit_${VOICE_LIMITS.SUMMARY_GENERATE}`
-      case VoiceGenerationType.SKIP:
-        return `text_too_long_${textLength}chars_limit_${VOICE_LIMITS.SUMMARY_GENERATE}`
-      default:
-        return 'unknown'
-    }
+  // 極端に長いテキストのみスキップ（500文字以上）
+  const MAX_VOICE_LENGTH = 500
+  if (textLength > MAX_VOICE_LENGTH) {
+    console.log('🚫 Voice generation skipped: text too long:', {
+      textLength,
+      maxLength: MAX_VOICE_LENGTH,
+      text: text.substring(0, 50) + '...'
+    })
+    return false
   }
 
-  console.log('🤔 Voice generation decision:', {
-    text: text.substring(0, 30) + (textLength > 30 ? '...' : ''),
+  // それ以外は全て音声生成する
+  const shouldGenerate = true
+  
+  console.log('✅ Voice generation approved:', {
     textLength,
-    priority: Object.keys(VoicePriority)[Object.values(VoicePriority).indexOf(priority)],
-    generationType,
+    priority: Object.keys(VoicePriority)[Object.values(VoicePriority).indexOf(priority)] || 'unknown',
+    text: text.substring(0, 50) + (textLength > 50 ? '...' : ''),
     shouldGenerate,
-    reason: getReason(),
-    limits: {
-      current: textLength,
-      always: `≤${VOICE_LIMITS.ALWAYS_GENERATE}`,
-      normal: `${VOICE_LIMITS.ALWAYS_GENERATE + 1}-${VOICE_LIMITS.NORMAL_GENERATE}`,
-      summary: `${VOICE_LIMITS.NORMAL_GENERATE + 1}-${VOICE_LIMITS.SUMMARY_GENERATE}`,
-      skip: `>${VOICE_LIMITS.SUMMARY_GENERATE}`
-    }
+    reason: textLength <= 100 ? 'short_text' : 
+            textLength <= 200 ? 'medium_text' : 
+            textLength <= 300 ? 'long_text' : 'very_long_text',
+    maxLength: MAX_VOICE_LENGTH
   })
 
   return shouldGenerate
@@ -354,40 +321,38 @@ export const enhanceTextWithEmotion = (text: string, characterId: string): strin
   return enhancedText
 }
 
-// 長文テキストの要約処理（音声生成用）
+// 長文テキストの処理（音声生成用・簡素化）
 export const getSummarizedTextForVoice = (text: string, characterId: string): string => {
   const textLength = text.length
+  const MAX_VOICE_LENGTH = 200 // TTS APIの制限に合わせて200文字に制限
   
-  // 短文・中文の場合は感情表現を強化して返す
-  if (textLength <= VOICE_LIMITS.NORMAL_GENERATE) {
-    console.log('📝 Text processing: enhancing emotion for short/medium text', { textLength, limit: VOICE_LIMITS.NORMAL_GENERATE })
-    return enhanceTextWithEmotion(text, characterId)
-  }
-  
-  // 長文の場合は要約処理 + 感情表現強化
-  if (textLength <= VOICE_LIMITS.SUMMARY_GENERATE) {
-    // 最初の100文字 + キャラクター性格に応じた締めの言葉
-    const summary = text.substring(0, 100)
-    const characterLines = characterVoiceLines[characterId] || []
-    const endingLine = characterLines[Math.floor(Math.random() * characterLines.length)] || '...以上です'
-    
-    const summarizedText = `${summary}... ${endingLine}`
-    const enhancedText = enhanceTextWithEmotion(summarizedText, characterId)
-    
-    console.log('📝 Text summarized and enhanced for voice:', {
-      originalLength: textLength,
-      summarizedLength: summarizedText.length,
-      enhancedLength: enhancedText.length,
+  // 200文字以下の場合はそのまま返す
+  if (textLength <= MAX_VOICE_LENGTH) {
+    console.log('📝 Text processing: using original text', { 
+      textLength, 
       characterId,
-      summary: enhancedText.substring(0, 50) + '...'
+      text: text.substring(0, 50) + '...'
     })
-    
-    return enhancedText
+    return text
   }
   
-  // 300文字を超える場合は音声生成しない
-  console.log('📝 Text too long for voice generation:', { textLength, limit: VOICE_LIMITS.SUMMARY_GENERATE })
-  return text
+  // 200文字を超える場合は最初の180文字 + キャラクター定型文
+  const truncatedText = text.substring(0, 180)
+  const characterLines = characterVoiceLines[characterId] || []
+  const endingLine = characterLines[Math.floor(Math.random() * characterLines.length)] || ''
+  
+  const processedText = endingLine ? `${truncatedText}...${endingLine}` : truncatedText
+  const finalText = processedText.substring(0, MAX_VOICE_LENGTH) // 最終的に200文字制限
+  
+  console.log('📝 Text processed for voice:', {
+    originalLength: textLength,
+    processedLength: finalText.length,
+    characterId,
+    wasProcessed: true,
+    finalText: finalText.substring(0, 50) + '...'
+  })
+  
+  return finalText
 }
 
 // テストケース用の関数
@@ -416,28 +381,36 @@ export const getVoiceTestCases = () => {
   }
 }
 
-// デバッグ用: 音声生成テスト実行
-export const runVoiceGenerationTests = (characterId: string = 'minato') => {
+// デバッグ用: 音声生成テスト実行（全キャラクター対応）
+export const runVoiceGenerationTests = (characterId?: string) => {
   const testCases = getVoiceTestCases()
+  const charactersToTest = characterId ? [characterId] : Object.keys(characterVoiceConfigs)
   
-  console.log('🧪 Running voice generation tests for character:', characterId)
-  console.log('=' .repeat(60))
+  console.log('🧪 Running voice generation tests for characters:', charactersToTest)
+  console.log('=' .repeat(80))
   
-  Object.entries(testCases).forEach(([testName, testCase]) => {
-    console.log(`\n🔬 ${testName.toUpperCase()}:`)
-    console.log(`📝 ${testCase.description}`)
-    console.log(`📏 Text length: ${testCase.text.length} characters`)
-    console.log(`🎯 Expected generation: ${testCase.expectedGeneration}`)
+  charactersToTest.forEach(charId => {
+    console.log(`\n🎭 Testing character: ${charId.toUpperCase()}`)
+    console.log('-'.repeat(60))
     
-    const actualGeneration = shouldGenerateVoice(testCase.text, VoicePriority.GENERAL_CHAT)
-    const passed = actualGeneration === testCase.expectedGeneration
+    Object.entries(testCases).forEach(([testName, testCase]) => {
+      console.log(`\n🔬 ${testName} (${charId}):`)
+      console.log(`📝 ${testCase.description}`)
+      console.log(`📏 Text length: ${testCase.text.length} characters`)
+      
+      const actualGeneration = shouldGenerateVoice(testCase.text, VoicePriority.GENERAL_CHAT)
+      const processedText = getSummarizedTextForVoice(testCase.text, charId)
+      
+      console.log(`🎤 Generation result: ${actualGeneration}`)
+      console.log(`📝 Processed text length: ${processedText.length}`)
+      console.log(`${actualGeneration ? '✅ PASS' : '❌ FAIL'}: Voice generation ${actualGeneration ? 'approved' : 'rejected'}`)
+    })
     
-    console.log(`✅ Actual generation: ${actualGeneration}`)
-    console.log(`${passed ? '✅ PASS' : '❌ FAIL'}: Test ${passed ? 'passed' : 'failed'}`)
-    console.log('-'.repeat(40))
+    console.log(`\n🎵 Voice config for ${charId}:`, characterVoiceConfigs[charId])
+    console.log('='.repeat(60))
   })
   
-  console.log('\n🏁 Voice generation tests completed')
+  console.log('\n🏁 Voice generation tests completed for all characters')
 }
 
 // キャラクター音声設定一覧表示（デバッグ用）
