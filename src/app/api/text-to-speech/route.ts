@@ -51,17 +51,26 @@ function initTTSClient() {
 }
 
 export async function POST(request: NextRequest) {
+  // 変数をtry文の外で宣言してcatch文でもアクセス可能にする
+  let text = ''
+  let characterId = ''
+  let voiceConfig: VoiceConfig | null = null
+
   try {
-    const { text, characterId, voiceConfig }: {
-      text: string
-      characterId: string
-      voiceConfig: VoiceConfig
-    } = await request.json()
+    const requestData = await request.json()
+    text = requestData.text
+    characterId = requestData.characterId
+    voiceConfig = requestData.voiceConfig
 
     console.log('🎤 TTS Request:', { characterId, textLength: text.length, text: text.substring(0, 50) })
 
     // 入力検証
     if (!text || !characterId || !voiceConfig) {
+      console.error('❌ Missing required parameters:', {
+        hasText: !!text,
+        hasCharacterId: !!characterId,
+        hasVoiceConfig: !!voiceConfig
+      })
       return NextResponse.json(
         { error: 'Missing required parameters' },
         { status: 400 }
@@ -166,15 +175,15 @@ export async function POST(request: NextRequest) {
     const err = error as { message?: string; code?: number; details?: string; stack?: string; name?: string }
     
     console.error('❌ TTS API Error:', {
-      characterId,
+      characterId: characterId || 'unknown',
       message: err.message,
       stack: err.stack,
       name: err.name,
       code: err.code,
       details: err.details,
-      voiceConfig,
-      textLength: text.length,
-      textPreview: text.substring(0, 50)
+      voiceConfig: voiceConfig || 'not-set',
+      textLength: text?.length || 0,
+      textPreview: text?.substring(0, 50) || 'empty'
     })
 
     // エラーの種類に応じて適切なレスポンスを返す
