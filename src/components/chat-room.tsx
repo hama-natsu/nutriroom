@@ -240,13 +240,13 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
           </div>
         </div>
       )}
-      {/* ヤフーフリマ風固定ヘッダー */}
+      {/* 固定ヘッダー - 音声/テキスト切り替えのみ */}
       <div 
         className="fixed top-0 left-0 right-0 text-white shadow-md z-50"
         style={{ backgroundColor: character.colorTheme.primary }}
       >
         <div className="flex items-center px-4 py-3 max-w-4xl mx-auto">
-          {/* ヤフーフリマ風戻るボタン - 囲いなし */}
+          {/* 戻るボタン */}
           <button
             onClick={onBack}
             className="mr-4 p-2 text-white text-xl font-normal hover:text-white/80 transition-colors duration-200"
@@ -256,7 +256,7 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
             ＜
           </button>
           
-          {/* キャラクター情報 - 適切な間隔 */}
+          {/* キャラクター情報 */}
           <div className="flex items-center gap-3 flex-1">
             <div 
               className="w-10 h-10 rounded-full flex items-center justify-center text-xl"
