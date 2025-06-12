@@ -3,6 +3,7 @@ import { generateResponse } from '@/lib/gemini'
 import { characters } from '@/lib/characters'
 import { getCharacterPersonality } from '@/lib/character-personalities'
 import { userMemoryManager } from '@/lib/user-memory'
+import { createLINEStylePrompt } from '@/lib/response-length-manager'
 
 // 個性分析関数
 function analyzeUserMessage(message: string): {
@@ -11,6 +12,7 @@ function analyzeUserMessage(message: string): {
   isFirstTime: boolean
   needsSupport: boolean
   isResistant: boolean
+  requestsDetails: boolean
 } {
   const lowerMessage = message.toLowerCase()
   
@@ -32,12 +34,20 @@ function analyzeUserMessage(message: string): {
   if (lowerMessage.includes('栄養') || lowerMessage.includes('ビタミン')) topics.push('栄養')
   if (lowerMessage.includes('健康')) topics.push('健康')
 
+  // 詳細要求の検出
+  const detailTriggers = [
+    '詳しく', '詳細', 'くわしく', 'もっと', 'さらに', 'なぜ', 'どうして',
+    'どのように', 'どうやって', '方法', '理由', '原因', '具体的', '教えて'
+  ]
+  const requestsDetails = detailTriggers.some(trigger => lowerMessage.includes(trigger))
+
   return {
     emotion,
     topics,
     isFirstTime: lowerMessage.includes('初めて') || lowerMessage.includes('はじめ'),
     needsSupport: lowerMessage.includes('助け') || lowerMessage.includes('サポート') || lowerMessage.includes('頑張'),
-    isResistant: lowerMessage.includes('でも') || lowerMessage.includes('けど') || lowerMessage.includes('やりたくない')
+    isResistant: lowerMessage.includes('でも') || lowerMessage.includes('けど') || lowerMessage.includes('やりたくない'),
+    requestsDetails
   }
 }
 
@@ -46,52 +56,26 @@ function createEnhancedPrompt(
   character: { id: string; name: string },
   userMessage: string,
   conversationHistory: string[],
-  userAnalysis: { emotion: string; topics: string[]; needsSupport: boolean; isResistant: boolean },
-  relationshipLevel: number,
-  recentTopics: string[]
+  userAnalysis: { emotion: string; topics: string[]; needsSupport: boolean; isResistant: boolean; requestsDetails: boolean },
+  relationshipLevel: number
 ): string {
-  const personality = getCharacterPersonality(character.id)
-  if (!personality) return ''
+  // LINEスタイルのコンテキスト作成
+  const context = {
+    messageCount: conversationHistory.length,
+    lastMessages: conversationHistory.slice(-3),
+    userRequestedDetails: userAnalysis.requestsDetails,
+    currentTopic: userAnalysis.topics[0] || null,
+    relationshipLevel
+  }
 
-  const relationshipStage = relationshipLevel <= 0 ? 'stranger' : 
-                           relationshipLevel <= 1 ? 'acquaintance' :
-                           relationshipLevel <= 2 ? 'friend' : 'close'
+  // LINEスタイルプロンプトを生成
+  const basePrompt = `あなたは${character.name}です。${getCharacterPersonality(character.id)?.detailedPersonality || ''}
 
-  return `あなたは${character.name}です。以下の詳細な個性で応答してください。
+【専門分野】${getCharacterPersonality(character.id)?.expertise.specialty || ''}
 
-【基本個性】
-${personality.detailedPersonality}
+【関係性レベル】${relationshipLevel}/3`
 
-【専門分野】
-${personality.expertise.specialty}
-アプローチ: ${personality.expertise.approach}
-
-【現在の関係性】
-レベル: ${relationshipLevel} (${relationshipStage})
-関係性の特徴: ${personality.relationshipStages[relationshipStage as keyof typeof personality.relationshipStages].tone}
-
-【ユーザー分析】
-感情状態: ${userAnalysis.emotion}
-話題: ${userAnalysis.topics.join(', ')}
-サポートが必要: ${userAnalysis.needsSupport ? 'はい' : 'いいえ'}
-抵抗感あり: ${userAnalysis.isResistant ? 'はい' : 'いいえ'}
-
-【会話履歴】
-${conversationHistory.slice(-5).join('\n')}
-
-【最近の話題】
-${recentTopics.join(', ')}
-
-【応答指示】
-1. ${character.name}の個性を活かした自然な応答
-2. 関係性レベル${relationshipLevel}に適した話し方
-3. ユーザーの感情(${userAnalysis.emotion})に配慮
-4. 専門知識を個性的に表現
-5. 150文字以内で簡潔に
-
-ユーザーメッセージ: "${userMessage}"
-
-${character.name}として、あなたらしく応答してください。`
+  return createLINEStylePrompt(basePrompt, userMessage, character.id, context)
 }
 
 export async function POST(request: NextRequest) {
@@ -147,18 +131,13 @@ export async function POST(request: NextRequest) {
     const relationshipLevel = userMemoryManager.getRelationshipLevel(userId, characterId)
     console.log('💝 Relationship level:', relationshipLevel)
 
-    // 最近の会話からトピックを抽出
-    const recentConversations = userMemoryManager.getRecentConversations(userId, characterId, 5)
-    const recentTopics = recentConversations.flatMap(c => c.topics).slice(0, 10)
-
     // エンハンスされたプロンプトを生成
     const enhancedPrompt = createEnhancedPrompt(
       character,
       message,
       conversationHistory || [],
       userAnalysis,
-      relationshipLevel,
-      recentTopics
+      relationshipLevel
     )
 
     console.log('📝 Enhanced prompt created for', character.name)
@@ -216,7 +195,6 @@ export async function POST(request: NextRequest) {
           success: true,
           userAnalysis,
           relationshipLevel,
-          recentTopics,
           promptLength: enhancedPrompt.length
         }
       })

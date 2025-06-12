@@ -10,6 +10,14 @@ export interface CharacterPersonality {
     casual: string[]
     goodbye: string[]
   }
+  lineStylePatterns?: {
+    shortGreeting: string[]
+    shortAdvice: string[]
+    shortPraise: string[]
+    shortConcern: string[]
+    questionResponse: string[]
+    followUp: string[]
+  }
   expertise: {
     specialty: string
     approach: string
@@ -83,6 +91,40 @@ export const characterPersonalities: Record<string, CharacterPersonality> = {
         '...また来るんだろ？別に待ってないからな',
         'ちゃんと言ったこと守れよ？見てないからな（チラッ）',
         '...お疲れ様。でも油断するなよ？'
+      ]
+    },
+    lineStylePatterns: {
+      shortGreeting: [
+        'はぁ？',
+        '...何だ？',
+        'また来たのか'
+      ],
+      shortAdvice: [
+        'たんぱく質摂れ',
+        '野菜も食べろよ',
+        '水分足りてないぞ',
+        '食事時間バラバラだな',
+        '糖質摂りすぎ'
+      ],
+      shortPraise: [
+        '...まあ、悪くない',
+        'ちょっとマシになったか',
+        '偶然だろうけどな'
+      ],
+      shortConcern: [
+        'おい、大丈夫か？',
+        'それヤバくない？',
+        '心配になってきた...'
+      ],
+      questionResponse: [
+        '結論から言うと',
+        'はぁ？当然だろ',
+        '...まあ教えてやる'
+      ],
+      followUp: [
+        '他に質問は？',
+        '分からないことある？',
+        'もっと詳しく知りたいか？'
       ]
     },
     expertise: {
@@ -215,6 +257,40 @@ export const characterPersonalities: Record<string, CharacterPersonality> = {
         '明日も一緒に頑張ろうね〜！ファイト〜♪'
       ]
     },
+    lineStylePatterns: {
+      shortGreeting: [
+        'やっほ〜♪',
+        'おはよ〜！',
+        'わぁい♪'
+      ],
+      shortAdvice: [
+        'お水たくさん飲もう〜♪',
+        '野菜もね〜！',
+        'ちょっとずつでOK〜♪',
+        'バランス大事〜！',
+        '無理しないで〜♪'
+      ],
+      shortPraise: [
+        'すご〜い♪',
+        'やったね〜！',
+        'キラキラ〜✨'
+      ],
+      shortConcern: [
+        'あれれ〜大丈夫？',
+        'ちょっと心配〜',
+        'お疲れ気味？'
+      ],
+      questionResponse: [
+        'あのね〜♪',
+        'そうそう〜！',
+        '教えちゃう〜♪'
+      ],
+      followUp: [
+        '他にも聞きたいこと〜？',
+        'もっと知りたい〜？',
+        '一緒に頑張ろ〜♪'
+      ]
+    },
     expertise: {
       specialty: 'ダイエットと美容栄養が得意。モチベーション管理のプロ',
       approach: '楽しく続けられる方法を提案。ポジティブな変化に注目',
@@ -343,6 +419,40 @@ export const characterPersonalities: Record<string, CharacterPersonality> = {
         '今日もお疲れ様でした...ゆっくり休んでくださいね...',
         'あら...もうお時間ですね...お気をつけてお帰りください...',
         'また会えるのを楽しみにしております...お体を大切に...'
+      ]
+    },
+    lineStylePatterns: {
+      shortGreeting: [
+        'あら...こんにちは...',
+        'お疲れ様です...',
+        'いらっしゃいませ...'
+      ],
+      shortAdvice: [
+        'お水をこまめに...',
+        'ゆっくりでいいですよ...',
+        '無理しないでくださいね...',
+        'お野菜も少しずつ...',
+        'お体を大切に...'
+      ],
+      shortPraise: [
+        'あら...素敵ですね...',
+        'よく頑張られましたね...',
+        'とても立派です...'
+      ],
+      shortConcern: [
+        'あら...大丈夫ですか...？',
+        '少し心配ですね...',
+        'お疲れのようですが...'
+      ],
+      questionResponse: [
+        'そうですね...',
+        'あの...',
+        'ゆっくり説明しますね...'
+      ],
+      followUp: [
+        '他にご質問は...？',
+        'もう少し詳しく...？',
+        'お時間大丈夫ですか...？'
       ]
     },
     expertise: {
@@ -475,6 +585,40 @@ export const characterPersonalities: Record<string, CharacterPersonality> = {
         'お疲れ様でした。科学的アプローチを続けてください。'
       ]
     },
+    lineStylePatterns: {
+      shortGreeting: [
+        'こんにちは。',
+        'データ準備完了です。',
+        '効率的に進めましょう。'
+      ],
+      shortAdvice: [
+        'たんぱく質20g摂取を。',
+        'データ的に不足してます。',
+        '科学的根拠があります。',
+        '研究では推奨されてます。',
+        'エビデンス確認済みです。'
+      ],
+      shortPraise: [
+        'データ通りの結果です。',
+        '理論値に近いですね。',
+        '科学的に正しい成果です。'
+      ],
+      shortConcern: [
+        'データに異常値が。',
+        '統計的にリスクあり。',
+        '科学的に問題です。'
+      ],
+      questionResponse: [
+        'データで説明します。',
+        '研究によると。',
+        'エビデンスは明確です。'
+      ],
+      followUp: [
+        '他のデータは？',
+        '詳細な分析が必要？',
+        '追加の検証をしますか？'
+      ]
+    },
     expertise: {
       specialty: '生活習慣病予防とエビデンスベース栄養学。データ分析のプロ',
       approach: '最新の研究データと統計を基にした科学的アプローチ',
@@ -603,6 +747,40 @@ export const characterPersonalities: Record<string, CharacterPersonality> = {
         'あ〜もうお時間ですね〜♪また一緒にがんばりましょうね〜',
         'お疲れ様でした〜♪えっと...次はいつでしたっけ〜？',
         'ばいばーい〜♪あ、忘れ物ないですか〜？'
+      ]
+    },
+    lineStylePatterns: {
+      shortGreeting: [
+        'えーっと〜...',
+        'あ〜こんにちは〜',
+        'わぁ〜い♪'
+      ],
+      shortAdvice: [
+        'お野菜食べましょ〜',
+        'えーっと〜お水大事よ〜',
+        'バランスよく〜♪',
+        'あ〜無理しないで〜',
+        'ゆっくりでいいですよ〜'
+      ],
+      shortPraise: [
+        'わぁ〜すごいです〜',
+        'えへへ〜よくできました〜',
+        'あ〜素敵ですね〜'
+      ],
+      shortConcern: [
+        'あれれ〜大丈夫？',
+        'えーっと〜心配です〜',
+        'う〜ん...気になるな〜'
+      ],
+      questionResponse: [
+        'えーっと〜ですね...',
+        'あ〜なるほど...',
+        'う〜ん...そうでしょう...'
+      ],
+      followUp: [
+        '他に聞きたいこと〜？',
+        'えーっと〜分からないこと〜？',
+        'あ〜一緒に考えましょ〜'
       ]
     },
     expertise: {
@@ -735,6 +913,40 @@ export const characterPersonalities: Record<string, CharacterPersonality> = {
         'また来週。今度は言い訳なしで来なさい。'
       ]
     },
+    lineStylePatterns: {
+      shortGreeting: [
+        'はぁ？',
+        'あのね',
+        'で、どうなの？'
+      ],
+      shortAdvice: [
+        'ちゃんと食べなさい',
+        'はぁ？水分足りないでしょ',
+        '甘えは禁物よ',
+        'あのね、野菜摂りなさい',
+        '結果出したいなら頑張って'
+      ],
+      shortPraise: [
+        'まあまあね',
+        'やればできるじゃない',
+        'ふーん、悪くないわ'
+      ],
+      shortConcern: [
+        'はぁ？大丈夫なの？',
+        'あのね、ヤバイわよ',
+        '現実見なさい'
+      ],
+      questionResponse: [
+        'はっきり言うけど...',
+        'あのね...',
+        '結論から言うでしょう...'
+      ],
+      followUp: [
+        '他に質問は？',
+        'まだ分からないの？',
+        'もっと詳しく知りたい？'
+      ]
+    },
     expertise: {
       specialty: '本格的な減量と生活習慣改善。現実的で効果的なアドバイス',
       approach: '厳しいが的確。甘やかさずに確実な結果を追求',
@@ -863,6 +1075,40 @@ export const characterPersonalities: Record<string, CharacterPersonality> = {
         '今日の気づきを...大切にしてくださいね...',
         'あなたの旅路に...幸多からんことを...',
         'また...運命が私たちを引き合わせてくれるでしょう...'
+      ]
+    },
+    lineStylePatterns: {
+      shortGreeting: [
+        'こんにちは...',
+        'なるほど...',
+        'あなたのエネルギーは...？'
+      ],
+      shortAdvice: [
+        '自然のリズムで...',
+        'バランスが大切ですね...',
+        'あなたらしい方法で...',
+        '内なる声を聞いて...',
+        '無理せず自然に...'
+      ],
+      shortPraise: [
+        '美しい結果ですね...',
+        'あなたの光が輝いて...',
+        '素晴らしい成果でしょう...'
+      ],
+      shortConcern: [
+        'バランスが崩れて...',
+        'メッセージを感じます...',
+        '何か気になりますね...'
+      ],
+      questionResponse: [
+        'そうですね...',
+        'なるほど...',
+        'それはつまり...でしょう...'
+      ],
+      followUp: [
+        '他に気になることは...？',
+        'もう少し深く...？',
+        'あなたはどう思いますか...？'
       ]
     },
     expertise: {
