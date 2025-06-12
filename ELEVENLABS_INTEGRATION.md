@@ -129,9 +129,11 @@ await elevenLabsVoiceService.generateAndPlay(
 )
 ```
 
-## テスト
+## テスト・デバッグ機能
 
 ### ブラウザコンソールでのテスト
+
+#### 基本テスト機能
 
 ```javascript
 // 設定確認
@@ -148,13 +150,55 @@ await window.elevenLabsTest.testNameGreeting('テストユーザー', 'akari')
 
 // 全機能テスト
 await window.elevenLabsTest.runFullTest()
-```
 
-### 個別キャラクターテスト
-
-```javascript
 // 特定キャラクターの音声テスト
 await window.elevenLabsTest.testCharacter('sora', 'こんにちは')
+```
+
+#### デバッグ機能
+
+```javascript
+// 設定詳細表示
+window.elevenLabsTest.debug.showConfig()
+
+// キャラクター設定表示
+window.elevenLabsTest.debug.showCharacters()
+
+// APIキーテスト
+window.elevenLabsTest.debug.testApiKey()
+
+// キャッシュクリア
+window.elevenLabsTest.debug.clearCache()
+
+// デバッグモード切り替え
+window.elevenLabsTest.debug.enableDebugMode()
+window.elevenLabsTest.debug.disableDebugMode()
+
+// ログ表示
+window.elevenLabsTest.debug.showLogs()
+```
+
+#### ユーティリティ機能
+
+```javascript
+// 利用可能キャラクター一覧
+window.elevenLabsTest.utils.listAllCharacters()
+
+// キャラクター設定取得
+window.elevenLabsTest.utils.getCharacterConfig('minato')
+
+// テストテキスト生成
+const testText = window.elevenLabsTest.utils.generateTestText(100)
+
+// パフォーマンステスト
+await window.elevenLabsTest.utils.benchmarkVoiceGeneration('akari', 5)
+```
+
+### デバッグモード自動有効化
+
+URLパラメータで自動デバッグモード：
+```
+http://localhost:3000/?debug=true
 ```
 
 ## APIエンドポイント
