@@ -1,195 +1,236 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateResponse } from '@/lib/gemini'
 import { characters } from '@/lib/characters'
+import { getCharacterPersonality } from '@/lib/character-personalities'
+import { userMemoryManager } from '@/lib/user-memory'
+
+// 個性分析関数
+function analyzeUserMessage(message: string): {
+  emotion: 'positive' | 'negative' | 'neutral' | 'confused'
+  topics: string[]
+  isFirstTime: boolean
+  needsSupport: boolean
+  isResistant: boolean
+} {
+  const lowerMessage = message.toLowerCase()
+  
+  // 感情分析
+  let emotion: 'positive' | 'negative' | 'neutral' | 'confused' = 'neutral'
+  if (lowerMessage.includes('嬉しい') || lowerMessage.includes('ありがとう') || lowerMessage.includes('良い')) {
+    emotion = 'positive'
+  } else if (lowerMessage.includes('困') || lowerMessage.includes('悩') || lowerMessage.includes('難しい')) {
+    emotion = 'confused'
+  } else if (lowerMessage.includes('やだ') || lowerMessage.includes('嫌') || lowerMessage.includes('無理')) {
+    emotion = 'negative'
+  }
+
+  // トピック分析
+  const topics: string[] = []
+  if (lowerMessage.includes('ダイエット') || lowerMessage.includes('痩せ')) topics.push('ダイエット')
+  if (lowerMessage.includes('筋トレ') || lowerMessage.includes('運動')) topics.push('運動')
+  if (lowerMessage.includes('食事') || lowerMessage.includes('料理')) topics.push('食事')
+  if (lowerMessage.includes('栄養') || lowerMessage.includes('ビタミン')) topics.push('栄養')
+  if (lowerMessage.includes('健康')) topics.push('健康')
+
+  return {
+    emotion,
+    topics,
+    isFirstTime: lowerMessage.includes('初めて') || lowerMessage.includes('はじめ'),
+    needsSupport: lowerMessage.includes('助け') || lowerMessage.includes('サポート') || lowerMessage.includes('頑張'),
+    isResistant: lowerMessage.includes('でも') || lowerMessage.includes('けど') || lowerMessage.includes('やりたくない')
+  }
+}
+
+// エンハンスされたプロンプト生成
+function createEnhancedPrompt(
+  character: { id: string; name: string },
+  userMessage: string,
+  conversationHistory: string[],
+  userAnalysis: { emotion: string; topics: string[]; needsSupport: boolean; isResistant: boolean },
+  relationshipLevel: number,
+  recentTopics: string[]
+): string {
+  const personality = getCharacterPersonality(character.id)
+  if (!personality) return ''
+
+  const relationshipStage = relationshipLevel <= 0 ? 'stranger' : 
+                           relationshipLevel <= 1 ? 'acquaintance' :
+                           relationshipLevel <= 2 ? 'friend' : 'close'
+
+  return `あなたは${character.name}です。以下の詳細な個性で応答してください。
+
+【基本個性】
+${personality.detailedPersonality}
+
+【専門分野】
+${personality.expertise.specialty}
+アプローチ: ${personality.expertise.approach}
+
+【現在の関係性】
+レベル: ${relationshipLevel} (${relationshipStage})
+関係性の特徴: ${personality.relationshipStages[relationshipStage as keyof typeof personality.relationshipStages].tone}
+
+【ユーザー分析】
+感情状態: ${userAnalysis.emotion}
+話題: ${userAnalysis.topics.join(', ')}
+サポートが必要: ${userAnalysis.needsSupport ? 'はい' : 'いいえ'}
+抵抗感あり: ${userAnalysis.isResistant ? 'はい' : 'いいえ'}
+
+【会話履歴】
+${conversationHistory.slice(-5).join('\n')}
+
+【最近の話題】
+${recentTopics.join(', ')}
+
+【応答指示】
+1. ${character.name}の個性を活かした自然な応答
+2. 関係性レベル${relationshipLevel}に適した話し方
+3. ユーザーの感情(${userAnalysis.emotion})に配慮
+4. 専門知識を個性的に表現
+5. 150文字以内で簡潔に
+
+ユーザーメッセージ: "${userMessage}"
+
+${character.name}として、あなたらしく応答してください。`
+}
 
 export async function POST(request: NextRequest) {
-  console.log('🚀 Chat API route called');
-  console.error('🔥 FORCED ERROR LOG: Chat API route called');
-  console.warn('⚠️ WARNING LOG: Chat API route called');
+  console.log('🎭 Enhanced Chat API with personality system');
   
-  // 強制アラート表示
-  if (typeof global !== 'undefined') {
-    try {
-      // サーバーサイドでも強制ログ
-      console.error('🚨 SERVER ALERT: API ROUTE STARTED');
-    } catch (e) {
-      console.error('Alert error:', e);
-    }
-  }
-  
-  // 環境変数の詳細確認 - 複数ログレベルで強制表示
-  console.error('🔑 API_KEY_EXISTS:', !!process.env.GOOGLE_AI_API_KEY);
-  console.warn('🔑 API_KEY_EXISTS:', !!process.env.GOOGLE_AI_API_KEY);
-  console.log('🔑 API_KEY_EXISTS:', !!process.env.GOOGLE_AI_API_KEY);
-  
-  console.error('🔑 API_KEY_LENGTH:', process.env.GOOGLE_AI_API_KEY?.length);
-  console.warn('🔑 API_KEY_LENGTH:', process.env.GOOGLE_AI_API_KEY?.length);
-  
-  console.error('🔑 API_KEY_START:', process.env.GOOGLE_AI_API_KEY?.substring(0, 10) || 'undefined');
-  console.warn('🔑 API_KEY_START:', process.env.GOOGLE_AI_API_KEY?.substring(0, 10) || 'undefined');
-  
-  console.error('🔑 IS_PLACEHOLDER:', process.env.GOOGLE_AI_API_KEY?.includes('your_google_ai_api_key'));
-  console.warn('🔑 IS_PLACEHOLDER:', process.env.GOOGLE_AI_API_KEY?.includes('your_google_ai_api_key'));
-  
-  console.error('🌍 NODE_ENV:', process.env.NODE_ENV);
-  console.warn('🌍 NODE_ENV:', process.env.NODE_ENV);
-  
-  console.error('🌍 VERCEL_ENV:', process.env.VERCEL_ENV);
-  console.warn('🌍 VERCEL_ENV:', process.env.VERCEL_ENV);
-  
-  // デバッグ情報を準備
+  // デバッグ情報
   const debugInfo = {
     apiKeyExists: !!process.env.GOOGLE_AI_API_KEY,
-    apiKeyLength: process.env.GOOGLE_AI_API_KEY?.length || 0,
-    apiKeyStart: process.env.GOOGLE_AI_API_KEY?.substring(0, 10) || 'undefined',
     isPlaceholder: process.env.GOOGLE_AI_API_KEY?.includes('your_google_ai_api_key') || false,
     nodeEnv: process.env.NODE_ENV,
-    vercelEnv: process.env.VERCEL_ENV,
     timestamp: new Date().toISOString()
   };
   
   try {
-    console.log('📥 Parsing request body...');
-    const { characterId, message, conversationHistory } = await request.json()
+    const { characterId, message, conversationHistory, userId = 'default-user' } = await request.json()
 
-    console.log('📋 Request data:', {
+    console.log('🎭 Enhanced request data:', {
       characterId,
       messageLength: message?.length || 0,
       historyLength: conversationHistory?.length || 0,
-      hasCharacterId: !!characterId,
-      hasMessage: !!message
+      userId
     });
 
     // 入力バリデーション
     if (!characterId || !message) {
-      console.error('❌ Validation failed:', { characterId: !!characterId, message: !!message });
       return NextResponse.json(
         { error: 'キャラクターIDとメッセージは必須です' },
         { status: 400 }
       )
     }
 
-    console.log('🔄 Calling generateResponse...');
-    console.warn('🔄 Calling generateResponse...');
-    console.error('🔄 Calling generateResponse...');
-    
-    console.log('🤖 GEMINI_MODEL_INIT: 開始');
-    console.warn('🤖 GEMINI_MODEL_INIT: 開始');
-    console.error('🤖 GEMINI_MODEL_INIT: 開始');
-    
     // キャラクターを取得
     const character = characters.find(c => c.id === characterId);
     if (!character) {
-      console.error('❌ Character not found:', characterId);
       return NextResponse.json(
         { error: 'キャラクターが見つかりません' },
         { status: 404 }
       );
     }
 
+    // ユーザーメモリーの初期化または取得
+    let userMemory = userMemoryManager.getUserMemory(userId)
+    if (!userMemory) {
+      userMemory = userMemoryManager.initializeUser(userId)
+      console.log('👤 New user initialized:', userId)
+    }
+
+    // ユーザーメッセージの分析
+    const userAnalysis = analyzeUserMessage(message)
+    console.log('🧠 User analysis:', userAnalysis)
+
+    // 関係性レベルの取得
+    const relationshipLevel = userMemoryManager.getRelationshipLevel(userId, characterId)
+    console.log('💝 Relationship level:', relationshipLevel)
+
+    // 最近の会話からトピックを抽出
+    const recentConversations = userMemoryManager.getRecentConversations(userId, characterId, 5)
+    const recentTopics = recentConversations.flatMap(c => c.topics).slice(0, 10)
+
+    // エンハンスされたプロンプトを生成
+    const enhancedPrompt = createEnhancedPrompt(
+      character,
+      message,
+      conversationHistory || [],
+      userAnalysis,
+      relationshipLevel,
+      recentTopics
+    )
+
+    console.log('📝 Enhanced prompt created for', character.name)
+
     // Gemini APIを使用してレスポンスを生成
-    const response = await generateResponse(character, message, conversationHistory)
+    const response = await generateResponse(character, enhancedPrompt, [])
     
-    console.log('🤖 GEMINI_MODEL_INIT: 完了');
-    console.warn('🤖 GEMINI_MODEL_INIT: 完了');
-    console.error('🤖 GEMINI_MODEL_INIT: 完了');
-
-    // 実際のレスポンステキストを詳細ログ
-    console.error('🔥 API ROUTE - ACTUAL GEMINI RESPONSE:', response);
-    console.error('🔥 API ROUTE - RESPONSE TYPE:', typeof response);
-    console.error('🔥 API ROUTE - RESPONSE LENGTH:', response.length);
-    console.error('🔥 API ROUTE - RESPONSE PREVIEW:', response.substring(0, 200));
-    console.error('🔥 API ROUTE - IS ERROR RESPONSE?', response.toLowerCase().includes('error'));
-
-    console.log('✅ Response generated:', {
+    console.log('🎯 Response generated:', {
+      characterId,
       responseLength: response.length,
-      success: true
+      relationshipLevel,
+      userEmotion: userAnalysis.emotion
     });
 
-    return NextResponse.json({ 
+    // 会話をメモリーに記録
+    const context = userAnalysis.isFirstTime ? 'greeting' : 
+                   userAnalysis.needsSupport ? 'advice' : 'casual'
+    
+    const outcome = userAnalysis.emotion === 'positive' ? 'successful' :
+                   userAnalysis.emotion === 'negative' ? 'resistant' :
+                   userAnalysis.emotion === 'confused' ? 'unclear' : 'helpful'
+
+    userMemoryManager.addConversation(
+      userId,
+      characterId,
+      message,
       response,
-      // デバッグ情報は開発環境でのみ
+      context,
+      userAnalysis.emotion,
+      outcome,
+      userAnalysis.topics
+    )
+
+    // ユーザーの好みを学習
+    userMemoryManager.learnUserPreferences(userId, characterId, userAnalysis.topics, outcome)
+
+    // 個性強化された応答と追加情報
+    const enhancedResponse = {
+      response,
+      characterPersonality: {
+        relationshipLevel,
+        emotionalState: userAnalysis.emotion,
+        topics: userAnalysis.topics,
+        specialResponse: userAnalysis.isResistant ? 'resistant' : 
+                        userAnalysis.needsSupport ? 'supportive' : 'normal'
+      },
+      memoryStats: userMemoryManager.getMemoryStats(userId)
+    }
+
+    return NextResponse.json({
+      ...enhancedResponse,
       ...(process.env.NODE_ENV === 'development' && {
         debug: {
           ...debugInfo,
           success: true,
-          responseLength: response.length,
-          timestamp: new Date().toISOString(),
-          actualResponseText: response
+          userAnalysis,
+          relationshipLevel,
+          recentTopics,
+          promptLength: enhancedPrompt.length
         }
       })
     })
   } catch (error: unknown) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const err = error as any;
+    const err = error as { message?: string; stack?: string; code?: string };
     
-    // 本番環境用の詳細ログ出力 - 全ログレベルで強制表示
-    console.log('🔥 PRODUCTION ERROR DETAILS START 🔥');
-    console.warn('🔥 PRODUCTION ERROR DETAILS START 🔥');
-    console.error('🔥 PRODUCTION ERROR DETAILS START 🔥');
-    
-    console.log('ERROR_MESSAGE:', err.message);
-    console.warn('ERROR_MESSAGE:', err.message);
-    console.error('ERROR_MESSAGE:', err.message);
-    
-    console.log('ERROR_STACK:', err.stack);
-    console.warn('ERROR_STACK:', err.stack);
-    console.error('ERROR_STACK:', err.stack);
-    
-    console.log('ERROR_STATUS:', err.status);
-    console.warn('ERROR_STATUS:', err.status);
-    console.error('ERROR_STATUS:', err.status);
-    
-    console.log('ERROR_CODE:', err.code);
-    console.warn('ERROR_CODE:', err.code);
-    console.error('ERROR_CODE:', err.code);
-    
-    console.log('🔥 PRODUCTION ERROR DETAILS END 🔥');
-    console.warn('🔥 PRODUCTION ERROR DETAILS END 🔥');
-    console.error('🔥 PRODUCTION ERROR DETAILS END 🔥');
-    
-    console.error('❌ COMPLETE CHAT API ERROR DETAILS:', {
-      // Basic error info
-      name: err.name,
+    console.error('❌ Enhanced Chat API Error:', {
       message: err.message,
-      
-      // HTTP/API specific
-      status: err.status,
-      statusText: err.statusText,
-      code: err.code,
-      
-      // Gemini specific
-      details: err.details,
-      cause: err.cause,
-      
-      // Full objects
-      fullError: JSON.stringify(err, Object.getOwnPropertyNames(err), 2),
-      errorObject: err,
-      errorConstructor: err.constructor?.name,
-      
-      // Context
-      timestamp: new Date().toISOString(),
-      
-      // Debugging
       stack: err.stack,
-      
-      // Environment
-      nodeEnv: process.env.NODE_ENV,
-      apiKeyExists: !!process.env.GOOGLE_AI_API_KEY,
-      apiKeyLength: process.env.GOOGLE_AI_API_KEY?.length,
-      
-      // Additional properties that might exist
-      response: err.response,
-      request: err.request,
-      config: err.config,
-      
-      // Request context
-      url: request.url,
-      method: request.method,
-      headers: Object.fromEntries(request.headers.entries())
+      code: err.code,
+      timestamp: new Date().toISOString()
     });
     
-    // より詳細なエラーメッセージ
     let errorMessage = 'チャット処理中にエラーが発生しました';
     let statusCode = 500;
     
@@ -199,35 +240,20 @@ export async function POST(request: NextRequest) {
     } else if (err.message?.includes('QUOTA')) {
       errorMessage = 'API利用量の上限に達しました';
       statusCode = 429;
-    } else if (err.message?.includes('FORBIDDEN')) {
-      errorMessage = 'APIアクセスが制限されています';
-      statusCode = 403;
-    } else if (err.message?.includes('timeout')) {
-      errorMessage = 'APIリクエストがタイムアウトしました';
-      statusCode = 408;
     }
     
     return NextResponse.json(
       { 
         error: errorMessage,
-        details: err.message, // 本番環境でも表示
-        errorCode: err.code,
         timestamp: new Date().toISOString(),
-        debug: {
-          ...debugInfo,
-          success: false,
-          errorName: err.name,
-          errorMessage: err.message,
-          errorStack: err.stack?.substring(0, 500) || 'No stack',
-          errorStatus: err.status,
-          errorCode: err.code,
-          errorDetails: err.details,
-          errorCause: err.cause,
-          fullErrorJson: JSON.stringify(err, Object.getOwnPropertyNames(err), 2).substring(0, 1000),
-          forceVisible: true,
-          serverAlert: 'ERROR: API failed with error - ' + err.message?.substring(0, 100),
-          logLevels: 'ALL LEVELS (log, warn, error) used for visibility'
-        }
+        ...(process.env.NODE_ENV === 'development' && {
+          debug: {
+            ...debugInfo,
+            success: false,
+            errorMessage: err.message,
+            errorStack: err.stack?.substring(0, 500)
+          }
+        })
       },
       { status: statusCode }
     )
