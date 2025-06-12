@@ -1,11 +1,18 @@
 'use client'
 
 import { useState } from 'react'
-import { responseLengthManager } from '@/lib/response-length-manager'
+import { responseLengthManager, ResponseLengthConfig, ConversationContext, UserMessageAnalysis } from '@/lib/response-length-manager'
+
+interface AnalysisResult {
+  userAnalysis: UserMessageAnalysis
+  context: ConversationContext
+  config: ResponseLengthConfig
+  instruction: string
+}
 
 export default function LINEStyleDemoPage() {
   const [userMessage, setUserMessage] = useState('')
-  const [analysis, setAnalysis] = useState<any>(null)
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
 
   const analyzeMessage = () => {
     if (!userMessage.trim()) return

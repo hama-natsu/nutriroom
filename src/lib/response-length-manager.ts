@@ -14,6 +14,13 @@ export interface ConversationContext {
   relationshipLevel: number
 }
 
+export interface UserMessageAnalysis {
+  requestsDetails: boolean
+  isQuestion: boolean
+  complexity: 'simple' | 'complex'
+  keywords: string[]
+}
+
 export class ResponseLengthManager {
   private defaultConfigs: Record<string, ResponseLengthConfig> = {
     short: {
@@ -31,12 +38,7 @@ export class ResponseLengthManager {
   }
 
   // ユーザーメッセージ分析
-  public analyzeUserMessage(message: string): {
-    requestsDetails: boolean
-    isQuestion: boolean
-    complexity: 'simple' | 'complex'
-    keywords: string[]
-  } {
+  public analyzeUserMessage(message: string): UserMessageAnalysis {
     const lowerMessage = message.toLowerCase()
     
     // 詳細要求の検出
@@ -82,7 +84,7 @@ export class ResponseLengthManager {
 
   // 応答モード決定
   public determineResponseMode(
-    userAnalysis: ReturnType<typeof this.analyzeUserMessage>,
+    userAnalysis: UserMessageAnalysis,
     context: ConversationContext
   ): ResponseLengthConfig {
     
@@ -109,7 +111,7 @@ export class ResponseLengthManager {
   public generateResponseInstruction(
     config: ResponseLengthConfig,
     characterId: string,
-    userAnalysis: ReturnType<typeof this.analyzeUserMessage>
+    userAnalysis: UserMessageAnalysis
   ): string {
     const instructions = []
 
