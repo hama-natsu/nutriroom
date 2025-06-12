@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Character } from '@/lib/characters'
 import { voiceService } from '@/lib/voice-service'
 import { VoicePriority } from '@/lib/voice-config'
+import { MicrophoneButton } from '@/components/microphone-button'
 
 interface Message {
   id: string
@@ -30,6 +31,7 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [isVoiceMode, setIsVoiceMode] = useState(false)
   const [isPlayingVoice, setIsPlayingVoice] = useState(false)
+  const [interimTranscript, setInterimTranscript] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -167,6 +169,29 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // 音声入力のハンドラー
+  const handleSpeechTranscript = (text: string, isFinal: boolean) => {
+    if (isFinal) {
+      // 確定した音声認識結果をテキストエリアに追加
+      setInputMessage(prev => {
+        const newText = prev.trim() + (prev.trim() ? ' ' : '') + text
+        return newText
+      })
+      setInterimTranscript('')
+      console.log('🎙️ Final speech input:', text)
+    } else {
+      // 中間結果を表示
+      setInterimTranscript(text)
+      console.log('🎙️ Interim speech input:', text)
+    }
+  }
+
+  const handleSpeechError = (error: string) => {
+    console.error('🎙️ Speech input error:', error)
+    setInterimTranscript('')
+    // エラーメッセージを表示する場合はここに追加
   }
 
   // 日本語入力対応 - Enterキー自動送信を無効化
@@ -364,14 +389,24 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
 
       {/* 入力エリア - 固定下部配置 */}
       <div className="fixed bottom-0 left-0 right-0 p-3 sm:p-4 border-t mobile-bottom-action fixed-bottom-safe z-40 bg-white">
+        {/* 中間音声認識結果の表示 */}
+        {interimTranscript && (
+          <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="text-xs text-blue-600 mb-1">音声認識中...</div>
+            <div className="text-sm text-blue-800 italic">
+              {interimTranscript}
+            </div>
+          </div>
+        )}
+        
         <div className="flex space-x-2 sm:space-x-4">
-          <div className="flex-1">
+          <div className="flex-1 relative">
             <textarea
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="栄養について相談してみましょう"
-              className="w-full p-3 text-base border border-gray-300 rounded-xl resize-none focus:outline-none focus:ring-2 focus:border-transparent"
+              className="w-full p-3 pr-12 text-base border border-gray-300 rounded-xl resize-none focus:outline-none focus:ring-2 focus:border-transparent"
               style={{ 
                 '--tw-ring-color': character.colorTheme.primary + '50',
                 backgroundColor: '#ffffff',
@@ -381,6 +416,17 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
               rows={2}
               disabled={isLoading}
             />
+            
+            {/* マイクボタン（テキストエリア内） */}
+            <div className="absolute right-2 bottom-2">
+              <MicrophoneButton
+                onTranscript={handleSpeechTranscript}
+                onError={handleSpeechError}
+                disabled={isLoading}
+                size="sm"
+                className="shadow-sm"
+              />
+            </div>
           </div>
           <button
             onClick={sendMessage}
