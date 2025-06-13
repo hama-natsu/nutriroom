@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Character } from '@/lib/characters'
 import { UserNameInput } from './user-name-input'
 import { CharacterSelection } from './character-selection'
-import { AkariPrototype } from './akari-prototype'
+import { CharacterPrototype } from './character-prototype'
 
 type AppFlow = 'name-input' | 'character-selection' | 'chat-room'
 
@@ -123,21 +123,22 @@ export function AppFlowManager() {
     case 'chat-room':
       return (
         <div>
-          {userData.selectedCharacter?.id === 'akari' ? (
-            <AkariPrototype 
+          {userData.selectedCharacter ? (
+            <CharacterPrototype 
+              characterId={userData.selectedCharacter.id}
               userName={userData.name}
               onBack={handleBackToCharacterSelection} 
             />
           ) : (
-            // 他のキャラクター用のフォールバック
+            // キャラクターが選択されていない場合のフォールバック
             <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">
               <div className="text-center">
-                <div className="text-6xl mb-4">🚧</div>
+                <div className="text-6xl mb-4">❗</div>
                 <h1 className="text-2xl font-bold text-gray-800 mb-4">
-                  {userData.selectedCharacter?.name}の部屋は準備中です
+                  キャラクターが選択されていません
                 </h1>
                 <p className="text-gray-600 mb-6">
-                  現在、あかりの部屋のみご利用いただけます
+                  AI栄養士を選択してください
                 </p>
                 <button
                   onClick={handleBackToCharacterSelection}

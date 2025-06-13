@@ -1,6 +1,7 @@
 'use client'
 
 import { Character } from '@/lib/characters'
+import Image from 'next/image'
 
 interface CharacterCardProps {
   character: Character
@@ -89,9 +90,26 @@ export function CharacterCard({ character, onSelect }: CharacterCardProps) {
           </p>
         </div>
 
-        {/* 部屋の雰囲気 */}
+        {/* 部屋の雰囲気とプレビュー */}
         <div className="mb-4">
           <h4 className="text-sm font-semibold text-gray-700 mb-2">部屋の雰囲気</h4>
+          
+          {/* 背景画像プレビュー */}
+          <div className="relative mb-3 h-24 rounded-lg overflow-hidden shadow-sm">
+            <Image
+              src={`/images/characters/${character.id}-room-full.png`}
+              alt={`${character.name}の部屋`}
+              fill
+              className="object-cover"
+              style={{ objectPosition: 'center 20%' }}
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            />
+            <div className="absolute inset-0 bg-white/10"></div>
+            <div className="absolute bottom-1 right-1 bg-black/50 text-white text-xs px-2 py-1 rounded">
+              プレビュー
+            </div>
+          </div>
+          
           <p 
             className="text-sm font-medium p-2 rounded-lg"
             style={{

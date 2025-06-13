@@ -1,5 +1,5 @@
-import { AkariPrototype } from '@/components/akari-prototype'
+import { CharacterPrototype } from '@/components/character-prototype'
 
 export default function AkariPrototypePage() {
-  return <AkariPrototype />
+  return <CharacterPrototype characterId="akari" />
 }
