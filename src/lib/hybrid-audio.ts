@@ -3,9 +3,10 @@
 import { TimeSlot, getCurrentTimeSlot, getTimeSlotGreeting } from './time-greeting';
 import { generateVoice } from './audio-utils';
 import { convertNameForElevenLabs } from './kanji-reading-converter';
+import { formatUserNameForCharacter, generateCharacterGreeting } from './character-addressing';
 
 export interface HybridGreetingConfig {
-  character: 'akari'; // 現在はあかりのみ対応
+  character: string; // 任意のキャラクターID
   userName?: string;
   timeSlot?: TimeSlot; // 指定なしの場合は自動判定
 }
@@ -62,24 +63,29 @@ export class HybridAudioEngine {
     }
   }
 
-  // ElevenLabsでユーザー名読み上げ（漢字変換付き）
+  // ElevenLabsでユーザー名読み上げ（漢字変換付き + キャラクター別呼び方）
   private async generateNamePart(userName: string, character: string): Promise<Blob> {
+    // キャラクター風の呼び方に変換
+    const characterName = formatUserNameForCharacter(userName, character);
+    
     // 漢字を読み仮名に変換
-    const convertedName = convertNameForElevenLabs(userName);
+    const convertedName = convertNameForElevenLabs(characterName);
     
     // 名前に「、」を付けて自然な区切りにする
     const nameText = `${convertedName}、`;
     
-    console.log('🎤 Generating name with ElevenLabs:', {
+    console.log('🎤 Generating character-style name with ElevenLabs:', {
       original: userName,
+      characterStyle: characterName,
       converted: convertedName,
-      finalText: nameText
+      finalText: nameText,
+      character: character
     });
     
     try {
       return await generateVoice(nameText, character);
     } catch (error) {
-      console.error('❌ Name generation failed:', error);
+      console.error('❌ Character-style name generation failed:', error);
       throw error;
     }
   }
@@ -257,7 +263,7 @@ export class HybridAudioEngine {
     return new Blob([arrayBuffer], { type: 'audio/wav' });
   }
 
-  // フォールバック：ElevenLabsで全文生成（漢字変換付き）
+  // フォールバック：ElevenLabsで全文生成（漢字変換付き + キャラクター別呼び方）
   private async generateFallbackAudio(config: HybridGreetingConfig, timeSlot: TimeSlot): Promise<Blob> {
     console.log('🔄 Using ElevenLabs fallback for full greeting...');
     
@@ -265,12 +271,18 @@ export class HybridAudioEngine {
     let fullText = greeting;
     
     if (config.userName) {
-      const convertedName = convertNameForElevenLabs(config.userName);
-      fullText = `${convertedName}、${greeting}`;
+      // キャラクター風の呼び方に変換
+      const characterName = formatUserNameForCharacter(config.userName, config.character);
+      const convertedName = convertNameForElevenLabs(characterName);
       
-      console.log('🔤 Fallback name conversion:', {
+      // キャラクター風の挨拶を生成
+      fullText = generateCharacterGreeting(convertedName, config.character, greeting);
+      
+      console.log('🔤 Fallback character-style conversion:', {
         original: config.userName,
-        converted: convertedName
+        characterStyle: characterName,
+        converted: convertedName,
+        finalGreeting: fullText
       });
     }
     
@@ -298,13 +310,13 @@ export class HybridAudioEngine {
   }
 }
 
-// 便利関数：ハイブリッド音声再生
-export async function playHybridGreeting(userName?: string, timeSlot?: TimeSlot): Promise<void> {
+// 便利関数：ハイブリッド音声再生（キャラクター対応）
+export async function playHybridGreeting(userName?: string, timeSlot?: TimeSlot, characterId: string = 'akari'): Promise<void> {
   const hybridEngine = new HybridAudioEngine();
   
   try {
     const audioBlob = await hybridEngine.generateHybridGreeting({
-      character: 'akari',
+      character: characterId,
       userName,
       timeSlot
     });

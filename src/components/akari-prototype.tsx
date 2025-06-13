@@ -45,7 +45,7 @@ export function AkariPrototype({ userName, onBack }: AkariPrototypeProps) {
     const playInitialGreeting = async () => {
       try {
         setIsPlaying(true)
-        await playHybridGreeting(userName)
+        await playHybridGreeting(userName, undefined, 'akari')
         console.log('✅ Initial greeting played')
       } catch (error) {
         console.error('❌ Initial greeting failed:', error)

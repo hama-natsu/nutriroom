@@ -6,6 +6,7 @@ import { playHybridGreeting, debugHybridSystem } from '@/lib/hybrid-audio'
 import { debugTimeSystem, getAllTimeSlots, TimeSlot } from '@/lib/time-greeting'
 import { debugKanjiConverter, convertNameForElevenLabs, kanjiConverter } from '@/lib/kanji-reading-converter'
 import { kanjiTestFunctions, registerGlobalTestFunctions } from '@/lib/kanji-test-functions'
+import { testAllCharacterAddressing, formatUserNameForCharacter, getCharacterSampleGreeting } from '@/lib/character-addressing'
 
 export default function GlobalAudioTestLoader() {
   useEffect(() => {
@@ -96,12 +97,12 @@ export default function GlobalAudioTestLoader() {
       };
     }
 
-    // ハイブリッド音声テスト関数
+    // ハイブリッド音声テスト関数（キャラクター対応）
     if (!window.testHybridGreeting) {
-      window.testHybridGreeting = async (userName?: string, timeSlot?: TimeSlot) => {
-        console.log('🎵 Hybrid Greeting Test Starting...', { userName, timeSlot });
+      window.testHybridGreeting = async (userName?: string, timeSlot?: TimeSlot, characterId?: string) => {
+        console.log('🎵 Hybrid Greeting Test Starting...', { userName, timeSlot, characterId });
         try {
-          await playHybridGreeting(userName, timeSlot);
+          await playHybridGreeting(userName, timeSlot, characterId);
           console.log('✅ Hybrid Greeting Test: Success');
         } catch (error) {
           console.error('❌ Hybrid Greeting Test: Failed', error);
@@ -118,7 +119,7 @@ export default function GlobalAudioTestLoader() {
         for (const timeSlot of timeSlots) {
           console.log(`\n🧪 Testing ${timeSlot}...`);
           try {
-            await playHybridGreeting(userName, timeSlot);
+            await playHybridGreeting(userName, timeSlot, 'akari');
             console.log(`✅ ${timeSlot}: Success`);
             // 次のテストまで2秒待機
             await new Promise(resolve => setTimeout(resolve, 2000));
@@ -161,7 +162,7 @@ export default function GlobalAudioTestLoader() {
         try {
           const convertedName = convertNameForElevenLabs(kanjiName);
           console.log('Name conversion:', kanjiName, '→', convertedName);
-          await playHybridGreeting(convertedName, timeSlot);
+          await playHybridGreeting(convertedName, timeSlot, 'akari');
           console.log('✅ Hybrid greeting with kanji conversion: Success');
         } catch (error) {
           console.error('❌ Hybrid greeting with kanji conversion: Failed', error);
@@ -192,6 +193,41 @@ export default function GlobalAudioTestLoader() {
       };
     }
 
+    // キャラクター別呼び方テスト関数
+    if (!window.testCharacterAddressing) {
+      window.testCharacterAddressing = (userName: string = 'はまなつ') => {
+        console.log('🎭 Character Addressing Test Starting...');
+        testAllCharacterAddressing(userName);
+      };
+    }
+
+    // キャラクター別挨拶テスト関数
+    if (!window.testCharacterGreeting) {
+      window.testCharacterGreeting = async (userName: string = 'はまなつ', characterId: string = 'akari') => {
+        console.log('🎪 Character Greeting Test Starting...', { userName, characterId });
+        
+        try {
+          // キャラクター風の呼び方をテスト
+          const formattedName = formatUserNameForCharacter(userName, characterId);
+          console.log(`📝 ${characterId}: ${userName} → ${formattedName}`);
+          
+          // サンプル挨拶をテスト
+          const sampleGreeting = getCharacterSampleGreeting(userName, characterId);
+          console.log(`💬 Sample greeting: ${sampleGreeting}`);
+          
+          // 実際の音声テスト（あかりのみ録音音声あり）
+          if (characterId === 'akari') {
+            await playHybridGreeting(userName, undefined, characterId);
+            console.log('✅ Character greeting test: Success');
+          } else {
+            console.log('ℹ️ Audio test skipped - recorded audio only available for Akari');
+          }
+        } catch (error) {
+          console.error('❌ Character greeting test: Failed', error);
+        }
+      };
+    }
+
     // デバッグ情報統合表示
     if (!window.debugAllSystems) {
       window.debugAllSystems = () => {
@@ -212,9 +248,12 @@ export default function GlobalAudioTestLoader() {
         
         console.log('\n🎯 Available Test Functions:');
         console.log('  Basic Functions:');
-        console.log('    - window.testHybridGreeting(userName?, timeSlot?)');
+        console.log('    - window.testHybridGreeting(userName?, timeSlot?, characterId?)');
         console.log('    - window.testTimeSlots(userName?)');
         console.log('    - window.elevenLabsTestSimple(text?, character?)');
+        console.log('  Character Addressing:');
+        console.log('    - window.testCharacterAddressing(userName?)');
+        console.log('    - window.testCharacterGreeting(userName?, characterId?)');
         console.log('  Kanji Conversion:');
         console.log('    - window.testKanjiConversion(text)');
         console.log('    - window.testNameConversion(name)');
@@ -224,9 +263,9 @@ export default function GlobalAudioTestLoader() {
         console.log('    - window.debugAllSystems()');
         
         console.log('\n💡 Quick Examples:');
-        console.log('  window.testHybridGreeting("田中さん")');
-        console.log('  window.testHybridWithKanji("田中太郎", "morning")');
-        console.log('  window.testKanjiConversion("佐藤花子ちゃん")');
+        console.log('  window.testCharacterAddressing("はまなつ")');
+        console.log('  window.testCharacterGreeting("田中太郎", "minato")');
+        console.log('  window.testHybridGreeting("田中さん", "morning", "mao")');
         console.log('  window.testAllConversions()');
       };
     }
@@ -257,6 +296,8 @@ export default function GlobalAudioTestLoader() {
       'testNameConversion',
       'testHybridWithKanji',
       'testAllConversions',
+      'testCharacterAddressing',
+      'testCharacterGreeting',
       'debugAllSystems'
     ];
     
@@ -333,7 +374,7 @@ export default function GlobalAudioTestLoader() {
               const convertedName = convertNameForElevenLabs(kanjiName);
               console.log('📝 Name conversion:', kanjiName, '→', convertedName);
               
-              await playHybridGreeting(convertedName, timeSlot);
+              await playHybridGreeting(convertedName, timeSlot, 'akari');
               console.log('✅ Hybrid greeting with kanji conversion: Success');
             } catch (error) {
               console.error('❌ Hybrid greeting with kanji conversion: Failed', error);
