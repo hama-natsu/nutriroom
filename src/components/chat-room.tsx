@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Character } from '@/lib/characters'
 import { voiceService } from '@/lib/voice-service'
 import { VoicePriority } from '@/lib/voice-config'
+import { playVoice, generateVoice } from '@/lib/audio-utils'
 import { MicrophoneButton } from '@/components/microphone-button'
 
 interface Message {
@@ -120,84 +121,62 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
 
       setMessages(prev => [...prev, aiMessage])
 
-      // 音声モードの場合は音声を生成・再生
-      if (isVoiceMode && voiceService.isVoiceSupported()) {
+      // 🔥 修正箇所：音声生成の優先順位（ElevenLabs > Google TTS）
+      if (isVoiceMode) {
         try {
           setIsPlayingVoice(true)
           
-          // キャラクター別音声生成デバッグ情報
-          console.log('🎭 Character voice generation details:', {
+          console.log('🎵 Generating voice with ElevenLabs priority...', {
             characterId: character.id,
             characterName: character.name,
-            voiceMode: isVoiceMode,
             responseText: data.response.substring(0, 50) + '...',
             responseLength: data.response.length,
             timestamp: new Date().toISOString()
           })
 
-          // 音声設定確認
-          const voiceConfig = voiceService.getVoiceConfig(character.id)
-          console.log('🎵 Voice config check for character:', {
-            characterId: character.id,
-            configFound: !!voiceConfig,
-            config: voiceConfig
-          })
+          // 新しい優先システムで音声生成
+          const voiceSuccess = await playVoice(data.response, character.id)
 
-          // ユーザー名呼びかけパターンを含むかチェック
-          const userName = 'ユーザー' // TODO: 実際のユーザー名を取得
-          const hasUserNameCalling = data.response.includes(userName)
-          
-          const priority = hasUserNameCalling 
-            ? VoicePriority.USER_NAME_CALLING 
-            : VoicePriority.GENERAL_CHAT
-
-          console.log('🎯 Voice generation priority decision:', {
-            characterId: character.id,
-            hasUserNameCalling,
-            priority,
-            priorityName: Object.keys(VoicePriority)[Object.values(VoicePriority).indexOf(priority)]
-          })
-
-          const voiceGenerated = await voiceService.generateAndPlay(
-            data.response,
-            character.id,
-            priority
-          )
-
-          console.log('🎤 Voice generation result:', {
-            characterId: character.id,
-            voiceGenerated,
-            responseLength: data.response.length,
-            success: voiceGenerated
-          })
-
-          if (!voiceGenerated) {
-            console.log('⏭️ 音声生成をスキップ - テキスト表示のみ:', {
+          if (voiceSuccess) {
+            console.log('✅ Voice generation and playback completed:', {
               characterId: character.id,
-              reason: 'shouldGenerateVoice returned false or generation failed'
+              responseLength: data.response.length,
+              system: 'ElevenLabs Priority System'
             })
           } else {
-            console.log('✅ 音声生成・再生完了:', {
+            console.log('⚠️ Voice generation failed:', {
               characterId: character.id,
-              responseLength: data.response.length
+              reason: 'playVoice returned false'
             })
           }
         } catch (voiceError) {
-          console.error('❌ 音声再生エラー:', {
+          console.error('❌ Voice generation error:', {
             characterId: character.id,
             error: voiceError instanceof Error ? voiceError.message : String(voiceError),
-            stack: voiceError instanceof Error ? voiceError.stack : undefined
+            stack: voiceError instanceof Error ? voiceError.stack?.substring(0, 200) : undefined
           })
-          // 音声エラーでもテキストは表示されているので、エラーメッセージは表示しない
+          
+          // フォールバック: 従来のシステムを試行
+          try {
+            console.log('🔄 Attempting fallback to legacy voice system...')
+            const voiceGenerated = await voiceService.generateAndPlay(
+              data.response,
+              character.id,
+              VoicePriority.GENERAL_CHAT
+            )
+            
+            if (voiceGenerated) {
+              console.log('✅ Fallback voice generation successful')
+            }
+          } catch (fallbackError) {
+            console.error('❌ Fallback voice generation also failed:', fallbackError)
+          }
         } finally {
           setIsPlayingVoice(false)
         }
       } else {
-        console.log('🔇 Voice generation skipped:', {
-          isVoiceMode,
-          voiceSupported: voiceService.isVoiceSupported(),
-          characterId: character.id,
-          reason: !isVoiceMode ? 'voice mode disabled' : 'voice not supported'
+        console.log('🔇 Voice generation skipped (voice mode disabled)', {
+          characterId: character.id
         })
       }
     } catch (error) {
