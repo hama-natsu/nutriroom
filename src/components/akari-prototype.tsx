@@ -24,6 +24,7 @@ export function AkariPrototype({ onBack }: AkariPrototypeProps) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentMessage, setCurrentMessage] = useState('')
   const [showInitialGreeting, setShowInitialGreeting] = useState(true)
+  const [backgroundPosition, setBackgroundPosition] = useState('center 20%')
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -144,7 +145,8 @@ export function AkariPrototype({ onBack }: AkariPrototypeProps) {
           src="/images/characters/akari-room-full.png"
           alt="あかりの部屋"
           fill
-          className="object-cover object-center"
+          className="object-cover"
+          style={{ objectPosition: backgroundPosition }}
           priority
           sizes="100vw"
         />
@@ -175,6 +177,21 @@ export function AkariPrototype({ onBack }: AkariPrototypeProps) {
         </div>
         
         <div className="flex items-center gap-2">
+          {/* 背景位置調整ボタン（デバッグ用） */}
+          <button
+            onClick={() => {
+              const positions = ['center 10%', 'center 15%', 'center 20%', 'center 25%', 'center 30%']
+              const current = positions.indexOf(backgroundPosition)
+              const next = (current + 1) % positions.length
+              setBackgroundPosition(positions[next])
+              console.log('Background position changed to:', positions[next])
+            }}
+            className="px-2 py-1 text-xs bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
+            title="背景位置調整"
+          >
+            📐
+          </button>
+          
           {/* ハイブリッド挨拶テストボタン */}
           <button
             onClick={async () => {
