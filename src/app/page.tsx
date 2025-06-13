@@ -39,10 +39,6 @@ export default function Home() {
     setSelectedCharacter(null)
   }
 
-  const handleBackFromAppFlow = () => {
-    setCurrentView('dashboard')
-  }
-
   const handleBackToSelection = () => {
     setCurrentView('character-selection')
     setSelectedCharacter(null)
