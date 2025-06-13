@@ -42,7 +42,7 @@ export class KanjiReadingConverter {
     this.customRules.set('有難う', 'ありがとう')
   }
 
-  // メイン変換関数
+  // メイン変換関数（エラーハンドリング強化）
   convertText(text: string): ConversionResult {
     const result: ConversionResult = {
       original: text,
@@ -51,27 +51,77 @@ export class KanjiReadingConverter {
       hasChanges: false
     }
 
-    let workingText = text
+    try {
+      // 入力検証
+      if (!text || typeof text !== 'string') {
+        console.warn('⚠️ Invalid input for convertText:', text);
+        return result;
+      }
 
-    // 1. カスタムルールの適用
-    workingText = this.applyCustomRules(workingText, result)
+      if (text.trim() === '') {
+        console.warn('⚠️ Empty text provided for conversion');
+        return result;
+      }
 
-    // 2. 完全名前マッチング（苗字+名前）
-    workingText = this.applyFullNameMatching(workingText, result)
+      let workingText = text;
 
-    // 3. 部分名前マッチング（苗字または名前）
-    workingText = this.applyPartialNameMatching(workingText, result)
+      // 1. カスタムルールの適用
+      try {
+        workingText = this.applyCustomRules(workingText, result);
+      } catch (error) {
+        console.error('❌ Error in custom rules application:', error);
+      }
 
-    // 4. 単一文字変換
-    workingText = this.applySingleCharacterConversion(workingText, result)
+      // 2. 完全名前マッチング（苗字+名前）
+      try {
+        workingText = this.applyFullNameMatching(workingText, result);
+      } catch (error) {
+        console.error('❌ Error in full name matching:', error);
+      }
 
-    // 5. 敬称の処理
-    workingText = this.applyHonorificConversion(workingText, result)
+      // 3. 部分名前マッチング（苗字または名前）
+      try {
+        workingText = this.applyPartialNameMatching(workingText, result);
+      } catch (error) {
+        console.error('❌ Error in partial name matching:', error);
+      }
 
-    result.converted = workingText
-    result.hasChanges = result.conversions.length > 0
+      // 4. 単一文字変換
+      try {
+        workingText = this.applySingleCharacterConversion(workingText, result);
+      } catch (error) {
+        console.error('❌ Error in single character conversion:', error);
+      }
 
-    return result
+      // 5. 敬称の処理
+      try {
+        workingText = this.applyHonorificConversion(workingText, result);
+      } catch (error) {
+        console.error('❌ Error in honorific conversion:', error);
+      }
+
+      result.converted = workingText;
+      result.hasChanges = result.conversions.length > 0;
+
+      // 変換結果の検証
+      if (result.converted.length === 0) {
+        console.warn('⚠️ Conversion resulted in empty text, reverting to original');
+        result.converted = text;
+        result.hasChanges = false;
+        result.conversions = [];
+      }
+
+      return result;
+    } catch (error) {
+      console.error('❌ Critical error in convertText:', error);
+      // フォールバック：元のテキストを返す
+      return {
+        original: text,
+        converted: text,
+        conversions: [],
+        hasChanges: false
+      };
+    }
   }
 
   private applyCustomRules(text: string, result: ConversionResult): string {
@@ -189,35 +239,62 @@ export class KanjiReadingConverter {
     return workingText
   }
 
-  // 名前に特化した変換（ハイブリッド音声用）
+  // 名前に特化した変換（ハイブリッド音声用・エラーハンドリング強化）
   convertNameForVoice(name: string): ConversionResult {
-    console.log('🔤 Converting name for voice:', name)
-    
-    const result = this.convertText(name)
-    
-    // 名前専用の追加処理
-    if (!result.hasChanges) {
-      // データベースにない場合の推測変換
-      result.converted = this.attemptPhoneticGuess(name)
-      if (result.converted !== name) {
-        result.conversions.push({
-          from: name,
-          to: result.converted,
-          type: 'manual_rule',
-          confidence: 'low'
-        })
-        result.hasChanges = true
+    try {
+      console.log('🔤 Converting name for voice:', name);
+      
+      // 入力検証
+      if (!name || typeof name !== 'string') {
+        console.error('❌ Invalid name input:', name);
+        return {
+          original: name || '',
+          converted: name || '',
+          conversions: [],
+          hasChanges: false
+        };
       }
+
+      const result = this.convertText(name);
+      
+      // 名前専用の追加処理
+      if (!result.hasChanges) {
+        try {
+          // データベースにない場合の推測変換
+          const guessedReading = this.attemptPhoneticGuess(name);
+          if (guessedReading !== name) {
+            result.converted = guessedReading;
+            result.conversions.push({
+              from: name,
+              to: guessedReading,
+              type: 'manual_rule',
+              confidence: 'low'
+            });
+            result.hasChanges = true;
+          }
+        } catch (error) {
+          console.error('❌ Error in phonetic guess:', error);
+        }
+      }
+
+      console.log('✅ Name conversion result:', {
+        original: result.original,
+        converted: result.converted,
+        hasChanges: result.hasChanges,
+        conversions: result.conversions.length
+      });
+
+      return result;
+    } catch (error) {
+      console.error('❌ Critical error in convertNameForVoice:', error);
+      // フォールバック
+      return {
+        original: name,
+        converted: name,
+        conversions: [],
+        hasChanges: false
+      };
     }
-
-    console.log('✅ Name conversion result:', {
-      original: result.original,
-      converted: result.converted,
-      hasChanges: result.hasChanges,
-      conversions: result.conversions.length
-    })
-
-    return result
   }
 
   private attemptPhoneticGuess(name: string): string {
@@ -288,15 +365,35 @@ export class KanjiReadingConverter {
 // シングルトンインスタンス
 export const kanjiConverter = new KanjiReadingConverter()
 
-// 便利関数
+// 便利関数（エラーハンドリング強化）
 export function convertForElevenLabs(text: string): string {
-  const result = kanjiConverter.convertText(text)
-  return result.converted
+  try {
+    if (!text || typeof text !== 'string') {
+      console.warn('⚠️ Invalid text for ElevenLabs conversion:', text);
+      return text || '';
+    }
+    
+    const result = kanjiConverter.convertText(text);
+    return result.converted;
+  } catch (error) {
+    console.error('❌ Error in convertForElevenLabs:', error);
+    return text; // フォールバック
+  }
 }
 
 export function convertNameForElevenLabs(name: string): string {
-  const result = kanjiConverter.convertNameForVoice(name)
-  return result.converted
+  try {
+    if (!name || typeof name !== 'string') {
+      console.warn('⚠️ Invalid name for ElevenLabs conversion:', name);
+      return name || '';
+    }
+    
+    const result = kanjiConverter.convertNameForVoice(name);
+    return result.converted;
+  } catch (error) {
+    console.error('❌ Error in convertNameForElevenLabs:', error);
+    return name; // フォールバック
+  }
 }
 
 // デバッグ用関数
