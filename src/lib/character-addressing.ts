@@ -43,12 +43,12 @@ export const characterAddressingMap: Record<string, CharacterAddressing> = {
 
   // りく - クール系理論派栄養士
   riku: {
-    honorific: '氏',
+    honorific: 'さん',
     tone: 'formal',
     samples: [
-      '{name}氏、データを確認しましょう',
-      '{name}氏、科学的根拠に基づいて説明します',
-      '{name}氏、論理的に考えてみてください'
+      '{name}さん、データを確認しましょう',
+      '{name}さん、科学的根拠に基づいて説明します',
+      '{name}さん、論理的に考えてみてください'
     ]
   },
 
@@ -76,14 +76,20 @@ export const characterAddressingMap: Record<string, CharacterAddressing> = {
 
   // そら - 中性的フリースタイル栄養士
   sora: {
-    honorific: '',
+    honorific: 'さん',
     tone: 'mysterious',
     samples: [
-      '{name}、自然と調和した食事を...',
-      '{name}、それが真の健康への道ですね',
-      '{name}、宇宙のエネルギーを感じて...'
+      '{name}さん、自然と調和した食事を...',
+      '{name}さん、それが真の健康への道ですね',
+      '{name}さん、宇宙のエネルギーを感じて...'
     ]
   }
+}
+
+// 敬語重複チェック関数
+function hasExistingSuffix(userName: string): boolean {
+  const commonSuffixes = ['さん', 'ちゃん', '君', '氏', 'くん', '様', 'ちゃま']
+  return commonSuffixes.some(suffix => userName.endsWith(suffix))
 }
 
 // ユーザー名をキャラクター風に変換する関数
@@ -95,7 +101,12 @@ export function formatUserNameForCharacter(
   
   if (!addressing) {
     // デフォルトはあかりの呼び方
-    return `${userName}さん`
+    return hasExistingSuffix(userName) ? userName : `${userName}さん`
+  }
+
+  // 既に敬称が付いている場合はそのまま返す
+  if (hasExistingSuffix(userName)) {
+    return userName
   }
 
   // 敬称を付けて返す
