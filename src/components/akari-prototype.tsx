@@ -14,10 +14,11 @@ interface Message {
 }
 
 interface AkariPrototypeProps {
+  userName?: string
   onBack?: () => void
 }
 
-export function AkariPrototype({ onBack }: AkariPrototypeProps) {
+export function AkariPrototype({ userName, onBack }: AkariPrototypeProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [inputText, setInputText] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -31,14 +32,20 @@ export function AkariPrototype({ onBack }: AkariPrototypeProps) {
   // 初期挨拶の設定
   useEffect(() => {
     const timeSlot = getCurrentTimeSlot()
-    const greeting = getTimeSlotGreeting(timeSlot)
-    setCurrentMessage(greeting)
+    const baseGreeting = getTimeSlotGreeting(timeSlot)
+    
+    // ユーザー名がある場合は個人化された挨拶を作成
+    const personalizedGreeting = userName 
+      ? `${userName}さん、${baseGreeting}` 
+      : baseGreeting
+    
+    setCurrentMessage(personalizedGreeting)
     
     // 自動で初期挨拶を再生
     const playInitialGreeting = async () => {
       try {
         setIsPlaying(true)
-        await playHybridGreeting()
+        await playHybridGreeting(userName)
         console.log('✅ Initial greeting played')
       } catch (error) {
         console.error('❌ Initial greeting failed:', error)
@@ -53,7 +60,7 @@ export function AkariPrototype({ onBack }: AkariPrototypeProps) {
     }, 1000)
 
     return () => clearTimeout(timer)
-  }, [])
+  }, [userName])
 
   // メッセージ送信
   const sendMessage = async () => {

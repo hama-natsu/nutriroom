@@ -4,11 +4,12 @@ import { Character, characters } from '@/lib/characters'
 import { CharacterCard } from './character-card'
 
 interface CharacterSelectionProps {
+  userName: string
   onBack: () => void
   onCharacterSelect: (character: Character) => void
 }
 
-export function CharacterSelection({ onBack, onCharacterSelect }: CharacterSelectionProps) {
+export function CharacterSelection({ userName, onBack, onCharacterSelect }: CharacterSelectionProps) {
   const handleCharacterSelect = (character: Character) => {
     onCharacterSelect(character)
   }
@@ -26,7 +27,7 @@ export function CharacterSelection({ onBack, onCharacterSelect }: CharacterSelec
           >
             ＜
           </button>
-          <h1 className="text-xl font-bold text-gray-800">AI栄養士を選んでください</h1>
+          <h1 className="text-xl font-bold text-gray-800">{userName}さん、AI栄養士を選んでください</h1>
         </div>
       </div>
 

@@ -6,10 +6,11 @@ import { AuthForm } from '@/components/auth-form'
 import { CharacterSelection } from '@/components/character-selection'
 import { CharacterSelected } from '@/components/character-selected'
 import { ChatRoom } from '@/components/chat-room'
+import { AppFlowManager } from '@/components/app-flow-manager'
 import { supabase } from '@/lib/supabase'
 import { Character } from '@/lib/characters'
 
-type ViewState = 'dashboard' | 'character-selection' | 'character-selected' | 'chat'
+type ViewState = 'dashboard' | 'character-selection' | 'character-selected' | 'chat' | 'app-flow'
 
 export default function Home() {
   const { user, loading } = useAuth()
@@ -24,6 +25,10 @@ export default function Home() {
     setCurrentView('character-selection')
   }
 
+  const handleNewAppFlow = () => {
+    setCurrentView('app-flow')
+  }
+
   const handleCharacterSelect = (character: Character) => {
     setSelectedCharacter(character)
     setCurrentView('character-selected')
@@ -32,6 +37,10 @@ export default function Home() {
   const handleBackToDashboard = () => {
     setCurrentView('dashboard')
     setSelectedCharacter(null)
+  }
+
+  const handleBackFromAppFlow = () => {
+    setCurrentView('dashboard')
   }
 
   const handleBackToSelection = () => {
@@ -55,10 +64,16 @@ export default function Home() {
     return <AuthForm />
   }
 
+  // 新しいアプリフロー画面
+  if (currentView === 'app-flow') {
+    return <AppFlowManager />
+  }
+
   // キャラクター選択画面
   if (currentView === 'character-selection') {
     return (
       <CharacterSelection
+        userName="ユーザー"
         onBack={handleBackToDashboard}
         onCharacterSelect={handleCharacterSelect}
       />
@@ -112,13 +127,27 @@ export default function Home() {
             {/* AI栄養士と相談ボタン */}
             <div className="mt-8 mb-8 space-y-4">
               <button
+                onClick={handleNewAppFlow}
+                className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-6 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl border-2 border-green-300"
+              >
+                <div className="flex items-center justify-center space-x-3">
+                  <span className="text-2xl">✨</span>
+                  <div className="text-left">
+                    <div className="text-xl">新しいユーザー体験</div>
+                    <div className="text-sm opacity-90">名前入力 → キャラクター選択 → 個人化された挨拶</div>
+                  </div>
+                  <span className="text-xl">→</span>
+                </div>
+              </button>
+              
+              <button
                 onClick={handleCharacterConsultation}
                 className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold py-6 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
               >
                 <div className="flex items-center justify-center space-x-3">
                   <span className="text-2xl">🤖</span>
                   <div className="text-left">
-                    <div className="text-xl">AI栄養士と相談</div>
+                    <div className="text-xl">AI栄養士と相談（旧版）</div>
                     <div className="text-sm opacity-90">7人の専門家があなたをサポート</div>
                   </div>
                   <span className="text-xl">→</span>
