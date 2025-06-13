@@ -2,6 +2,7 @@
 
 import { TimeSlot, getCurrentTimeSlot, getTimeSlotGreeting } from './time-greeting';
 import { generateVoice } from './audio-utils';
+import { convertNameForElevenLabs } from './kanji-reading-converter';
 
 export interface HybridGreetingConfig {
   character: 'akari'; // 現在はあかりのみ対応
@@ -61,12 +62,19 @@ export class HybridAudioEngine {
     }
   }
 
-  // ElevenLabsでユーザー名読み上げ
+  // ElevenLabsでユーザー名読み上げ（漢字変換付き）
   private async generateNamePart(userName: string, character: string): Promise<Blob> {
-    // 名前に「、」を付けて自然な区切りにする
-    const nameText = `${userName}、`;
+    // 漢字を読み仮名に変換
+    const convertedName = convertNameForElevenLabs(userName);
     
-    console.log('🎤 Generating name with ElevenLabs:', nameText);
+    // 名前に「、」を付けて自然な区切りにする
+    const nameText = `${convertedName}、`;
+    
+    console.log('🎤 Generating name with ElevenLabs:', {
+      original: userName,
+      converted: convertedName,
+      finalText: nameText
+    });
     
     try {
       return await generateVoice(nameText, character);
@@ -249,12 +257,22 @@ export class HybridAudioEngine {
     return new Blob([arrayBuffer], { type: 'audio/wav' });
   }
 
-  // フォールバック：ElevenLabsで全文生成
+  // フォールバック：ElevenLabsで全文生成（漢字変換付き）
   private async generateFallbackAudio(config: HybridGreetingConfig, timeSlot: TimeSlot): Promise<Blob> {
     console.log('🔄 Using ElevenLabs fallback for full greeting...');
     
     const greeting = getTimeSlotGreeting(timeSlot);
-    const fullText = config.userName ? `${config.userName}、${greeting}` : greeting;
+    let fullText = greeting;
+    
+    if (config.userName) {
+      const convertedName = convertNameForElevenLabs(config.userName);
+      fullText = `${convertedName}、${greeting}`;
+      
+      console.log('🔤 Fallback name conversion:', {
+        original: config.userName,
+        converted: convertedName
+      });
+    }
     
     try {
       const fallbackAudio = await generateVoice(fullText, config.character);

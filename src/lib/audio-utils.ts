@@ -2,6 +2,8 @@
 
 // 🎯 音声プロバイダー選択ロジック（ElevenLabs最優先）
 
+import { convertForElevenLabs } from './kanji-reading-converter';
+
 interface VoiceMapping {
   [key: string]: string
 }
@@ -17,14 +19,20 @@ const voiceMapping: VoiceMapping = {
   'sora': 'LNzr3u01PIEDg0fRlvE7'       // Ichiro
 }
 
-// ElevenLabs音声生成関数
+// ElevenLabs音声生成関数（漢字変換付き）
 async function generateWithElevenLabs(text: string, characterId: string): Promise<Blob> {
   const voiceId = voiceMapping[characterId] || voiceMapping['akari'] // デフォルトはakari
+
+  // 漢字をひらがなに変換
+  const convertedText = convertForElevenLabs(text)
 
   console.log('🔊 ElevenLabs Request:', {
     characterId,
     voiceId,
-    textLength: text.length,
+    originalText: text,
+    convertedText: convertedText,
+    textLength: convertedText.length,
+    hasKanjiConversion: text !== convertedText,
     apiKeyExists: !!process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY
   })
 
@@ -36,7 +44,7 @@ async function generateWithElevenLabs(text: string, characterId: string): Promis
       'xi-api-key': process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY!
     },
     body: JSON.stringify({
-      text,
+      text: convertedText, // 変換されたテキストを使用
       model_id: "eleven_multilingual_v2",
       voice_settings: {
         stability: 0.5,

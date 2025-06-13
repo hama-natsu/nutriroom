@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { generateVoice, debugAudioSystem } from '@/lib/audio-utils'
 import { playHybridGreeting, debugHybridSystem } from '@/lib/hybrid-audio'
 import { debugTimeSystem, getAllTimeSlots, TimeSlot } from '@/lib/time-greeting'
+import { debugKanjiConverter, convertNameForElevenLabs, kanjiConverter } from '@/lib/kanji-reading-converter'
 
 export default function GlobalAudioTestLoader() {
   useEffect(() => {
@@ -128,6 +129,68 @@ export default function GlobalAudioTestLoader() {
       };
     }
 
+    // 漢字読み変換テスト関数
+    if (!window.testKanjiConversion) {
+      window.testKanjiConversion = (text: string) => {
+        console.log('🔤 Kanji Conversion Test:', text);
+        const result = kanjiConverter.convertText(text);
+        console.log('Original:', result.original);
+        console.log('Converted:', result.converted);
+        console.log('Has changes:', result.hasChanges);
+        console.log('Conversions:', result.conversions);
+        return result;
+      };
+    }
+
+    // 名前変換テスト関数
+    if (!window.testNameConversion) {
+      window.testNameConversion = (name: string) => {
+        console.log('👤 Name Conversion Test:', name);
+        const result = convertNameForElevenLabs(name);
+        console.log('Original:', name);
+        console.log('Converted:', result);
+        return result;
+      };
+    }
+
+    // ハイブリッド挨拶（名前変換付き）
+    if (!window.testHybridWithKanji) {
+      window.testHybridWithKanji = async (kanjiName: string, timeSlot?: TimeSlot) => {
+        console.log('🎎 Hybrid Greeting with Kanji Conversion Test:', kanjiName);
+        try {
+          const convertedName = convertNameForElevenLabs(kanjiName);
+          console.log('Name conversion:', kanjiName, '→', convertedName);
+          await playHybridGreeting(convertedName, timeSlot);
+          console.log('✅ Hybrid greeting with kanji conversion: Success');
+        } catch (error) {
+          console.error('❌ Hybrid greeting with kanji conversion: Failed', error);
+        }
+      };
+    }
+
+    // 変換システム総合テスト
+    if (!window.testAllConversions) {
+      window.testAllConversions = () => {
+        console.log('🧪 Testing All Conversion Systems...');
+        
+        const testCases = [
+          '田中太郎さん',
+          '佐藤花子ちゃん', 
+          '山田くん',
+          '東海林さま',
+          '鈴木美穂',
+          '小鳥遊',
+          '渡辺'
+        ];
+        
+        testCases.forEach(testCase => {
+          window.testKanjiConversion?.(testCase);
+        });
+        
+        console.log('🏁 All conversion tests completed');
+      };
+    }
+
     // デバッグ情報統合表示
     if (!window.debugAllSystems) {
       window.debugAllSystems = () => {
@@ -143,15 +206,27 @@ export default function GlobalAudioTestLoader() {
         console.log('\n🕒 Time System:');
         debugTimeSystem();
         
+        console.log('\n🔤 Kanji Conversion System:');
+        debugKanjiConverter();
+        
         console.log('\n🎯 Available Test Functions:');
-        console.log('  - window.testHybridGreeting(userName?, timeSlot?)');
-        console.log('  - window.testTimeSlots(userName?)');
-        console.log('  - window.elevenLabsTestSimple(text?, character?)');
-        console.log('  - window.debugAllSystems()');
+        console.log('  Basic Functions:');
+        console.log('    - window.testHybridGreeting(userName?, timeSlot?)');
+        console.log('    - window.testTimeSlots(userName?)');
+        console.log('    - window.elevenLabsTestSimple(text?, character?)');
+        console.log('  Kanji Conversion:');
+        console.log('    - window.testKanjiConversion(text)');
+        console.log('    - window.testNameConversion(name)');
+        console.log('    - window.testHybridWithKanji(kanjiName, timeSlot?)');
+        console.log('    - window.testAllConversions()');
+        console.log('  System Debug:');
+        console.log('    - window.debugAllSystems()');
+        
         console.log('\n💡 Quick Examples:');
         console.log('  window.testHybridGreeting("田中さん")');
-        console.log('  window.testHybridGreeting("山田さん", "morning")');
-        console.log('  window.testTimeSlots("佐藤さん")');
+        console.log('  window.testHybridWithKanji("田中太郎", "morning")');
+        console.log('  window.testKanjiConversion("佐藤花子ちゃん")');
+        console.log('  window.testAllConversions()');
       };
     }
 
@@ -179,6 +254,10 @@ declare global {
     generateVoiceTestSimple?: (text: string, characterId: string) => Promise<Blob>
     testHybridGreeting?: (userName?: string, timeSlot?: TimeSlot) => Promise<void>
     testTimeSlots?: (userName?: string) => Promise<void>
+    testKanjiConversion?: (text: string) => unknown
+    testNameConversion?: (name: string) => string
+    testHybridWithKanji?: (kanjiName: string, timeSlot?: TimeSlot) => Promise<void>
+    testAllConversions?: () => void
     debugAllSystems?: () => void
   }
 }
