@@ -485,12 +485,14 @@ declare global {
     debugAudioSimple?: () => void
     testAudioPrioritySimple?: () => Promise<void>
     generateVoiceTestSimple?: (text: string, characterId: string) => Promise<Blob>
-    testHybridGreeting?: (userName?: string, timeSlot?: TimeSlot) => Promise<void>
+    testHybridGreeting?: (userName?: string, timeSlot?: TimeSlot, characterId?: string) => Promise<void>
     testTimeSlots?: (userName?: string) => Promise<void>
     testKanjiConversion?: (text: string) => unknown
     testNameConversion?: (name: string) => string
     testHybridWithKanji?: (kanjiName: string, timeSlot?: TimeSlot) => Promise<void>
     testAllConversions?: () => void
+    testCharacterAddressing?: (userName?: string) => void
+    testCharacterGreeting?: (userName?: string, characterId?: string) => Promise<void>
     debugAllSystems?: () => void
     forceRegisterTestFunctions?: () => void
     kanjiTestFunctions?: {
