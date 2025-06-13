@@ -18,7 +18,7 @@ const voiceMapping: VoiceMapping = {
 }
 
 // ElevenLabs音声生成関数
-async function useElevenLabs(text: string, characterId: string): Promise<Blob> {
+async function generateWithElevenLabs(text: string, characterId: string): Promise<Blob> {
   const voiceId = voiceMapping[characterId] || voiceMapping['akari'] // デフォルトはakari
 
   console.log('🔊 ElevenLabs Request:', {
@@ -68,7 +68,7 @@ async function useElevenLabs(text: string, characterId: string): Promise<Blob> {
 }
 
 // Google TTS音声生成関数（フォールバック）
-async function useGoogleTTS(text: string, characterId: string): Promise<Blob> {
+async function generateWithGoogleTTS(text: string, characterId: string): Promise<Blob> {
   console.log('🔊 Google TTS Request:', {
     characterId,
     textLength: text.length
@@ -131,7 +131,7 @@ export async function generateVoice(text: string, characterId: string): Promise<
       console.log('🚀 Using ElevenLabs (Priority 1)')
       
       try {
-        const blob = await useElevenLabs(text, characterId)
+        const blob = await generateWithElevenLabs(text, characterId)
         const duration = Date.now() - startTime
         
         console.log('🎉 Voice Generation Completed (ElevenLabs):', {
@@ -146,7 +146,7 @@ export async function generateVoice(text: string, characterId: string): Promise<
         console.warn('⚠️ ElevenLabs failed, falling back to Google TTS:', elevenLabsError)
         
         // ElevenLabsが失敗した場合のフォールバック
-        const blob = await useGoogleTTS(text, characterId)
+        const blob = await generateWithGoogleTTS(text, characterId)
         const duration = Date.now() - startTime
         
         console.log('🎉 Voice Generation Completed (Google TTS Fallback):', {
@@ -161,7 +161,7 @@ export async function generateVoice(text: string, characterId: string): Promise<
     } else {
       console.log('🔑 ElevenLabs API key not available, using Google TTS (Priority 2)')
       
-      const blob = await useGoogleTTS(text, characterId)
+      const blob = await generateWithGoogleTTS(text, characterId)
       const duration = Date.now() - startTime
       
       console.log('🎉 Voice Generation Completed (Google TTS):', {

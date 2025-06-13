@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { generateVoice, playVoice, debugAudioSystem } from '@/lib/audio-utils'
+import { generateVoice, debugAudioSystem } from '@/lib/audio-utils'
 
 // グローバル型定義
 declare global {

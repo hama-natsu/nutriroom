@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Character } from '@/lib/characters'
 import { voiceService } from '@/lib/voice-service'
 import { VoicePriority } from '@/lib/voice-config'
-import { playVoice, generateVoice } from '@/lib/audio-utils'
+import { playVoice } from '@/lib/audio-utils'
 import { MicrophoneButton } from '@/components/microphone-button'
 
 interface Message {
