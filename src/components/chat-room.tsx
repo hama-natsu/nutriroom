@@ -5,6 +5,7 @@ import { Character } from '@/lib/characters'
 import { voiceService } from '@/lib/voice-service'
 import { VoicePriority } from '@/lib/voice-config'
 import { playVoice } from '@/lib/audio-utils'
+import { playHybridGreeting } from '@/lib/hybrid-audio'
 import { MicrophoneButton } from '@/components/microphone-button'
 
 interface Message {
@@ -28,6 +29,7 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
       timestamp: new Date()
     }
   ])
+  const [hasPlayedInitialGreeting, setHasPlayedInitialGreeting] = useState(false)
   const [inputMessage, setInputMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isVoiceMode, setIsVoiceMode] = useState(false)
@@ -60,6 +62,39 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  // 初期挨拶の再生（ハイブリッド音声）
+  useEffect(() => {
+    const playInitialGreeting = async () => {
+      if (!hasPlayedInitialGreeting && isVoiceMode && character.id === 'akari') {
+        try {
+          setIsPlayingVoice(true)
+          console.log('🎵 Playing initial hybrid greeting for', character.name)
+          
+          // ユーザー名は今後実装予定（現在は時間帯挨拶のみ）
+          await playHybridGreeting()
+          
+          console.log('✅ Initial hybrid greeting completed')
+          setHasPlayedInitialGreeting(true)
+        } catch (error) {
+          console.error('❌ Initial hybrid greeting failed:', error)
+          // フォールバック：通常の音声再生
+          try {
+            await playVoice(messages[0].content, character.id)
+          } catch (fallbackError) {
+            console.error('❌ Fallback greeting also failed:', fallbackError)
+          }
+        } finally {
+          setIsPlayingVoice(false)
+        }
+      }
+    }
+
+    // 音声モードがオンになった時に初回挨拶を再生
+    if (isVoiceMode) {
+      playInitialGreeting()
+    }
+  }, [isVoiceMode, hasPlayedInitialGreeting, character.id, character.name, messages])
 
   const sendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return

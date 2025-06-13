@@ -2,6 +2,8 @@
 
 import { useEffect } from 'react'
 import { generateVoice, debugAudioSystem } from '@/lib/audio-utils'
+import { playHybridGreeting, debugHybridSystem } from '@/lib/hybrid-audio'
+import { debugTimeSystem, getAllTimeSlots, TimeSlot } from '@/lib/time-greeting'
 
 export default function GlobalAudioTestLoader() {
   useEffect(() => {
@@ -92,9 +94,72 @@ export default function GlobalAudioTestLoader() {
       };
     }
 
+    // ハイブリッド音声テスト関数
+    if (!window.testHybridGreeting) {
+      window.testHybridGreeting = async (userName?: string, timeSlot?: TimeSlot) => {
+        console.log('🎵 Hybrid Greeting Test Starting...', { userName, timeSlot });
+        try {
+          await playHybridGreeting(userName, timeSlot);
+          console.log('✅ Hybrid Greeting Test: Success');
+        } catch (error) {
+          console.error('❌ Hybrid Greeting Test: Failed', error);
+        }
+      };
+    }
+
+    // 時間帯テスト関数
+    if (!window.testTimeSlots) {
+      window.testTimeSlots = async (userName?: string) => {
+        console.log('🕒 Testing all time slots...', { userName });
+        const timeSlots = getAllTimeSlots();
+        
+        for (const timeSlot of timeSlots) {
+          console.log(`\n🧪 Testing ${timeSlot}...`);
+          try {
+            await playHybridGreeting(userName, timeSlot);
+            console.log(`✅ ${timeSlot}: Success`);
+            // 次のテストまで2秒待機
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          } catch (error) {
+            console.error(`❌ ${timeSlot}: Failed`, error);
+          }
+        }
+        console.log('🏁 All time slot tests completed');
+      };
+    }
+
+    // デバッグ情報統合表示
+    if (!window.debugAllSystems) {
+      window.debugAllSystems = () => {
+        console.log('🔍 Complete System Debug Information');
+        console.log('=' .repeat(80));
+        
+        console.log('\n🎵 Audio System:');
+        debugAudioSystem();
+        
+        console.log('\n🤝 Hybrid System:');
+        debugHybridSystem();
+        
+        console.log('\n🕒 Time System:');
+        debugTimeSystem();
+        
+        console.log('\n🎯 Available Test Functions:');
+        console.log('  - window.testHybridGreeting(userName?, timeSlot?)');
+        console.log('  - window.testTimeSlots(userName?)');
+        console.log('  - window.elevenLabsTestSimple(text?, character?)');
+        console.log('  - window.debugAllSystems()');
+        console.log('\n💡 Quick Examples:');
+        console.log('  window.testHybridGreeting("田中さん")');
+        console.log('  window.testHybridGreeting("山田さん", "morning")');
+        console.log('  window.testTimeSlots("佐藤さん")');
+      };
+    }
+
     // 起動時にデバッグ情報を表示
-    console.log('🚀 Global Audio Test Functions Loaded');
-    debugAudioSystem();
+    console.log('🚀 Global Audio Test Functions Loaded (with Hybrid System)');
+    if (window.debugAllSystems) {
+      window.debugAllSystems();
+    }
     
     // クリーンアップ
     return () => {
@@ -112,5 +177,8 @@ declare global {
     debugAudioSimple?: () => void
     testAudioPrioritySimple?: () => Promise<void>
     generateVoiceTestSimple?: (text: string, characterId: string) => Promise<Blob>
+    testHybridGreeting?: (userName?: string, timeSlot?: TimeSlot) => Promise<void>
+    testTimeSlots?: (userName?: string) => Promise<void>
+    debugAllSystems?: () => void
   }
 }
