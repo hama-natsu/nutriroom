@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import Image from 'next/image'
 import { playHybridGreeting } from '@/lib/hybrid-audio'
 import { getCurrentTimeSlot, getTimeSlotGreeting } from '@/lib/time-greeting'
 import { playVoice } from '@/lib/audio-utils'
@@ -136,33 +137,19 @@ export function AkariPrototype({ onBack }: AkariPrototypeProps) {
   }, [messages])
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 relative overflow-hidden">
-      {/* 背景装飾 */}
-      <div className="absolute inset-0 pointer-events-none">
-        {/* 観葉植物（左側） */}
-        <div className="absolute bottom-0 left-4 text-6xl opacity-60">
-          🌿
-        </div>
-        <div className="absolute bottom-16 left-8 text-4xl opacity-40">
-          🪴
-        </div>
-        
-        {/* 観葉植物（右側） */}
-        <div className="absolute bottom-0 right-4 text-5xl opacity-50">
-          🌱
-        </div>
-        
-        {/* 装飾要素 */}
-        <div className="absolute top-10 right-10 text-3xl opacity-30">
-          ☀️
-        </div>
-        <div className="absolute top-20 left-10 text-2xl opacity-25">
-          ✨
-        </div>
-        
-        {/* ソフトなボケ効果 */}
-        <div className="absolute top-1/4 left-1/3 w-32 h-32 bg-pink-200 rounded-full blur-3xl opacity-20"></div>
-        <div className="absolute bottom-1/3 right-1/4 w-24 h-24 bg-blue-200 rounded-full blur-2xl opacity-15"></div>
+    <div className="h-screen flex flex-col relative overflow-hidden">
+      {/* PNG背景イラスト */}
+      <div className="absolute inset-0">
+        <Image
+          src="/images/characters/akari-room-full.png"
+          alt="あかりの部屋"
+          fill
+          className="object-cover object-center"
+          priority
+          sizes="100vw"
+        />
+        {/* オーバーレイで少し明るく調整 */}
+        <div className="absolute inset-0 bg-white/10"></div>
       </div>
 
       {/* ヘッダー */}
@@ -220,26 +207,29 @@ export function AkariPrototype({ onBack }: AkariPrototypeProps) {
       <main className="flex-1 flex flex-col relative z-10">
         {/* キャラクターエリア */}
         <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 relative">
-          {/* あかりキャラクター */}
+          {/* あかりキャラクター（背景イラストに統合） */}
           <div className="relative mb-6">
-            <div className={`text-8xl transition-transform duration-500 ${isPlaying ? 'scale-110' : 'scale-100'}`}>
-              👩‍⚕️
-            </div>
-            
-            {/* 話し中エフェクト */}
+            {/* 話し中エフェクトのみ表示（キャラクターは背景イラストにあるため） */}
             {isPlaying && (
-              <div className="absolute -top-2 -right-2">
+              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-8">
                 <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-pink-400 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                  <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="w-3 h-3 bg-pink-400 rounded-full animate-bounce shadow-lg"></div>
+                  <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce shadow-lg" style={{ animationDelay: '0.15s' }}></div>
+                  <div className="w-3 h-3 bg-blue-400 rounded-full animate-bounce shadow-lg" style={{ animationDelay: '0.3s' }}></div>
+                </div>
+                {/* 音声インジケーター */}
+                <div className="mt-2 text-center">
+                  <div className="inline-flex items-center gap-1 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full shadow-md">
+                    <div className="w-2 h-2 bg-pink-500 rounded-full animate-pulse"></div>
+                    <span className="text-xs font-medium text-gray-700">話し中</span>
+                  </div>
                 </div>
               </div>
             )}
           </div>
 
           {/* メッセージ吹き出し */}
-          <div className="max-w-md w-full">
+          <div className="max-w-md w-full mx-auto px-4 sm:px-0">
             {showInitialGreeting ? (
               // 初期挨拶
               <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50 relative">
@@ -302,21 +292,21 @@ export function AkariPrototype({ onBack }: AkariPrototypeProps) {
 
         {/* 入力エリア */}
         <div className="p-4 bg-white/80 backdrop-blur-sm border-t border-white/40">
-          <div className="max-w-2xl mx-auto flex gap-3">
+          <div className="max-w-2xl mx-auto flex gap-2 sm:gap-3 px-4 sm:px-0">
             <textarea
               ref={inputRef}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="あかりに相談してみましょう..."
-              className="flex-1 p-3 border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-transparent bg-white/90 backdrop-blur-sm"
+              className="flex-1 p-3 border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-transparent bg-white/90 backdrop-blur-sm text-sm sm:text-base"
               rows={2}
               disabled={isLoading}
             />
             <button
               onClick={sendMessage}
               disabled={!inputText.trim() || isLoading}
-              className="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-xl hover:from-pink-600 hover:to-purple-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium min-w-[80px]"
+              className="px-4 sm:px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-xl hover:from-pink-600 hover:to-purple-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium min-w-[60px] sm:min-w-[80px] text-sm sm:text-base"
             >
               {isLoading ? (
                 <div className="flex items-center justify-center">
