@@ -3,109 +3,114 @@
 import { useEffect } from 'react'
 import { generateVoice, debugAudioSystem } from '@/lib/audio-utils'
 
-// グローバル型定義
-declare global {
-  interface Window {
-    elevenLabsTest: (text?: string, character?: string) => Promise<void>
-    debugAudio: () => void
-    testAudioPriority: () => Promise<void>
-    generateVoiceTest: (text: string, characterId: string) => Promise<Blob>
-  }
-}
-
 export default function GlobalAudioTestLoader() {
   useEffect(() => {
-    // 🎯 基本テスト関数をグローバルに登録
-    window.elevenLabsTest = async (
-      text: string = "こんにちは、テストです", 
-      character: string = "akari"
-    ) => {
-      try {
-        console.log('🧪 ElevenLabs Test Starting...')
-        console.log(`📝 Text: "${text}"`)
-        console.log(`🎭 Character: ${character}`)
-        
-        const audioBlob = await generateVoice(text, character)
-        
-        const audioUrl = URL.createObjectURL(audioBlob)
-        const audio = new Audio(audioUrl)
-        
-        audio.onloadeddata = () => {
-          console.log('✅ ElevenLabs Test: Audio loaded successfully')
+    // テスト関数をグローバルに登録（重複チェック付き）
+    if (!window.elevenLabsTestSimple) {
+      window.elevenLabsTestSimple = async (
+        text: string = "こんにちは、テストです", 
+        character: string = "akari"
+      ) => {
+        try {
+          console.log('🧪 ElevenLabs Test Starting...');
+          console.log(`Text: "${text}", Character: "${character}"`);
+          
+          const audioBlob = await generateVoice(text, character);
+          
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const audio = new Audio(audioUrl);
+          
+          audio.onloadeddata = () => {
+            console.log('✅ ElevenLabs Test: Audio loaded successfully');
+          };
+          
+          audio.onerror = (e) => {
+            console.error('❌ ElevenLabs Test: Audio playback failed', e);
+            URL.revokeObjectURL(audioUrl);
+          };
+          
+          audio.onended = () => {
+            console.log('🔇 ElevenLabs Test: Audio playback completed');
+            URL.revokeObjectURL(audioUrl);
+          };
+          
+          await audio.play();
+          console.log('🔊 ElevenLabs Test: Playing audio...');
+          
+        } catch (error) {
+          console.error('❌ ElevenLabs Test Failed:', error);
         }
-        
-        audio.onerror = (e) => {
-          console.error('❌ ElevenLabs Test: Audio playback failed', e)
-          URL.revokeObjectURL(audioUrl)
-        }
-        
-        audio.onended = () => {
-          console.log('🔇 ElevenLabs Test: Audio playback completed')
-          URL.revokeObjectURL(audioUrl)
-        }
-        
-        await audio.play()
-        console.log('🔊 ElevenLabs Test: Playing audio...')
-        
-      } catch (error) {
-        console.error('❌ ElevenLabs Test Failed:', error)
-      }
+      };
     }
 
-    // 🎯 デバッグ情報表示関数
-    window.debugAudio = () => {
-      debugAudioSystem()
+    // デバッグ情報表示関数
+    if (!window.debugAudioSimple) {
+      window.debugAudioSimple = () => {
+        debugAudioSystem();
+      };
     }
 
-    // 🎯 音声プロバイダー優先度テスト
-    window.testAudioPriority = async () => {
-      console.log('🔍 Testing Audio Provider Priority...')
-      console.log('=' .repeat(60))
-      
-      const testTexts = [
-        { text: "短いテスト", character: "minato", description: "Short text test" },
-        { text: "これは中程度の長さのテストです。音声生成がうまく動作するかを確認します。", character: "akari", description: "Medium text test" },
-        { text: "これは非常に長いテキストのテストです。".repeat(10), character: "yuki", description: "Long text test" }
-      ]
-      
-      for (const testCase of testTexts) {
-        console.log(`\n📋 ${testCase.description}:`)
-        console.log(`🎭 Character: ${testCase.character}`)
-        console.log(`📝 Text length: ${testCase.text.length} chars`)
+    // 音声プロバイダー優先度テスト
+    if (!window.testAudioPrioritySimple) {
+      window.testAudioPrioritySimple = async () => {
+        console.log('🔄 Testing Audio Provider Priority...');
+        
+        const testText = "プライオリティテスト";
+        const testCharacter = "akari";
         
         try {
-          const startTime = Date.now()
-          const blob = await generateVoice(testCase.text, testCase.character)
-          const duration = Date.now() - startTime
+          const audioBlob = await generateVoice(testText, testCharacter);
+          console.log('✅ Audio generation successful:', audioBlob.size, 'bytes');
           
-          console.log(`✅ Success: ${duration}ms, Blob size: ${blob.size} bytes`)
+          // 音声再生テスト
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const audio = new Audio(audioUrl);
+          
+          audio.onloadeddata = () => {
+            console.log('✅ Audio loaded successfully');
+            URL.revokeObjectURL(audioUrl);
+          };
+          
+          audio.onerror = (e) => {
+            console.error('❌ Audio playback failed:', e);
+            URL.revokeObjectURL(audioUrl);
+          };
+          
+          await audio.play();
+          
         } catch (error) {
-          console.error(`❌ Failed:`, error)
+          console.error('❌ Priority test failed:', error);
         }
-      }
-      
-      console.log('\n🏁 Priority test completed')
+      };
     }
 
-    // 🎯 直接音声生成テスト（Blobを返す）
-    window.generateVoiceTest = async (text: string, characterId: string): Promise<Blob> => {
-      console.log('🎵 Direct voice generation test:', { text: text.substring(0, 30), characterId })
-      return await generateVoice(text, characterId)
+    // 音声生成テスト（Blobを返す）
+    if (!window.generateVoiceTestSimple) {
+      window.generateVoiceTestSimple = async (text: string, characterId: string) => {
+        console.log(`🎵 Generating voice: "${text}" for ${characterId}`);
+        return await generateVoice(text, characterId);
+      };
     }
 
     // 起動時にデバッグ情報を表示
-    if (process.env.NODE_ENV === 'development') {
-      setTimeout(() => {
-        console.log('🎯 Global Audio Test Functions Loaded:')
-        console.log('  - window.elevenLabsTest(text?, character?)')
-        console.log('  - window.debugAudio()')
-        console.log('  - window.testAudioPriority()')
-        console.log('  - window.generateVoiceTest(text, characterId)')
-        console.log('')
-        window.debugAudio()
-      }, 1000)
-    }
-  }, [])
+    console.log('🚀 Global Audio Test Functions Loaded');
+    debugAudioSystem();
+    
+    // クリーンアップ
+    return () => {
+      // 必要に応じてクリーンアップ処理
+    };
+  }, []);
 
-  return null
+  return null; // UIは表示しない
+}
+
+// Window型拡張（重複を避けるため、別の名前を使用）
+declare global {
+  interface Window {
+    elevenLabsTestSimple?: (text?: string, character?: string) => Promise<void>
+    debugAudioSimple?: () => void
+    testAudioPrioritySimple?: () => Promise<void>
+    generateVoiceTestSimple?: (text: string, characterId: string) => Promise<Blob>
+  }
 }
