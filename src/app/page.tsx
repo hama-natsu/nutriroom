@@ -110,7 +110,7 @@ export default function Home() {
             </div>
 
             {/* AI栄養士と相談ボタン */}
-            <div className="mt-8 mb-8">
+            <div className="mt-8 mb-8 space-y-4">
               <button
                 onClick={handleCharacterConsultation}
                 className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold py-6 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
@@ -124,6 +124,21 @@ export default function Home() {
                   <span className="text-xl">→</span>
                 </div>
               </button>
+              
+              {/* あかりプロトタイプボタン */}
+              <a
+                href="/akari-prototype"
+                className="block w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+              >
+                <div className="flex items-center justify-center space-x-3">
+                  <span className="text-2xl">👩‍⚕️</span>
+                  <div className="text-left">
+                    <div className="text-lg">あかりプロトタイプ</div>
+                    <div className="text-sm opacity-90">SELFライクなUI + ハイブリッド音声</div>
+                  </div>
+                  <span className="text-xl">→</span>
+                </div>
+              </a>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
