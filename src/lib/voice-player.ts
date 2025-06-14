@@ -95,7 +95,7 @@ export class VOICEVOXPlayer {
       parts.push('default')
     }
 
-    return `${parts.join('_')}.mp3`
+    return `${parts.join('_')}.wav`
   }
 
   // 🎵 音声Blob再生
@@ -129,7 +129,7 @@ export class VOICEVOXPlayer {
     console.log('🔄 Attempting fallback voice for:', characterId)
     
     try {
-      // まずdefault.mp3を試行
+      // まずdefault.wavを試行
       const fallbackConfig: VoiceConfig = {
         characterId,
         emotion: 'default',

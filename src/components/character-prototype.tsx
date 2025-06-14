@@ -6,6 +6,7 @@ import { playSmartGreeting, playEmotionResponse, getCurrentTimeSlot } from '@/li
 import { getTimeSlotGreeting } from '@/lib/time-greeting'
 import { getCharacterById } from '@/lib/characters'
 import { MicrophoneButton } from '@/components/microphone-button'
+import { useSmartVoice } from '@/hooks/useSmartVoice'
 
 interface Message {
   id: string
@@ -24,7 +25,6 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
   const [messages, setMessages] = useState<Message[]>([])
   const [inputText, setInputText] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [isPlaying, setIsPlaying] = useState(false)
   const [currentMessage, setCurrentMessage] = useState('')
   const [showInitialGreeting, setShowInitialGreeting] = useState(true)
   const [backgroundPosition] = useState('center 20%')
@@ -33,6 +33,13 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
 
   // キャラクター情報を取得
   const character = getCharacterById(characterId)
+
+  // スマート音声エンジン
+  const { 
+    isPlaying, 
+    playSmartVoice, 
+    debugVoiceSystem 
+  } = useSmartVoice()
 
   // 初期挨拶の設定
   useEffect(() => {
@@ -47,16 +54,25 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
     
     setCurrentMessage(personalizedGreeting)
     
-    // 自動で初期挨拶を再生
+    // 自動で初期挨拶を再生（スマート音声エンジン使用）
     const playInitialGreeting = async () => {
       try {
-        setIsPlaying(true)
-        await playSmartGreeting(characterId)
-        console.log('✅ Initial greeting played')
+        console.log('🎯 Playing smart initial greeting for', characterId)
+        
+        const success = await playSmartVoice({
+          characterId,
+          interactionContext: 'greeting',
+          userMessage: personalizedGreeting
+        })
+        
+        if (success) {
+          console.log('✅ Smart initial greeting played successfully')
+        } else {
+          console.warn('⚠️ Smart greeting failed, falling back to legacy system')
+          await playSmartGreeting(characterId)
+        }
       } catch (error) {
         console.error('❌ Initial greeting failed:', error)
-      } finally {
-        setIsPlaying(false)
       }
     }
 
@@ -66,7 +82,7 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
     }, 1000)
 
     return () => clearTimeout(timer)
-  }, [userName, characterId, character])
+  }, [userName, characterId, character, playSmartVoice])
 
   // スクロール調整
   useEffect(() => {
@@ -134,15 +150,25 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
         setMessages(prev => [...prev, aiMessage])
         setCurrentMessage(data.response)
 
-        // 音声再生（感情応答）
+        // 音声再生（スマート音声エンジン使用）
         try {
-          setIsPlaying(true)
-          await playEmotionResponse(characterId, 'agreement')
-          console.log('✅ Response voice played')
+          console.log('🎯 Playing smart response voice')
+          
+          const success = await playSmartVoice({
+            characterId,
+            interactionContext: 'response',
+            userMessage: inputText,
+            conversationHistory: messages.map(m => m.text)
+          })
+          
+          if (success) {
+            console.log('✅ Smart response voice played successfully')
+          } else {
+            console.warn('⚠️ Smart voice failed, using legacy system')
+            await playEmotionResponse(characterId, 'agreement')
+          }
         } catch (error) {
           console.error('❌ Voice playback failed:', error)
-        } finally {
-          setIsPlaying(false)
         }
       }
     } catch (error) {
@@ -234,23 +260,36 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
         
         <div className="flex items-center gap-2">
           
-          {/* 音声挨拶テストボタン */}
+          {/* スマート音声テストボタン */}
           <button
             onClick={async () => {
-              try {
-                setIsPlaying(true)
-                await playSmartGreeting(characterId)
-                console.log('✅ Manual greeting played')
-              } catch (error) {
-                console.error('❌ Manual greeting failed:', error)
-              } finally {
-                setIsPlaying(false)
+              console.log('🎯 Testing smart voice system')
+              
+              const success = await playSmartVoice({
+                characterId,
+                interactionContext: 'greeting',
+                userMessage: 'こんにちは'
+              })
+              
+              if (success) {
+                console.log('✅ Smart voice test successful')
+              } else {
+                console.warn('⚠️ Smart voice test failed')
               }
             }}
             disabled={isPlaying}
-            className="px-3 py-1 text-xs bg-pink-100 text-pink-600 rounded-lg hover:bg-pink-200 disabled:opacity-50 transition-colors"
+            className="px-3 py-1 text-xs bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 disabled:opacity-50 transition-colors"
           >
-            🎵
+            🎯
+          </button>
+          
+          {/* デバッグ情報ボタン */}
+          <button
+            onClick={debugVoiceSystem}
+            className="px-3 py-1 text-xs bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
+            title="音声システムデバッグ"
+          >
+            🔍
           </button>
           
           {isPlaying && (
