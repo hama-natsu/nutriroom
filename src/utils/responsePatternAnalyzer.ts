@@ -71,9 +71,17 @@ const CHARACTER_RESPONSE_PROFILES: Record<string, CharacterResponseProfile> = {
  * 応答カテゴリを判定
  */
 export function analyzeResponseCategory(responseText: string, userMessage?: string): ResponseCategory {
+  // 空の応答やループ防止
+  if (!responseText || responseText.trim().length === 0) {
+    return 'explanation'
+  }
+  
   const lowerResponse = responseText.toLowerCase()
-  // 将来的にuserMessageも分析に使用する予定
-  console.log('Analyzing response category for:', responseText, userMessage ? 'with user context' : 'without user context')
+  
+  // デバッグログは開発環境のみ
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Analyzing response category for length:', responseText.length, userMessage ? 'with context' : 'no context')
+  }
   
   // 挨拶パターン
   if (['こんにちは', 'おはよう', 'こんばんは', 'はじめまして', 'よろしく'].some(greeting => 
@@ -111,7 +119,7 @@ export function analyzeResponseCategory(responseText: string, userMessage?: stri
     return 'advice'
   }
   
-  // デフォルトは説明
+  // デフォルトは説明（voice_onlyを避ける）
   return 'explanation'
 }
 
@@ -191,18 +199,21 @@ export function analyzeResponsePattern(request: ResponseControlRequest): Respons
   let confidence = 0.8
   let reason = ''
   
-  // 1. 文字数による判定
+  // 1. 文字数による判定（voice_onlyを制限）
   if (textLength <= profile.lengthThresholds.shortResponse) {
-    selectedType = 'voice_only'
-    reason = `Short response (${textLength} chars) - voice only`
+    // 短い応答でもテキスト表示を優先（安全性重視）
+    selectedType = 'voice_and_text'
+    reason = `Short response (${textLength} chars) - voice and text for safety`
   } else if (textLength >= profile.lengthThresholds.longResponse) {
     selectedType = 'text_only'
     reason = `Long response (${textLength} chars) - text only`
   }
-  // 2. カテゴリー別設定
+  // 2. カテゴリー別設定（voice_onlyを制限）
   else if (profile.categoryPreferences[category]) {
-    selectedType = profile.categoryPreferences[category]
-    reason = `Category preference: ${category} -> ${selectedType}`
+    const preferredType = profile.categoryPreferences[category]
+    // voice_onlyを voice_and_text に変更（安全性重視）
+    selectedType = preferredType === 'voice_only' ? 'voice_and_text' : preferredType
+    reason = `Category preference: ${category} -> ${selectedType}${preferredType === 'voice_only' ? ' (upgraded for safety)' : ''}`
   }
   // 3. 優先度による調整
   else if (priority === 'critical' || priority === 'high') {
@@ -214,13 +225,13 @@ export function analyzeResponsePattern(request: ResponseControlRequest): Respons
     selectedType = 'text_only'
     reason = `Complex content - text only`
   } else if (complexity === 'simple') {
-    selectedType = 'voice_only'
-    reason = `Simple content - voice only`
+    selectedType = 'voice_and_text'
+    reason = `Simple content - voice and text for safety`
   }
-  // 5. キャラクターの音声傾向
+  // 5. キャラクターの音声傾向（voice_onlyを制限）
   else if (profile.voicePreference > 0.7) {
-    selectedType = 'voice_only'
-    reason = `Character voice preference (${profile.voicePreference})`
+    selectedType = 'voice_and_text'
+    reason = `Character voice preference (${profile.voicePreference}) - upgraded for safety`
   } else if (profile.voicePreference < 0.3) {
     selectedType = 'text_only'
     reason = `Character text preference (${profile.voicePreference})`
@@ -232,12 +243,13 @@ export function analyzeResponsePattern(request: ResponseControlRequest): Respons
     confidence = 0.5
   }
   
-  // 特殊パターンのオーバーライド
+  // 特殊パターンのオーバーライド（voice_onlyを制限）
   if (request.context?.userEmotionState) {
     const emotionState = request.context.userEmotionState as keyof typeof profile.specialPatterns
     if (profile.specialPatterns[emotionState]) {
-      selectedType = profile.specialPatterns[emotionState]
-      reason = `Emotion override: ${emotionState} -> ${selectedType}`
+      const specialType = profile.specialPatterns[emotionState]
+      selectedType = specialType === 'voice_only' ? 'voice_and_text' : specialType
+      reason = `Emotion override: ${emotionState} -> ${selectedType}${specialType === 'voice_only' ? ' (upgraded for safety)' : ''}`
       confidence = 0.9
     }
   }
@@ -341,28 +353,76 @@ export function generateFallbackOptions(pattern: ResponsePattern): ResponseType[
  * メイン応答制御エンジン
  */
 export function controlChatResponse(request: ResponseControlRequest): ResponseControlResult {
-  const pattern = analyzeResponsePattern(request)
-  const content = generateResponseContent(request.responseText, pattern)
-  const timing = generateTimingControl(pattern, request.responseText.length)
-  const fallbackOptions = generateFallbackOptions(pattern)
-  
-  if (process.env.NODE_ENV === 'development') {
-    console.log('🎭 Response Pattern Control:', {
-      characterId: request.characterId,
-      category: pattern.category,
-      type: pattern.type,
-      priority: pattern.priority,
-      reason: pattern.reason,
-      confidence: pattern.confidence,
-      timing
-    })
+  // 空の応答やエラー状態の早期終了
+  if (!request.responseText || request.responseText.trim().length === 0) {
+    return {
+      pattern: {
+        type: 'text_only',
+        category: 'explanation',
+        priority: 'low',
+        reason: 'Empty response - fallback to text only',
+        confidence: 1.0
+      },
+      content: {
+        text: request.responseText || '',
+        voiceRequired: false,
+        textRequired: true,
+        urgency: 'low'
+      },
+      timing: {
+        voiceDelay: 0,
+        textDelay: 100
+      },
+      fallbackOptions: []
+    }
   }
-  
-  return {
-    pattern,
-    content,
-    timing,
-    fallbackOptions
+
+  try {
+    const pattern = analyzeResponsePattern(request)
+    const content = generateResponseContent(request.responseText, pattern)
+    const timing = generateTimingControl(pattern, request.responseText.length)
+    const fallbackOptions = generateFallbackOptions(pattern)
+    
+    // デバッグログは開発環境のみ
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🎭 Response Control Result:', {
+        category: pattern.category,
+        type: pattern.type,
+        priority: pattern.priority,
+        confidence: pattern.confidence
+      })
+    }
+    
+    return {
+      pattern,
+      content,
+      timing,
+      fallbackOptions
+    }
+  } catch (error) {
+    console.error('❌ Response control analysis failed:', error)
+    
+    // エラー時のフォールバック
+    return {
+      pattern: {
+        type: 'text_only',
+        category: 'explanation',
+        priority: 'low',
+        reason: 'Analysis error - fallback to safe mode',
+        confidence: 0.1
+      },
+      content: {
+        text: request.responseText,
+        voiceRequired: false,
+        textRequired: true,
+        urgency: 'low'
+      },
+      timing: {
+        voiceDelay: 0,
+        textDelay: 100
+      },
+      fallbackOptions: ['voice_only', 'voice_and_text']
+    }
   }
 }
 

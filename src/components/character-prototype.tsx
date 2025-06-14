@@ -52,7 +52,9 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
     conversationHistory: messages.map(m => m.text),
     onTextDisplay: (text) => {
       if (responseControlActive) {
-        console.log('📝 Response controller: Text display triggered')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('📝 Response controller: Text display triggered')
+        }
         const aiMessage: Message = {
           id: (Date.now() + Math.random()).toString(),
           text,
@@ -64,18 +66,20 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
       }
     },
     onVoiceStart: () => {
-      if (responseControlActive) {
+      if (responseControlActive && process.env.NODE_ENV === 'development') {
         console.log('🎵 Response controller: Voice playback started')
       }
     },
     onVoiceEnd: () => {
-      if (responseControlActive) {
+      if (responseControlActive && process.env.NODE_ENV === 'development') {
         console.log('🎵 Response controller: Voice playback ended')
       }
     },
     onResponseComplete: () => {
       if (responseControlActive) {
-        console.log('🎯 Response controller: Response completed')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🎯 Response controller: Response completed')
+        }
         setPendingResponse(null)
         setResponseControlActive(false)
       }
@@ -188,15 +192,19 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
       if (response.ok) {
         const data = await response.json()
         
-        // 応答制御システムを使用するかの判定
-        const useResponseControl = Math.random() > 0.5 // 50%の確率でテスト
+        // 応答制御システムを使用するかの判定（一時的に無効化）
+        const useResponseControl = false // 緊急修正: 一時的に無効化
         
         if (useResponseControl) {
-          console.log('🎭 Using response control system')
+          if (process.env.NODE_ENV === 'development') {
+            console.log('🎭 Using response control system')
+          }
           setPendingResponse(data.response)
           setResponseControlActive(true)
         } else {
-          console.log('🎵 Using legacy response system')
+          if (process.env.NODE_ENV === 'development') {
+            console.log('🎵 Using legacy response system')
+          }
           
           const aiMessage: Message = {
             id: (Date.now() + 1).toString(),
@@ -210,7 +218,9 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
 
           // 音声再生（スマート音声エンジン使用）
           try {
-            console.log('🎯 Playing smart response voice')
+            if (process.env.NODE_ENV === 'development') {
+              console.log('🎯 Playing smart response voice')
+            }
             
             const success = await playSmartVoice({
               characterId,
@@ -220,7 +230,9 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
             })
             
             if (success) {
-              console.log('✅ Smart response voice played successfully')
+              if (process.env.NODE_ENV === 'development') {
+                console.log('✅ Smart response voice played successfully')
+              }
             } else {
               console.warn('⚠️ Smart voice failed, using legacy system')
               await playEmotionResponse(characterId, 'agreement')
@@ -322,7 +334,9 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
           {/* スマート音声テストボタン */}
           <button
             onClick={async () => {
-              console.log('🎯 Testing smart voice system')
+              if (process.env.NODE_ENV === 'development') {
+                console.log('🎯 Testing smart voice system')
+              }
               
               const success = await playSmartVoice({
                 characterId,
@@ -331,7 +345,9 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
               })
               
               if (success) {
-                console.log('✅ Smart voice test successful')
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('✅ Smart voice test successful')
+                }
               } else {
                 console.warn('⚠️ Smart voice test failed')
               }
@@ -342,16 +358,19 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
             🎯
           </button>
           
-          {/* 応答制御テストボタン */}
+          {/* 応答制御テストボタン（一時無効化） */}
           <button
             onClick={() => {
-              console.log('🎭 Testing response control system')
-              setPendingResponse('こんにちは！元気ですか？今日も栄養バランスを意識した食事を心がけましょうね♪')
-              setResponseControlActive(true)
+              if (process.env.NODE_ENV === 'development') {
+                console.log('🎭 Response control system is temporarily disabled')
+              }
+              // 一時的に無効化
+              // setPendingResponse('こんにちは！元気ですか？今日も栄養バランスを意識した食事を心がけましょうね♪')
+              // setResponseControlActive(true)
             }}
-            disabled={responseControlActive}
-            className="px-3 py-1 text-xs bg-green-100 text-green-600 rounded-lg hover:bg-green-200 disabled:opacity-50 transition-colors"
-            title="応答パターン制御テスト"
+            disabled={true}
+            className="px-3 py-1 text-xs bg-gray-100 text-gray-400 rounded-lg transition-colors opacity-50"
+            title="応答パターン制御（一時無効化）"
           >
             🎭
           </button>

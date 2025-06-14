@@ -53,66 +53,102 @@ export function ChatResponseController({
   
   const { playSmartVoice, isPlaying } = useSmartVoice()
 
-  // 応答制御分析
+  // 応答制御分析（空文字列チェック追加）
   useEffect(() => {
-    const request: ResponseControlRequest = {
-      characterId,
-      responseText,
-      userMessage,
-      conversationHistory,
-      context
+    // 空の応答テキストの場合は処理をスキップ
+    if (!responseText || responseText.trim().length === 0) {
+      console.warn('⚠️ Empty response text, skipping control analysis')
+      return
     }
-    
-    const result = controlChatResponse(request)
-    setControlResult(result)
-    
-    console.log('🎭 Response control initialized:', {
-      type: result.pattern.type,
-      category: result.pattern.category,
-      priority: result.pattern.priority,
-      reason: result.pattern.reason
-    })
+
+    try {
+      const request: ResponseControlRequest = {
+        characterId,
+        responseText,
+        userMessage,
+        conversationHistory,
+        context
+      }
+      
+      const result = controlChatResponse(request)
+      setControlResult(result)
+      
+      // デバッグログは開発環境のみ
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🎭 Response control initialized:', {
+          type: result.pattern.type,
+          category: result.pattern.category,
+          confidence: result.pattern.confidence
+        })
+      }
+    } catch (error) {
+      console.error('❌ Response control initialization failed:', error)
+    }
   }, [characterId, responseText, userMessage, conversationHistory, context])
 
-  // テキスト表示処理
+  // テキスト表示処理（タイムアウト付き）
   const executeTextDisplay = useCallback(async (delay: number) => {
     if (!controlResult?.content.textRequired) return
     
-    await new Promise(resolve => setTimeout(resolve, delay))
-    
-    setExecutionState(prev => ({ ...prev, isTextDisplaying: true, textStarted: true }))
-    
-    if (onTextDisplay) {
-      onTextDisplay(responseText)
+    try {
+      await new Promise(resolve => setTimeout(resolve, Math.min(delay, 3000))) // 最大3秒制限
+      
+      setExecutionState(prev => ({ ...prev, isTextDisplaying: true, textStarted: true }))
+      
+      if (onTextDisplay) {
+        onTextDisplay(responseText)
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📝 Text display executed with delay:', delay)
+      }
+      
+      // テキスト表示完了を即座に設定
+      setTimeout(() => {
+        setExecutionState(prev => ({ ...prev, isTextDisplaying: false }))
+      }, 100)
+      
+    } catch (error) {
+      console.error('❌ Text display failed:', error)
+      setExecutionState(prev => ({ ...prev, isTextDisplaying: false }))
     }
-    
-    console.log('📝 Text display executed with delay:', delay)
   }, [controlResult, responseText, onTextDisplay])
 
-  // 音声再生処理
+  // 音声再生処理（タイムアウト付き）
   const executeVoicePlayback = useCallback(async (delay: number) => {
     if (!controlResult?.content.voiceRequired) return
     
-    await new Promise(resolve => setTimeout(resolve, delay))
-    
-    setExecutionState(prev => ({ ...prev, isVoicePlaying: true, voiceStarted: true }))
-    
-    if (onVoiceStart) {
-      onVoiceStart()
-    }
-    
     try {
-      console.log('🎵 Voice playback started with delay:', delay)
+      await new Promise(resolve => setTimeout(resolve, Math.min(delay, 2000))) // 最大2秒制限
       
-      const success = await playSmartVoice({
+      setExecutionState(prev => ({ ...prev, isVoicePlaying: true, voiceStarted: true }))
+      
+      if (onVoiceStart) {
+        onVoiceStart()
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🎵 Voice playback started with delay:', delay)
+      }
+      
+      // タイムアウト付き音声再生
+      const voicePromise = playSmartVoice({
         characterId,
         interactionContext: mapCategoryToContext(controlResult.pattern.category),
         userMessage,
         conversationHistory
       })
       
+      const timeoutPromise = new Promise<boolean>((_, reject) => 
+        setTimeout(() => reject(new Error('Voice playback timeout')), 10000) // 10秒制限
+      )
+      
+      const success = await Promise.race([voicePromise, timeoutPromise])
+      
       if (success) {
-        console.log('✅ Voice playback completed successfully')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ Voice playback completed successfully')
+        }
       } else {
         console.warn('⚠️ Voice playback failed')
         if (onError) {
@@ -132,7 +168,7 @@ export function ChatResponseController({
     }
   }, [controlResult, characterId, userMessage, conversationHistory, playSmartVoice, onVoiceStart, onVoiceEnd, onError])
 
-  // 応答実行の完了チェック
+  // 応答実行の完了チェック（強制終了条件追加）
   useEffect(() => {
     if (!controlResult) return
     
@@ -140,13 +176,34 @@ export function ChatResponseController({
     const shouldWaitForVoice = content.voiceRequired && !executionState.voiceStarted
     const shouldWaitForText = content.textRequired && !executionState.textStarted
     
+    // 正常完了条件
     if (!shouldWaitForVoice && !shouldWaitForText && !executionState.completed) {
       setExecutionState(prev => ({ ...prev, completed: true }))
       if (onResponseComplete) {
         onResponseComplete()
       }
-      console.log('🎯 Response execution completed')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🎯 Response execution completed normally')
+      }
     }
+    
+    // 強制終了条件（10秒タイムアウト）
+    const forceCompleteTimer = setTimeout(() => {
+      if (!executionState.completed) {
+        console.warn('⚠️ Forcing response completion due to timeout')
+        setExecutionState(prev => ({ 
+          ...prev, 
+          completed: true, 
+          isVoicePlaying: false, 
+          isTextDisplaying: false 
+        }))
+        if (onResponseComplete) {
+          onResponseComplete()
+        }
+      }
+    }, 10000)
+    
+    return () => clearTimeout(forceCompleteTimer)
   }, [controlResult, executionState, onResponseComplete])
 
   // メイン実行処理
