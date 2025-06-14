@@ -95,7 +95,19 @@ export class VOICEVOXPlayer {
       parts.push('default')
     }
 
-    return `${parts.join('_')}.wav`
+    const fileName = `${parts.join('_')}.wav`
+    
+    // デバッグ情報を追加
+    console.log('🎵 Voice file generation:', {
+      characterId: config.characterId,
+      timeSlot: config.timeSlot,
+      pattern: config.pattern,
+      emotion: config.emotion,
+      generatedFileName: fileName,
+      fullPath: `${this.baseAudioPath}/${config.characterId}/${fileName}`
+    })
+
+    return fileName
   }
 
   // 🎵 音声Blob再生 - グローバル管理システム使用
@@ -187,14 +199,15 @@ export async function playDefaultVoice(characterId: string): Promise<boolean> {
   })
 }
 
-// 🎯 現在時刻に基づく自動時間帯判定
+// 🎯 現在時刻に基づく自動時間帯判定 - time-greeting.tsと統一
 export function getCurrentTimeSlot(): TimeSlot {
-  const hour = new Date().getHours()
+  const now = new Date();
+  const hour = now.getHours();
   
-  if (hour >= 5 && hour < 12) return 'morning'
-  if (hour >= 12 && hour < 17) return 'afternoon'
-  if (hour >= 17 && hour < 21) return 'evening'
-  return 'night'
+  if (hour >= 6 && hour < 12) return 'morning';   // 6:00-11:59 (朝)
+  if (hour >= 12 && hour < 18) return 'afternoon'; // 12:00-17:59 (昼)
+  if (hour >= 18 && hour < 22) return 'evening';   // 18:00-21:59 (夕)
+  return 'night'; // 22:00-05:59 (夜)
 }
 
 // 🎯 スマート音声選択（時間帯・ランダムパターン）
@@ -206,7 +219,17 @@ export async function playSmartGreeting(characterId: string): Promise<boolean> {
   console.log('🤖 Smart greeting selection:', {
     characterId,
     timeSlot,
-    selectedPattern: randomPattern
+    selectedPattern: randomPattern,
+    currentTime: new Date().toLocaleString('ja-JP'),
+    hour: new Date().getHours()
+  })
+  
+  // 音声ファイル名の生成をデバッグ
+  const fileName = `${timeSlot}_${randomPattern}.wav`
+  console.log('🎵 Expected voice file:', {
+    characterId,
+    fileName,
+    fullPath: `/audio/recorded/${characterId}/${fileName}`
   })
   
   return await playTimeGreeting(characterId, timeSlot, randomPattern)

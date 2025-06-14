@@ -3,12 +3,20 @@
 export type TimeSlot = 'morning' | 'afternoon' | 'evening' | 'night';
 
 export function getCurrentTimeSlot(): TimeSlot {
-  const hour = new Date().getHours();
+  const now = new Date();
+  const hour = now.getHours();
   
-  if (hour >= 5 && hour < 12) return 'morning';   // 5:00-11:59
-  if (hour >= 12 && hour < 17) return 'afternoon'; // 12:00-16:59  
-  if (hour >= 17 && hour < 22) return 'evening';   // 17:00-21:59
-  return 'night'; // 22:00-4:59
+  // デバッグ情報を追加
+  console.log('🕒 Time Slot Debug:', {
+    currentTime: now.toLocaleString('ja-JP'),
+    hour,
+    timestamp: now.toISOString()
+  });
+  
+  if (hour >= 6 && hour < 12) return 'morning';   // 6:00-11:59 (朝)
+  if (hour >= 12 && hour < 18) return 'afternoon'; // 12:00-17:59 (昼)
+  if (hour >= 18 && hour < 22) return 'evening';   // 18:00-21:59 (夕)
+  return 'night'; // 22:00-05:59 (夜)
 }
 
 export function getTimeSlotGreeting(timeSlot: TimeSlot): string {
@@ -16,27 +24,32 @@ export function getTimeSlotGreeting(timeSlot: TimeSlot): string {
     morning: 'おはよう！今日も一緒に頑張りましょう〜♪',
     afternoon: 'こんにちは〜！元気にしてましたか？',
     evening: 'こんばんは！今日はどんな一日でしたか？',
-    night: 'もうこんな時間...大丈夫ですか？'
+    night: 'こんばんは...遅い時間ですが、大丈夫ですか？'
   };
+  
+  console.log('💬 Greeting Selection:', {
+    timeSlot,
+    selectedGreeting: greetings[timeSlot]
+  });
   
   return greetings[timeSlot];
 }
 
 export function getTimeSlotDescription(timeSlot: TimeSlot): string {
   const descriptions = {
-    morning: '朝 (5:00-11:59)',
-    afternoon: '昼 (12:00-16:59)',
-    evening: '夕 (17:00-21:59)',
-    night: '夜 (22:00-4:59)'
+    morning: '朝 (6:00-11:59)',
+    afternoon: '昼 (12:00-17:59)',
+    evening: '夕 (18:00-21:59)',
+    night: '夜 (22:00-05:59)'
   };
   
   return descriptions[timeSlot];
 }
 
 export function getTimeSlotForHour(hour: number): TimeSlot {
-  if (hour >= 5 && hour < 12) return 'morning';
-  if (hour >= 12 && hour < 17) return 'afternoon';
-  if (hour >= 17 && hour < 22) return 'evening';
+  if (hour >= 6 && hour < 12) return 'morning';
+  if (hour >= 12 && hour < 18) return 'afternoon';
+  if (hour >= 18 && hour < 22) return 'evening';
   return 'night';
 }
 
