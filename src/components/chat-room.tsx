@@ -4,8 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Character } from '@/lib/characters'
 import { voiceService } from '@/lib/voice-service'
 import { VoicePriority } from '@/lib/voice-config'
-import { playVoice } from '@/lib/audio-utils'
-import { playHybridGreeting } from '@/lib/hybrid-audio'
+import { playEmotionResponse, playSmartGreeting } from '@/lib/voice-player'
 import { MicrophoneButton } from '@/components/microphone-button'
 
 interface Message {
@@ -72,7 +71,7 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
           console.log('🎵 Playing initial hybrid greeting for', character.name)
           
           // ユーザー名は今後実装予定（現在は時間帯挨拶のみ）
-          await playHybridGreeting()
+          await playSmartGreeting(character.id)
           
           console.log('✅ Initial hybrid greeting completed')
           setHasPlayedInitialGreeting(true)
@@ -80,7 +79,7 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
           console.error('❌ Initial hybrid greeting failed:', error)
           // フォールバック：通常の音声再生
           try {
-            await playVoice(messages[0].content, character.id)
+            await playEmotionResponse(character.id, 'default')
           } catch (fallbackError) {
             console.error('❌ Fallback greeting also failed:', fallbackError)
           }
@@ -170,7 +169,7 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
           })
 
           // 新しい優先システムで音声生成
-          const voiceSuccess = await playVoice(data.response, character.id)
+          const voiceSuccess = await playEmotionResponse(character.id, 'agreement')
 
           if (voiceSuccess) {
             console.log('✅ Voice generation and playback completed:', {

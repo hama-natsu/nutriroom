@@ -2,9 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
-import { playHybridGreeting } from '@/lib/hybrid-audio'
-import { getCurrentTimeSlot, getTimeSlotGreeting } from '@/lib/time-greeting'
-import { playVoice } from '@/lib/audio-utils'
+import { playSmartGreeting, playEmotionResponse, getCurrentTimeSlot } from '@/lib/voice-player'
+import { getTimeSlotGreeting } from '@/lib/time-greeting'
 import { getCharacterById } from '@/lib/characters'
 
 interface Message {
@@ -51,7 +50,7 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
     const playInitialGreeting = async () => {
       try {
         setIsPlaying(true)
-        await playHybridGreeting(userName, undefined, characterId)
+        await playSmartGreeting(characterId)
         console.log('✅ Initial greeting played')
       } catch (error) {
         console.error('❌ Initial greeting failed:', error)
@@ -134,10 +133,10 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
         setMessages(prev => [...prev, aiMessage])
         setCurrentMessage(data.response)
 
-        // 音声再生（通常の音声生成、ハイブリッドは初回のみ）
+        // 音声再生（感情応答）
         try {
           setIsPlaying(true)
-          await playVoice(data.response, characterId)
+          await playEmotionResponse(characterId, 'agreement')
           console.log('✅ Response voice played')
         } catch (error) {
           console.error('❌ Voice playback failed:', error)
@@ -233,15 +232,15 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
             📐
           </button>
           
-          {/* ハイブリッド挨拶テストボタン */}
+          {/* 音声挨拶テストボタン */}
           <button
             onClick={async () => {
               try {
                 setIsPlaying(true)
-                await playHybridGreeting(undefined, undefined, characterId)
-                console.log('✅ Manual hybrid greeting played')
+                await playSmartGreeting(characterId)
+                console.log('✅ Manual greeting played')
               } catch (error) {
-                console.error('❌ Manual hybrid greeting failed:', error)
+                console.error('❌ Manual greeting failed:', error)
               } finally {
                 setIsPlaying(false)
               }
