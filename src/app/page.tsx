@@ -99,101 +99,86 @@ export default function Home() {
 
   // ダッシュボード画面
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-2xl font-bold text-gray-900">
-                NutriRoom へようこそ
-              </h1>
-              <button
-                onClick={handleSignOut}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md"
-              >
-                ログアウト
-              </button>
-            </div>
-            
-            <div className="text-gray-600">
-              <p>こんにちは、{user.email} さん</p>
-              <p className="mt-2">栄養管理アプリへようこそ！</p>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* ヘッダー */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              NutriRoom
+            </h1>
+            <p className="text-lg text-gray-600">
+              7人のAI栄養士があなたの健康をサポート
+            </p>
+          </div>
+          <button
+            onClick={handleSignOut}
+            className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
+          >
+            ログアウト
+          </button>
+        </div>
 
-            {/* AI栄養士と相談ボタン */}
-            <div className="mt-8 mb-8 space-y-4">
-              <button
-                onClick={handleNewAppFlow}
-                className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-6 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl border-2 border-green-300"
-              >
-                <div className="flex items-center justify-center space-x-3">
-                  <span className="text-2xl">✨</span>
-                  <div className="text-left">
-                    <div className="text-xl">新しいユーザー体験</div>
-                    <div className="text-sm opacity-90">名前入力 → キャラクター選択 → 個人化された挨拶</div>
-                  </div>
-                  <span className="text-xl">→</span>
-                </div>
-              </button>
-              
-              <button
-                onClick={handleCharacterConsultation}
-                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold py-6 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
-              >
-                <div className="flex items-center justify-center space-x-3">
-                  <span className="text-2xl">🤖</span>
-                  <div className="text-left">
-                    <div className="text-xl">AI栄養士と相談（旧版）</div>
-                    <div className="text-sm opacity-90">7人の専門家があなたをサポート</div>
-                  </div>
-                  <span className="text-xl">→</span>
-                </div>
-              </button>
-              
-              {/* あかりプロトタイプボタン */}
-              <a
-                href="/akari-prototype"
-                className="block w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
-              >
-                <div className="flex items-center justify-center space-x-3">
-                  <span className="text-2xl">👩‍⚕️</span>
-                  <div className="text-left">
-                    <div className="text-lg">あかりプロトタイプ</div>
-                    <div className="text-sm opacity-90">SELFライクなUI + ハイブリッド音声</div>
-                  </div>
-                  <span className="text-xl">→</span>
-                </div>
-              </a>
-            </div>
+        {/* メインコンテンツ */}
+        <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">
+              あなた専用のAI栄養士を選んでください
+            </h2>
+            <p className="text-gray-600">
+              個性豊かな7人の専門家が、あなたの健康目標達成をサポートします
+            </p>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div className="bg-gray-50 p-6 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  食事記録
-                </h3>
-                <p className="text-gray-600">
-                  日々の食事を記録して栄養バランスをチェック
-                </p>
+          {/* AI栄養士相談メインボタン */}
+          <button
+            onClick={handleNewAppFlow}
+            className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-8 px-8 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl mb-6"
+          >
+            <div className="flex items-center justify-center space-x-4">
+              <span className="text-3xl">🤖</span>
+              <div className="text-center">
+                <div className="text-2xl mb-1">AI栄養士と相談を始める</div>
+                <div className="text-sm opacity-90">名前入力 → キャラクター選択 → パーソナライズされた栄養指導</div>
               </div>
-
-              <div className="bg-gray-50 p-6 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  栄養分析
-                </h3>
-                <p className="text-gray-600">
-                  摂取した栄養素の詳細な分析とレポート
-                </p>
-              </div>
-
-              <div className="bg-gray-50 p-6 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  目標設定
-                </h3>
-                <p className="text-gray-600">
-                  個人の目標に合わせた栄養計画の作成
-                </p>
-              </div>
+              <span className="text-2xl">→</span>
             </div>
+          </button>
+        </div>
+
+        {/* プロトタイプセクション */}
+        <div className="bg-white rounded-2xl shadow-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
+            体験版・プロトタイプ
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* あかりプロトタイプ */}
+            <a
+              href="/akari-prototype"
+              className="block bg-gradient-to-r from-pink-100 to-purple-100 hover:from-pink-200 hover:to-purple-200 p-4 rounded-xl transition-all duration-300 transform hover:scale-105 border border-pink-200"
+            >
+              <div className="flex items-center space-x-3">
+                <span className="text-2xl">👩‍⚕️</span>
+                <div>
+                  <div className="font-semibold text-gray-900">あかりプロトタイプ</div>
+                  <div className="text-sm text-gray-600">VOICEVOX音声 + キャラクター背景</div>
+                </div>
+              </div>
+            </a>
+
+            {/* みなとプロトタイプ */}
+            <a
+              href="/minato-prototype"
+              className="block bg-gradient-to-r from-blue-100 to-cyan-100 hover:from-blue-200 hover:to-cyan-200 p-4 rounded-xl transition-all duration-300 transform hover:scale-105 border border-blue-200"
+            >
+              <div className="flex items-center space-x-3">
+                <span className="text-2xl">👨‍⚕️</span>
+                <div>
+                  <div className="font-semibold text-gray-900">みなとプロトタイプ</div>
+                  <div className="text-sm text-gray-600">理論派栄養士の専門指導</div>
+                </div>
+              </div>
+            </a>
           </div>
         </div>
       </div>
