@@ -2,8 +2,6 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Character } from '@/lib/characters'
-import { voiceService } from '@/lib/voice-service'
-import { VoicePriority } from '@/lib/voice-config'
 import { playEmotionResponse, playSmartGreeting } from '@/lib/voice-player'
 import { MicrophoneButton } from '@/components/microphone-button'
 
@@ -68,15 +66,15 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
       if (!hasPlayedInitialGreeting && isVoiceMode && character.id === 'akari') {
         try {
           setIsPlayingVoice(true)
-          console.log('🎵 Playing initial hybrid greeting for', character.name)
+          console.log('🎵 Playing initial greeting for', character.name)
           
           // ユーザー名は今後実装予定（現在は時間帯挨拶のみ）
           await playSmartGreeting(character.id)
           
-          console.log('✅ Initial hybrid greeting completed')
+          console.log('✅ Initial greeting completed')
           setHasPlayedInitialGreeting(true)
         } catch (error) {
-          console.error('❌ Initial hybrid greeting failed:', error)
+          console.error('❌ Initial greeting failed:', error)
           // フォールバック：通常の音声再生
           try {
             await playEmotionResponse(character.id, 'default')
@@ -190,16 +188,12 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
             stack: voiceError instanceof Error ? voiceError.stack?.substring(0, 200) : undefined
           })
           
-          // フォールバック: 従来のシステムを試行
+          // フォールバック: 感情応答を再生
           try {
-            console.log('🔄 Attempting fallback to legacy voice system...')
-            const voiceGenerated = await voiceService.generateAndPlay(
-              data.response,
-              character.id,
-              VoicePriority.GENERAL_CHAT
-            )
+            console.log('🔄 Playing fallback emotion response...')
+            const voiceSuccess = await playEmotionResponse(character.id, 'encouragement')
             
-            if (voiceGenerated) {
+            if (voiceSuccess) {
               console.log('✅ Fallback voice generation successful')
             }
           } catch (fallbackError) {

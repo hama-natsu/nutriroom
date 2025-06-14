@@ -9,8 +9,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@elevenlabs/elevenlabs-js": "^2.2.0",
-    "@google-cloud/text-to-speech": "^6.1.0",
     "@google/generative-ai": "^0.21.0",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.50.0",

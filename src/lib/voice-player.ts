@@ -1,4 +1,4 @@
-// 🎯 VOICEVOX録音音声専用プレイヤー（ElevenLabs不使用）
+// 🎯 VOICEVOX録音音声専用プレイヤー
 
 export type TimeSlot = 'morning' | 'afternoon' | 'evening' | 'night'
 export type VoicePattern = 'early' | 'normal' | 'late' | 'cheerful' | 'calm' | 'energetic' | 'gentle'
