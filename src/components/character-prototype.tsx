@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { playSmartGreeting, playEmotionResponse, getCurrentTimeSlot } from '@/lib/voice-player'
 import { getTimeSlotGreeting } from '@/lib/time-greeting'
 import { getCharacterById } from '@/lib/characters'
+import { MicrophoneButton } from '@/components/microphone-button'
 
 interface Message {
   id: string
@@ -26,7 +27,7 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentMessage, setCurrentMessage] = useState('')
   const [showInitialGreeting, setShowInitialGreeting] = useState(true)
-  const [backgroundPosition, setBackgroundPosition] = useState('center 20%')
+  const [backgroundPosition] = useState('center 20%')
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -167,6 +168,21 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
     }
   }
 
+  // 音声入力のハンドラー
+  const handleSpeechTranscript = (text: string, isFinal: boolean) => {
+    if (isFinal) {
+      setInputText(prev => {
+        const newText = prev.trim() + (prev.trim() ? ' ' : '') + text
+        return newText
+      })
+      console.log('🎙️ Final speech input:', text)
+    }
+  }
+
+  const handleSpeechError = (error: string) => {
+    console.error('🎙️ Speech input error:', error)
+  }
+
   // キャラクターアイコンの文字
   const getCharacterIcon = (name: string) => {
     return name.charAt(0).toUpperCase()
@@ -217,20 +233,6 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
         </div>
         
         <div className="flex items-center gap-2">
-          {/* 背景位置調整ボタン（デバッグ用） */}
-          <button
-            onClick={() => {
-              const positions = ['center 10%', 'center 15%', 'center 20%', 'center 25%', 'center 30%']
-              const current = positions.indexOf(backgroundPosition)
-              const next = (current + 1) % positions.length
-              setBackgroundPosition(positions[next])
-              console.log('Background position changed to:', positions[next])
-            }}
-            className="px-2 py-1 text-xs bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
-            title="背景位置調整"
-          >
-            📐
-          </button>
           
           {/* 音声挨拶テストボタン */}
           <button
@@ -371,16 +373,32 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
         {/* 入力エリア */}
         <div className="p-4 bg-white/80 backdrop-blur-sm border-t border-white/40">
           <div className="max-w-2xl mx-auto flex gap-2 sm:gap-3 px-4 sm:px-0">
-            <textarea
-              ref={inputRef}
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={`${character.name}に相談してみましょう...`}
-              className="flex-1 p-3 border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:border-transparent bg-white/90 backdrop-blur-sm text-sm sm:text-base"
-              rows={2}
-              disabled={isLoading}
-            />
+            <div className="flex-1 relative">
+              <textarea
+                ref={inputRef}
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={`${character.name}に相談してみましょう...`}
+                className="w-full p-3 pr-12 border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:border-transparent bg-white/90 backdrop-blur-sm text-sm sm:text-base"
+                style={{ 
+                  '--tw-ring-color': character.colorTheme.primary + '50'
+                } as React.CSSProperties}
+                rows={2}
+                disabled={isLoading}
+              />
+              
+              {/* マイクボタン（テキストエリア内） */}
+              <div className="absolute right-2 bottom-2">
+                <MicrophoneButton
+                  onTranscript={handleSpeechTranscript}
+                  onError={handleSpeechError}
+                  disabled={isLoading}
+                  size="sm"
+                  className="shadow-sm"
+                />
+              </div>
+            </div>
             <button
               onClick={sendMessage}
               disabled={!inputText.trim() || isLoading}
