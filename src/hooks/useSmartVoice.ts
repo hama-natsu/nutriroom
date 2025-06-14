@@ -36,7 +36,7 @@ export function useSmartVoice(config?: SmartVoiceConfig): UseSmartVoiceReturn {
   const voicePlayer = useMemo(() => new VOICEVOXPlayer(), [])
 
   /**
-   * スマート音声再生（フォールバック機能付き）
+   * スマート音声再生（フォールバック機能付き・無限ループ防止）
    */
   const playSmartVoice = useCallback(async (request: VoiceSelectionRequest): Promise<boolean> => {
     if (isPlaying) {
@@ -47,65 +47,111 @@ export function useSmartVoice(config?: SmartVoiceConfig): UseSmartVoiceReturn {
     setIsLoading(true)
     setIsPlaying(true)
 
+    // 🚨 フォールバック制限設定
+    const MAX_FALLBACK_ATTEMPTS = 3
+    const FALLBACK_TIMEOUT = 5000 // 5秒タイムアウト
+    let fallbackAttempts = 0
+
     try {
       // 1. スマート音声選択
       const selection = await selectSmartVoice(request, config)
       setLastSelection(selection)
 
-      console.log('🎯 Smart voice selection result:', {
-        fileName: selection.fileName,
-        pattern: selection.pattern,
-        confidence: selection.confidence,
-        reason: selection.selectionReason
-      })
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🎯 Smart voice selection result:', {
+          fileName: selection.fileName,
+          pattern: selection.pattern,
+          confidence: selection.confidence
+        })
+      }
 
-      // 2. メイン音声ファイルを試行
+      // 2. メイン音声ファイルを試行（タイムアウト付き）
       let success = false
+      
       try {
-        success = await voicePlayer.playVoice({
+        const mainVoicePromise = voicePlayer.playVoice({
           characterId: request.characterId,
           timeSlot: request.timeSlot,
           pattern: selection.pattern
         })
-      } catch (mainError) {
-        console.warn('🔄 Main voice file failed, trying fallbacks:', mainError)
+        
+        const timeoutPromise = new Promise<boolean>((_, reject) => 
+          setTimeout(() => reject(new Error('Main voice timeout')), FALLBACK_TIMEOUT)
+        )
+        
+        success = await Promise.race([mainVoicePromise, timeoutPromise])
+        
+        if (success) {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('✅ Main voice played successfully')
+          }
+          return true
+        }
+      } catch {
+        console.warn('🔄 Main voice failed, trying fallbacks')
       }
 
-      // 3. フォールバック音声を試行
+      // 3. フォールバック音声を試行（最大3回制限）
       if (!success && selection.fallbackOptions.length > 0) {
-        for (const fallbackFile of selection.fallbackOptions) {
+        for (const fallbackFile of selection.fallbackOptions.slice(0, MAX_FALLBACK_ATTEMPTS)) {
+          fallbackAttempts++
+          
+          if (fallbackAttempts > MAX_FALLBACK_ATTEMPTS) {
+            console.warn('⚠️ Maximum fallback attempts reached, stopping')
+            break
+          }
+          
           try {
-            console.log('🔄 Trying fallback voice:', fallbackFile)
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`🔄 Fallback attempt ${fallbackAttempts}/${MAX_FALLBACK_ATTEMPTS}:`, fallbackFile)
+            }
             
-            // フォールバック音声の再生を試行
-            const fallbackSuccess = await voicePlayer.playVoice({
+            const fallbackPromise = voicePlayer.playVoice({
               characterId: request.characterId,
               emotion: 'default',
               fallbackToDefault: false
             })
+            
+            const timeoutPromise = new Promise<boolean>((_, reject) => 
+              setTimeout(() => reject(new Error('Fallback timeout')), FALLBACK_TIMEOUT)
+            )
+            
+            const fallbackSuccess = await Promise.race([fallbackPromise, timeoutPromise])
 
             if (fallbackSuccess) {
-              console.log('✅ Fallback voice played successfully:', fallbackFile)
+              if (process.env.NODE_ENV === 'development') {
+                console.log('✅ Fallback voice played successfully:', fallbackFile)
+              }
               success = true
               break
             }
           } catch (fallbackError) {
-            console.warn('⚠️ Fallback voice failed:', fallbackFile, fallbackError)
+            console.warn(`⚠️ Fallback ${fallbackAttempts} failed:`, fallbackError instanceof Error ? fallbackError.message : 'Unknown error')
             continue
           }
         }
       }
 
-      // 4. 最終的なデフォルト音声
+      // 4. 最終デフォルト音声（制限付き）
       if (!success) {
-        console.log('🆘 All options failed, playing default voice')
+        console.log('🆘 Playing final default voice')
         try {
-          success = await voicePlayer.playVoice({
+          const defaultPromise = voicePlayer.playVoice({
             characterId: request.characterId,
             emotion: 'default'
           })
+          
+          const timeoutPromise = new Promise<boolean>((_, reject) => 
+            setTimeout(() => reject(new Error('Default voice timeout')), FALLBACK_TIMEOUT)
+          )
+          
+          success = await Promise.race([defaultPromise, timeoutPromise])
+          
+          if (!success) {
+            console.error('❌ All voice options failed - giving up')
+          }
         } catch (defaultError) {
-          console.error('❌ Even default voice failed:', defaultError)
+          console.error('❌ Final default voice failed:', defaultError instanceof Error ? defaultError.message : 'Unknown error')
         }
       }
 

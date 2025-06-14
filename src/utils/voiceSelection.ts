@@ -15,7 +15,7 @@ import {
 // デフォルト設定
 const DEFAULT_CONFIG: SmartVoiceConfig = {
   baseAudioPath: '/audio/recorded',
-  supportedFormats: ['.wav', '.mp3'],
+  supportedFormats: ['.wav'], // WAVファイルのみサポート
   fallbackEnabled: true,
   cacheEnabled: true,
   debugMode: process.env.NODE_ENV === 'development'
@@ -208,7 +208,7 @@ export function generateVoiceFileName(
 }
 
 /**
- * 音声ファイルの存在確認
+ * 音声ファイルの存在確認（タイムアウト付き・無限ループ防止）
  */
 export async function checkVoiceFileExists(
   characterId: string, 
@@ -216,16 +216,37 @@ export async function checkVoiceFileExists(
   config: SmartVoiceConfig = DEFAULT_CONFIG
 ): Promise<VoiceFileInfo> {
   const filePath = `${config.baseAudioPath}/${characterId}/${fileName}`
+  const CHECK_TIMEOUT = 3000 // 3秒タイムアウト
   
   try {
-    const response = await fetch(filePath, { method: 'HEAD' })
-    return {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), CHECK_TIMEOUT)
+    
+    const response = await fetch(filePath, { 
+      method: 'HEAD',
+      signal: controller.signal
+    })
+    
+    clearTimeout(timeoutId)
+    
+    const fileInfo: VoiceFileInfo = {
       fileName,
       exists: response.ok,
       size: response.ok ? parseInt(response.headers.get('content-length') || '0') : undefined
     }
+    
+    if (config.debugMode && response.ok) {
+      console.log('✅ Voice file exists:', filePath, `(${fileInfo.size} bytes)`)
+    }
+    
+    return fileInfo
+    
   } catch (error) {
-    console.warn(`Voice file check failed for ${filePath}:`, error)
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.warn(`⏰ Voice file check timeout for ${filePath}`)
+    } else {
+      console.warn(`❌ Voice file check failed for ${filePath}:`, error instanceof Error ? error.message : 'Unknown error')
+    }
     return {
       fileName,
       exists: false

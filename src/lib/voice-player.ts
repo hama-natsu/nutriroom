@@ -124,21 +124,28 @@ export class VOICEVOXPlayer {
     })
   }
 
-  // 🆘 フォールバック音声再生
+  // 🆘 フォールバック音声再生（無限ループ防止）
   private async playFallbackVoice(characterId: string): Promise<boolean> {
     console.log('🔄 Attempting fallback voice for:', characterId)
     
     try {
-      // まずdefault.wavを試行
+      // 🚨 フォールバック再帰防止：fallbackToDefault: false を必ず設定
       const fallbackConfig: VoiceConfig = {
         characterId,
         emotion: 'default',
-        fallbackToDefault: false
+        fallbackToDefault: false // 重要：無限ループ防止
       }
       
-      return await this.playVoice(fallbackConfig)
+      // タイムアウト付きで実行
+      const fallbackPromise = this.playVoice(fallbackConfig)
+      const timeoutPromise = new Promise<boolean>((_, reject) => 
+        setTimeout(() => reject(new Error('Fallback timeout')), 5000)
+      )
+      
+      return await Promise.race([fallbackPromise, timeoutPromise])
+      
     } catch (error) {
-      console.error('❌ Fallback voice also failed:', error)
+      console.error('❌ Fallback voice also failed:', error instanceof Error ? error.message : 'Unknown error')
       return false
     }
   }
