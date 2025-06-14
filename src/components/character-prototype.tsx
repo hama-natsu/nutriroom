@@ -7,6 +7,7 @@ import { getTimeSlotGreeting } from '@/lib/time-greeting'
 import { getCharacterById } from '@/lib/characters'
 import { MicrophoneButton } from '@/components/microphone-button'
 import { useSmartVoice } from '@/hooks/useSmartVoice'
+import { useChatResponseController } from '@/components/ChatResponseController'
 
 interface Message {
   id: string
@@ -28,6 +29,8 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
   const [currentMessage, setCurrentMessage] = useState('')
   const [showInitialGreeting, setShowInitialGreeting] = useState(true)
   const [backgroundPosition] = useState('center 20%')
+  const [pendingResponse, setPendingResponse] = useState<string | null>(null)
+  const [responseControlActive, setResponseControlActive] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -40,6 +43,51 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
     playSmartVoice, 
     debugVoiceSystem 
   } = useSmartVoice()
+
+  // 応答制御システム（常時初期化、条件付きで実行）
+  const responseController = useChatResponseController({
+    characterId,
+    responseText: pendingResponse || '',
+    userMessage: messages[messages.length - 1]?.text || '',
+    conversationHistory: messages.map(m => m.text),
+    onTextDisplay: (text) => {
+      if (responseControlActive) {
+        console.log('📝 Response controller: Text display triggered')
+        const aiMessage: Message = {
+          id: (Date.now() + Math.random()).toString(),
+          text,
+          isUser: false,
+          timestamp: new Date()
+        }
+        setMessages(prev => [...prev, aiMessage])
+        setCurrentMessage(text)
+      }
+    },
+    onVoiceStart: () => {
+      if (responseControlActive) {
+        console.log('🎵 Response controller: Voice playback started')
+      }
+    },
+    onVoiceEnd: () => {
+      if (responseControlActive) {
+        console.log('🎵 Response controller: Voice playback ended')
+      }
+    },
+    onResponseComplete: () => {
+      if (responseControlActive) {
+        console.log('🎯 Response controller: Response completed')
+        setPendingResponse(null)
+        setResponseControlActive(false)
+      }
+    },
+    onError: (error) => {
+      if (responseControlActive) {
+        console.error('❌ Response controller error:', error)
+        setPendingResponse(null)
+        setResponseControlActive(false)
+      }
+    }
+  })
 
   // 初期挨拶の設定
   useEffect(() => {
@@ -140,35 +188,46 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
       if (response.ok) {
         const data = await response.json()
         
-        const aiMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          text: data.response,
-          isUser: false,
-          timestamp: new Date()
-        }
-
-        setMessages(prev => [...prev, aiMessage])
-        setCurrentMessage(data.response)
-
-        // 音声再生（スマート音声エンジン使用）
-        try {
-          console.log('🎯 Playing smart response voice')
+        // 応答制御システムを使用するかの判定
+        const useResponseControl = Math.random() > 0.5 // 50%の確率でテスト
+        
+        if (useResponseControl) {
+          console.log('🎭 Using response control system')
+          setPendingResponse(data.response)
+          setResponseControlActive(true)
+        } else {
+          console.log('🎵 Using legacy response system')
           
-          const success = await playSmartVoice({
-            characterId,
-            interactionContext: 'response',
-            userMessage: inputText,
-            conversationHistory: messages.map(m => m.text)
-          })
-          
-          if (success) {
-            console.log('✅ Smart response voice played successfully')
-          } else {
-            console.warn('⚠️ Smart voice failed, using legacy system')
-            await playEmotionResponse(characterId, 'agreement')
+          const aiMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            text: data.response,
+            isUser: false,
+            timestamp: new Date()
           }
-        } catch (error) {
-          console.error('❌ Voice playback failed:', error)
+
+          setMessages(prev => [...prev, aiMessage])
+          setCurrentMessage(data.response)
+
+          // 音声再生（スマート音声エンジン使用）
+          try {
+            console.log('🎯 Playing smart response voice')
+            
+            const success = await playSmartVoice({
+              characterId,
+              interactionContext: 'response',
+              userMessage: inputText,
+              conversationHistory: messages.map(m => m.text)
+            })
+            
+            if (success) {
+              console.log('✅ Smart response voice played successfully')
+            } else {
+              console.warn('⚠️ Smart voice failed, using legacy system')
+              await playEmotionResponse(characterId, 'agreement')
+            }
+          } catch (error) {
+            console.error('❌ Voice playback failed:', error)
+          }
         }
       }
     } catch (error) {
@@ -283,19 +342,39 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
             🎯
           </button>
           
+          {/* 応答制御テストボタン */}
+          <button
+            onClick={() => {
+              console.log('🎭 Testing response control system')
+              setPendingResponse('こんにちは！元気ですか？今日も栄養バランスを意識した食事を心がけましょうね♪')
+              setResponseControlActive(true)
+            }}
+            disabled={responseControlActive}
+            className="px-3 py-1 text-xs bg-green-100 text-green-600 rounded-lg hover:bg-green-200 disabled:opacity-50 transition-colors"
+            title="応答パターン制御テスト"
+          >
+            🎭
+          </button>
+          
           {/* デバッグ情報ボタン */}
           <button
-            onClick={debugVoiceSystem}
+            onClick={() => {
+              debugVoiceSystem()
+              console.log('🎭 Response Controller Debug:', responseController.getDebugInfo())
+            }}
             className="px-3 py-1 text-xs bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
-            title="音声システムデバッグ"
+            title="システムデバッグ"
           >
             🔍
           </button>
           
-          {isPlaying && (
+          {/* ステータス表示 */}
+          {(isPlaying || responseControlActive) && (
             <div className="flex items-center gap-1 text-pink-500 text-sm">
               <div className="w-2 h-2 bg-pink-500 rounded-full animate-pulse"></div>
-              <span>話し中</span>
+              <span>
+                {responseControlActive ? '制御中' : '話し中'}
+              </span>
             </div>
           )}
         </div>
