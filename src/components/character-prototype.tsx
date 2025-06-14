@@ -192,8 +192,8 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
       if (response.ok) {
         const data = await response.json()
         
-        // 応答制御システムを使用するかの判定（一時的に無効化）
-        const useResponseControl = false // 緊急修正: 一時的に無効化
+        // 応答制御システムを使用するかの判定（完全無効化）
+        const useResponseControl = false // 緊急修正: 完全無効化
         
         if (useResponseControl) {
           if (process.env.NODE_ENV === 'development') {

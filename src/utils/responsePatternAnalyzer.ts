@@ -68,116 +68,149 @@ const CHARACTER_RESPONSE_PROFILES: Record<string, CharacterResponseProfile> = {
 }
 
 /**
- * 応答カテゴリを判定
+ * 応答カテゴリを判定（無限ループ防止・即座終了）
  */
-export function analyzeResponseCategory(responseText: string, userMessage?: string): ResponseCategory {
-  // 空の応答やループ防止
+export function analyzeResponseCategory(responseText: string): ResponseCategory {
+  // 空の応答やループ防止 - 即座にデフォルト返却
   if (!responseText || responseText.trim().length === 0) {
     return 'explanation'
   }
   
-  const lowerResponse = responseText.toLowerCase()
-  
-  // デバッグログは開発環境のみ
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Analyzing response category for length:', responseText.length, userMessage ? 'with context' : 'no context')
+  // 異常に短いまたは長いテキストは即座にデフォルト
+  if (responseText.length < 2 || responseText.length > 2000) {
+    return 'explanation'
   }
   
-  // 挨拶パターン
-  if (['こんにちは', 'おはよう', 'こんばんは', 'はじめまして', 'よろしく'].some(greeting => 
-      lowerResponse.includes(greeting))) {
-    return 'greeting'
+  try {
+    const lowerResponse = responseText.toLowerCase()
+    
+    // 即座に判定 - 最初にマッチしたものを返す
+    if (lowerResponse.includes('こんにちは') || lowerResponse.includes('おはよう') || lowerResponse.includes('こんばんは')) {
+      return 'greeting'
+    }
+    
+    if (lowerResponse.includes('さようなら') || lowerResponse.includes('またね') || lowerResponse.includes('ありがとう')) {
+      return 'goodbye'
+    }
+    
+    if (lowerResponse.includes('頑張って') || lowerResponse.includes('応援') || lowerResponse.includes('大丈夫')) {
+      return 'encouragement'
+    }
+    
+    if (lowerResponse.includes('そうですね') || lowerResponse.includes('はい') || lowerResponse.includes('なるほど')) {
+      return 'acknowledgment'
+    }
+    
+    // デフォルトで即座に終了
+    return 'explanation'
+    
+  } catch (error) {
+    console.error('Category analysis error:', error)
+    return 'explanation'
   }
-  
-  // 別れの挨拶
-  if (['さようなら', 'またね', 'バイバイ', 'お疲れ様', 'ありがとうございました'].some(farewell => 
-      lowerResponse.includes(farewell))) {
-    return 'goodbye'
-  }
-  
-  // 励ましパターン
-  if (['頑張って', '応援', '大丈夫', 'きっとできる', 'ファイト', '素晴らしい', 'すごい'].some(encouragement => 
-      lowerResponse.includes(encouragement))) {
-    return 'encouragement'
-  }
-  
-  // あいづち・同意パターン
-  if (['そうですね', 'はい', 'なるほど', 'そうなんです', 'わかります', 'いいですね'].some(ack => 
-      lowerResponse.includes(ack)) && responseText.length < 50) {
-    return 'acknowledgment'
-  }
-  
-  // 質問パターン
-  if (['どう', 'なぜ', '何', 'いつ', 'どこ', 'どの', '？', '?'].some(question => 
-      lowerResponse.includes(question))) {
-    return 'question'
-  }
-  
-  // アドバイスパターン
-  if (['おすすめ', '提案', '改善', '工夫', '方法', 'コツ', 'ポイント'].some(advice => 
-      lowerResponse.includes(advice))) {
-    return 'advice'
-  }
-  
-  // デフォルトは説明（voice_onlyを避ける）
-  return 'explanation'
 }
 
 /**
- * 応答の優先度を判定
+ * 応答の優先度を判定（即座終了）
  */
 export function analyzeResponsePriority(
   responseText: string, 
   userMessage: string,
   category: ResponseCategory
 ): ResponsePriority {
-  const lowerResponse = responseText.toLowerCase()
-  const lowerUser = userMessage.toLowerCase()
-  
-  // 緊急パターン
-  if (['緊急', '危険', '注意', '警告', '重要'].some(urgent => 
-      lowerResponse.includes(urgent) || lowerUser.includes(urgent))) {
-    return 'critical'
-  }
-  
-  // 高優先度パターン
-  if (category === 'encouragement' || 
-      ['素晴らしい', 'すごい', '感動', '最高'].some(high => lowerResponse.includes(high))) {
-    return 'high'
-  }
-  
-  // あいづちや挨拶は低優先度
-  if (category === 'acknowledgment' || category === 'greeting') {
+  // 早期終了パターン
+  if (!responseText || !userMessage) {
     return 'low'
   }
   
-  return 'medium'
+  try {
+    // カテゴリベースの即座判定
+    if (category === 'acknowledgment' || category === 'greeting') {
+      return 'low'
+    }
+    
+    if (category === 'encouragement') {
+      return 'high'
+    }
+    
+    // デフォルト
+    return 'medium'
+    
+  } catch (error) {
+    console.error('Priority analysis error:', error)
+    return 'low'
+  }
 }
 
 /**
- * テキストの複雑さを判定
+ * テキストの複雑さを判定（即座終了）
  */
 export function analyzeTextComplexity(text: string): 'simple' | 'medium' | 'complex' {
-  const length = text.length
-  const sentenceCount = text.split(/[。！？]/).length - 1
-  const technicalTerms = ['栄養素', 'カロリー', 'ビタミン', 'ミネラル', 'タンパク質', '炭水化物', '脂質']
-  const technicalCount = technicalTerms.filter(term => text.includes(term)).length
-  
-  if (length < 50 && sentenceCount <= 2 && technicalCount === 0) {
+  // 早期終了
+  if (!text || text.length === 0) {
     return 'simple'
   }
   
-  if (length > 200 || sentenceCount > 5 || technicalCount > 2) {
-    return 'complex'
+  try {
+    const length = text.length
+    
+    // 即座判定
+    if (length < 50) {
+      return 'simple'
+    }
+    
+    if (length > 200) {
+      return 'complex'
+    }
+    
+    return 'medium'
+    
+  } catch (error) {
+    console.error('Complexity analysis error:', error)
+    return 'simple'
   }
-  
-  return 'medium'
 }
 
 /**
- * メイン応答パターン分析エンジン
+ * メイン応答パターン分析エンジン（緊急ループ防止版）
  */
 export function analyzeResponsePattern(request: ResponseControlRequest): ResponsePattern {
+  // 即座にsafeなデフォルトを返す（ループ防止の最優先）
+  try {
+    // 空のリクエストは即座にsafeパターン
+    if (!request.responseText || request.responseText.trim().length === 0) {
+      return {
+        type: 'text_only',
+        category: 'explanation',
+        priority: 'low',
+        reason: 'Empty request - safe default to prevent loops',
+        confidence: 1.0
+      }
+    }
+
+    // 全ての応答をtext_onlyで強制的に統一（ループ完全防止）
+    return {
+      type: 'text_only',
+      category: 'explanation',
+      priority: 'medium',
+      reason: 'Emergency safe mode - all responses text only',
+      confidence: 1.0
+    }
+    
+  } catch (error) {
+    console.error('Critical error in pattern analysis:', error)
+    // エラー時も絶対安全なパターン
+    return {
+      type: 'text_only',
+      category: 'explanation',
+      priority: 'low',
+      reason: 'Error fallback - emergency safe mode',
+      confidence: 1.0
+    }
+  }
+  
+  // この下のコードは一時的にコメントアウト（ループ原因可能性）
+  /*
   const profile = CHARACTER_RESPONSE_PROFILES[request.characterId]
   
   if (!profile) {
@@ -194,73 +227,7 @@ export function analyzeResponsePattern(request: ResponseControlRequest): Respons
   const priority = analyzeResponsePriority(request.responseText, request.userMessage, category)
   const complexity = request.context?.topicComplexity || analyzeTextComplexity(request.responseText)
   const textLength = request.responseText.length
-  
-  let selectedType: ResponseType
-  let confidence = 0.8
-  let reason = ''
-  
-  // 1. 文字数による判定（voice_onlyを制限）
-  if (textLength <= profile.lengthThresholds.shortResponse) {
-    // 短い応答でもテキスト表示を優先（安全性重視）
-    selectedType = 'voice_and_text'
-    reason = `Short response (${textLength} chars) - voice and text for safety`
-  } else if (textLength >= profile.lengthThresholds.longResponse) {
-    selectedType = 'text_only'
-    reason = `Long response (${textLength} chars) - text only`
-  }
-  // 2. カテゴリー別設定（voice_onlyを制限）
-  else if (profile.categoryPreferences[category]) {
-    const preferredType = profile.categoryPreferences[category]
-    // voice_onlyを voice_and_text に変更（安全性重視）
-    selectedType = preferredType === 'voice_only' ? 'voice_and_text' : preferredType
-    reason = `Category preference: ${category} -> ${selectedType}${preferredType === 'voice_only' ? ' (upgraded for safety)' : ''}`
-  }
-  // 3. 優先度による調整
-  else if (priority === 'critical' || priority === 'high') {
-    selectedType = 'voice_and_text'
-    reason = `High priority (${priority}) - voice and text`
-  }
-  // 4. 複雑さによる調整
-  else if (complexity === 'complex') {
-    selectedType = 'text_only'
-    reason = `Complex content - text only`
-  } else if (complexity === 'simple') {
-    selectedType = 'voice_and_text'
-    reason = `Simple content - voice and text for safety`
-  }
-  // 5. キャラクターの音声傾向（voice_onlyを制限）
-  else if (profile.voicePreference > 0.7) {
-    selectedType = 'voice_and_text'
-    reason = `Character voice preference (${profile.voicePreference}) - upgraded for safety`
-  } else if (profile.voicePreference < 0.3) {
-    selectedType = 'text_only'
-    reason = `Character text preference (${profile.voicePreference})`
-  }
-  // 6. デフォルト
-  else {
-    selectedType = 'voice_and_text'
-    reason = 'Default balanced approach'
-    confidence = 0.5
-  }
-  
-  // 特殊パターンのオーバーライド（voice_onlyを制限）
-  if (request.context?.userEmotionState) {
-    const emotionState = request.context.userEmotionState as keyof typeof profile.specialPatterns
-    if (profile.specialPatterns[emotionState]) {
-      const specialType = profile.specialPatterns[emotionState]
-      selectedType = specialType === 'voice_only' ? 'voice_and_text' : specialType
-      reason = `Emotion override: ${emotionState} -> ${selectedType}${specialType === 'voice_only' ? ' (upgraded for safety)' : ''}`
-      confidence = 0.9
-    }
-  }
-  
-  return {
-    type: selectedType,
-    category,
-    priority,
-    reason,
-    confidence
-  }
+  */
 }
 
 /**
