@@ -21,9 +21,6 @@ export default function Home() {
     await supabase.auth.signOut()
   }
 
-  const handleCharacterConsultation = () => {
-    setCurrentView('character-selection')
-  }
 
   const handleNewAppFlow = () => {
     setCurrentView('app-flow')
