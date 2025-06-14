@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Character } from '@/lib/characters'
-import { playEmotionResponse, playSmartGreeting } from '@/lib/voice-player'
+import { playEmotionResponse } from '@/lib/voice-player'
+import { useInitialGreeting } from '@/hooks/useInitialGreeting'
 import { MicrophoneButton } from '@/components/microphone-button'
 
 interface Message {
@@ -26,7 +27,7 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
       timestamp: new Date()
     }
   ])
-  const [hasPlayedInitialGreeting, setHasPlayedInitialGreeting] = useState(false)
+  // const [hasPlayedInitialGreeting, setHasPlayedInitialGreeting] = useState(false) // 重複防止Hookで管理
   const [inputMessage, setInputMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isVoiceMode, setIsVoiceMode] = useState(false)
@@ -60,38 +61,18 @@ export function ChatRoom({ character, onBack }: ChatRoomProps) {
     scrollToBottom()
   }, [messages])
 
-  // 初期挨拶の再生（ハイブリッド音声）
-  useEffect(() => {
-    const playInitialGreeting = async () => {
-      if (!hasPlayedInitialGreeting && isVoiceMode && character.id === 'akari') {
-        try {
-          setIsPlayingVoice(true)
-          console.log('🎵 Playing initial greeting for', character.name)
-          
-          // ユーザー名は今後実装予定（現在は時間帯挨拶のみ）
-          await playSmartGreeting(character.id)
-          
-          console.log('✅ Initial greeting completed')
-          setHasPlayedInitialGreeting(true)
-        } catch (error) {
-          console.error('❌ Initial greeting failed:', error)
-          // フォールバック：通常の音声再生
-          try {
-            await playEmotionResponse(character.id, 'default')
-          } catch (fallbackError) {
-            console.error('❌ Fallback greeting also failed:', fallbackError)
-          }
-        } finally {
-          setIsPlayingVoice(false)
-        }
-      }
+  // 初期挨拶の再生（重複防止Hook使用）
+  useInitialGreeting({
+    characterId: character.id,
+    enabled: isVoiceMode && character.id === 'akari',
+    delay: 500,
+    onSuccess: () => {
+      console.log('✅ Initial greeting completed for', character.name)
+    },
+    onError: (error) => {
+      console.error('❌ Initial greeting failed for', character.name, ':', error)
     }
-
-    // 音声モードがオンになった時に初回挨拶を再生
-    if (isVoiceMode) {
-      playInitialGreeting()
-    }
-  }, [isVoiceMode, hasPlayedInitialGreeting, character.id, character.name, messages])
+  })
 
   const sendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return

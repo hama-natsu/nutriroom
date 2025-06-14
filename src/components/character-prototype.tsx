@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
-import { playSmartGreeting, playEmotionResponse, getCurrentTimeSlot } from '@/lib/voice-player'
+import { playEmotionResponse, getCurrentTimeSlot } from '@/lib/voice-player'
+import { useInitialGreeting } from '@/hooks/useInitialGreeting'
 import { getTimeSlotGreeting } from '@/lib/time-greeting'
 import { getCharacterById } from '@/lib/characters'
 import { MicrophoneButton } from '@/components/microphone-button'
@@ -93,9 +94,23 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
     }
   })
 
-  // 初期挨拶の設定
+  // 初期挨拶の設定 - 重複防止Hook使用
+  useInitialGreeting({
+    characterId,
+    enabled: true,
+    delay: 1000,
+    onSuccess: () => {
+      console.log('✅ Initial greeting completed successfully')
+    },
+    onError: (error) => {
+      console.error('❌ Initial greeting failed:', error)
+    }
+  })
+
+  // 挨拶メッセージの設定
   useEffect(() => {
     if (!character) return
+    
     const timeSlot = getCurrentTimeSlot()
     const baseGreeting = getTimeSlotGreeting(timeSlot)
     
@@ -105,36 +120,7 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
       : baseGreeting
     
     setCurrentMessage(personalizedGreeting)
-    
-    // 自動で初期挨拶を再生（スマート音声エンジン使用）
-    const playInitialGreeting = async () => {
-      try {
-        console.log('🎯 Playing smart initial greeting for', characterId)
-        
-        const success = await playSmartVoice({
-          characterId,
-          interactionContext: 'greeting',
-          userMessage: personalizedGreeting
-        })
-        
-        if (success) {
-          console.log('✅ Smart initial greeting played successfully')
-        } else {
-          console.warn('⚠️ Smart greeting failed, falling back to legacy system')
-          await playSmartGreeting(characterId)
-        }
-      } catch (error) {
-        console.error('❌ Initial greeting failed:', error)
-      }
-    }
-
-    // 1秒後に挨拶再生
-    const timer = setTimeout(() => {
-      playInitialGreeting()
-    }, 1000)
-
-    return () => clearTimeout(timer)
-  }, [userName, characterId, character, playSmartVoice])
+  }, [userName, characterId, character])
 
   // スクロール調整
   useEffect(() => {

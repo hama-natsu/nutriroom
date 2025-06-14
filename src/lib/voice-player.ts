@@ -98,30 +98,17 @@ export class VOICEVOXPlayer {
     return `${parts.join('_')}.wav`
   }
 
-  // 🎵 音声Blob再生
+  // 🎵 音声Blob再生 - グローバル管理システム使用
   private async playAudioBlob(audioBlob: Blob): Promise<boolean> {
-    return new Promise((resolve, reject) => {
-      const audioUrl = URL.createObjectURL(audioBlob)
-      const audio = new Audio(audioUrl)
-      
-      audio.onloadeddata = () => {
-        console.log('🎵 Audio loaded for playback')
-      }
-      
-      audio.onended = () => {
-        URL.revokeObjectURL(audioUrl)
-        console.log('🔇 Audio playback completed')
-        resolve(true)
-      }
-      
-      audio.onerror = (error) => {
-        URL.revokeObjectURL(audioUrl)
-        console.error('❌ Audio playback error:', error)
-        reject(new Error('Audio playback failed'))
-      }
-      
-      audio.play().catch(reject)
-    })
+    const { playAudioExclusive } = await import('./global-audio-manager')
+    
+    try {
+      await playAudioExclusive(audioBlob, 'unknown', 'response')
+      return true
+    } catch (error) {
+      console.error('❌ Audio playback via GlobalAudioManager failed:', error)
+      return false
+    }
   }
 
   // 🆘 フォールバック音声再生（無限ループ防止）
