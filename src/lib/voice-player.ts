@@ -108,9 +108,9 @@ export class VOICEVOXPlayer {
     else if (config.emotion) {
       parts.push(config.emotion)
     }
-    // デフォルトの場合
+    // No default fallback - should be handled at higher level
     else {
-      parts.push('default')
+      throw new Error('No valid voice config provided - default.wav removed')
     }
 
     const fileName = `${parts.join('_')}.wav`

@@ -132,27 +132,11 @@ export function useSmartVoice(config?: SmartVoiceConfig): UseSmartVoiceReturn {
         }
       }
 
-      // 4. 最終デフォルト音声（制限付き）
+      // 4. No final default fallback - gracefully handle failure
       if (!success) {
-        console.log('🆘 Playing final default voice')
-        try {
-          const defaultPromise = voicePlayer.playVoice({
-            characterId: request.characterId,
-            emotion: 'default'
-          })
-          
-          const timeoutPromise = new Promise<boolean>((_, reject) => 
-            setTimeout(() => reject(new Error('Default voice timeout')), FALLBACK_TIMEOUT)
-          )
-          
-          success = await Promise.race([defaultPromise, timeoutPromise])
-          
-          if (!success) {
-            console.error('❌ All voice options failed - giving up')
-          }
-        } catch (defaultError) {
-          console.error('❌ Final default voice failed:', defaultError instanceof Error ? defaultError.message : 'Unknown error')
-        }
+        console.log('🆘 No final default fallback - system designed to work without default.wav')
+        console.log('✅ Graceful degradation: Voice playback failed but system continues normally')
+        // REMOVED: No more default.wav dependency - system should handle voice failure gracefully
       }
 
       return success

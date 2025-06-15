@@ -61,9 +61,9 @@ const AKARI_ACTIVE_FILES = [
   'akari_catchphrase_4.wav'
 ]
 
-// フォールバック専用ファイル
-const FALLBACK_FILES = [
-  'default.wav'  // 最終フォールバック
+// REMOVED: フォールバック専用ファイル（default.wav削除）
+const FALLBACK_FILES: string[] = [
+  // 'default.wav'  // DELETED: 最終フォールバックを削除
 ]
 
 // レガシー・プレフィックスなし音声ファイル（他キャラクター・旧システム用）

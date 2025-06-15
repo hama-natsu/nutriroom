@@ -13,12 +13,12 @@ import { useChatResponseController } from '@/components/ChatResponseController'
 import { analyzeAiResponseComprehensive, debugAiResponseVoice } from '@/lib/ai-response-voice-controller'
 
 // AI音声ファイル名から感情マッピングのヘルパー関数
-function getEmotionFromVoiceFile(voiceFile: string): 'agreement' | 'encouragement' | 'surprise' | 'thinking' | 'concern' | 'joy' | 'default' {
+function getEmotionFromVoiceFile(voiceFile: string): 'agreement' | 'encouragement' | 'surprise' | 'thinking' | 'concern' | 'joy' {
   if (voiceFile.includes('encouragement')) return 'encouragement'
   if (voiceFile.includes('agreement')) return 'agreement'
   if (voiceFile.includes('support')) return 'joy'
   if (voiceFile.includes('thinking')) return 'thinking'
-  return 'default'
+  return 'joy' // No default fallback - use 'joy' as safe alternative
 }
 
 interface Message {
@@ -310,8 +310,8 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
                     'thinking': 'thinking'
                   } as const
                   
-                  const emotion = emotionMap[aiResponseAnalysis.responseType as keyof typeof emotionMap] || 'default'
-                  await playEmotionResponse(characterId, emotion as 'agreement' | 'encouragement' | 'surprise' | 'thinking' | 'concern' | 'joy' | 'default')
+                  const emotion = emotionMap[aiResponseAnalysis.responseType as keyof typeof emotionMap] || 'joy' // No default fallback
+                  await playEmotionResponse(characterId, emotion as 'agreement' | 'encouragement' | 'surprise' | 'thinking' | 'concern' | 'joy')
                   
                   if (process.env.NODE_ENV === 'development') {
                     console.log('✅ AI response fallback emotion played:', emotion)
@@ -326,8 +326,8 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
                   'thinking': 'thinking'
                 } as const
                 
-                const emotion = emotionMap[aiResponseAnalysis.responseType as keyof typeof emotionMap] || 'default'
-                await playEmotionResponse(characterId, emotion as 'agreement' | 'encouragement' | 'surprise' | 'thinking' | 'concern' | 'joy' | 'default')
+                const emotion = emotionMap[aiResponseAnalysis.responseType as keyof typeof emotionMap] || 'joy' // No default fallback
+                await playEmotionResponse(characterId, emotion as 'agreement' | 'encouragement' | 'surprise' | 'thinking' | 'concern' | 'joy')
                 
                 if (process.env.NODE_ENV === 'development') {
                   console.log('✅ AI response emotion mapped and played:', emotion)

@@ -274,8 +274,8 @@ export function generateFallbackOptions(
     }
   })
   
-  // デフォルトファイル
-  options.push('default.wav')
+  // REMOVED: No default.wav fallback - system should handle gracefully
+  // options.push('default.wav')  // DELETED: Eliminates default.wav dependency
   
   return options
 }

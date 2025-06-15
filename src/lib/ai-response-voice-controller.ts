@@ -222,7 +222,7 @@ export function selectAppropriateVoice(responseType: AIResponseType): string | n
     case 'thinking':
       return 'akari_thinking.wav'
     default:
-      return 'akari_default.wav' // 汎用音声
+      return null // No fallback to default.wav - system should handle gracefully
   }
 }
 
