@@ -340,113 +340,133 @@ export function runAiResponseVoiceTests(): void {
 }
 
 // ===============================================
-// 🎯 NutriRoom 音声判定システム簡素化版
-// AI応答一文目ベース判定
+// 🎯 NutriRoom 音声システム完全再構築
+// 一文目判定システムへの完全移行
 // ===============================================
 
-// 一文目抽出機能
-const extractFirstSentence = (aiResponse: string): string => {
-  // 句読点や感嘆符で最初の文を切り出し
-  const firstSentence = aiResponse.split(/[！。？♪♡😊]/)[0] + 
-                       (aiResponse.match(/[！。？♪♡😊]/) || [''])[0];
-  
-  console.log(`Original response: "${aiResponse}"`);
-  console.log(`First sentence extracted: "${firstSentence}"`);
-  
-  return firstSentence;
-};
+// 【完全新システム】ResponseType定義
+export type ResponseType = 
+  | 'food_chat'      // 食べ物雑談（音声不要）
+  | 'encouragement'  // 本当の励まし（音声必要）
+  | 'agreement'      // あいづち（短い音声）
+  | 'general'        // 一般会話（音声不要）
+  | 'initial_greeting' // 初回挨拶（音声必要）
 
-// 一文目ベース音声判定
-const analyzeFirstSentenceForVoice = (firstSentence: string): AIResponseType => {
-  console.log(`Analyzing first sentence: "${firstSentence}"`);
+// 【完全新システム】一文目専用判定
+export const analyzeFirstSentenceOnly = (aiResponse: string): ResponseType => {
+  // 一文目のみ抽出（句読点・絵文字で区切り）
+  const firstSentence = aiResponse.split(/[！。？♪♡😊～]/)[0];
   
-  // 本当の励まし・重要な反応（音声必要）
-  const encouragementStarters = [
-    '素晴らしい', 'すごい', '頑張って', '応援', 'サポート',
-    'きっと大丈夫', '安心して', 'その調子', 'ファイト'
-  ];
+  console.log(`=== First Sentence Analysis ===`);
+  console.log(`Full response: "${aiResponse}"`);
+  console.log(`First sentence only: "${firstSentence}"`);
   
-  if (encouragementStarters.some(pattern => firstSentence.includes(pattern))) {
-    console.log('First sentence type: encouragement (voice enabled)');
+  // 食べ物雑談を最優先判定（音声不要）
+  if (firstSentence.includes('チョコ') || 
+      firstSentence.includes('ポッキー') || 
+      firstSentence.includes('美味しい') ||
+      firstSentence.includes('大好き') ||
+      firstSentence.includes('お菓子')) {
+    console.log('First sentence type: FOOD_CHAT (text-only)');
+    return 'food_chat';
+  }
+  
+  // 本当の励まし（音声必要）
+  if (firstSentence.includes('素晴らしい') || 
+      firstSentence.includes('頑張って') ||
+      firstSentence.includes('応援') ||
+      firstSentence.includes('サポート')) {
+    console.log('First sentence type: ENCOURAGEMENT (voice enabled)');
     return 'encouragement';
   }
   
-  // あいづち・短い共感（短い音声）
-  const agreementStarters = [
-    'そうですね', 'なるほど', 'わかります', 'いいですね',
-    'そうそう', 'うんうん', 'そのとおり'
-  ];
-  
-  if (agreementStarters.some(pattern => firstSentence.includes(pattern))) {
-    console.log('First sentence type: agreement (short voice)');
+  // あいづち（短い音声）
+  if (firstSentence.includes('そうですね') || 
+      firstSentence.includes('なるほど') ||
+      firstSentence.includes('わかります')) {
+    console.log('First sentence type: AGREEMENT (short voice)');
     return 'agreement';
   }
   
-  // 軽い反応・雑談（音声不要）
-  const casualStarters = [
-    'ポッキー', '美味しい', '好き', '知ってる', 'あー',
-    'ね', 'だ', 'です', 'ですか'
-  ];
-  
-  if (casualStarters.some(pattern => firstSentence.includes(pattern))) {
-    console.log('First sentence type: casual_chat (text-only)');
-    return 'food_discussion'; // Using existing type for casual chat
-  }
-  
-  console.log('First sentence type: general_conversation (text-only)');
-  return 'general_conversation';
+  console.log('First sentence type: GENERAL (text-only)');
+  return 'general';
 };
 
-// メイン処理の簡素化
-export const determineVoiceFromAiResponse = (aiResponse: string, isInitialGreeting: boolean = false) => {
-  // 初回挨拶は必ず音声
+// 【完全新システム】時間ベース音声ファイル取得
+function getTimeBasedVoice(): string {
+  const hour = new Date().getHours();
+  if (hour >= 6 && hour < 12) return 'akari_morning.wav';
+  if (hour >= 12 && hour < 18) return 'akari_afternoon.wav';
+  if (hour >= 18 && hour < 22) return 'akari_evening.wav';
+  return 'akari_late.wav';
+}
+
+// 【完全新システム】シンプルな音声制御
+const handleVoiceForResponse = (aiResponse: string, isInitialGreeting: boolean = false) => {
+  console.log(`=== Simple Voice Control ===`);
+  
   if (isInitialGreeting) {
-    console.log('Voice enabled: Initial greeting');
-    return { shouldPlay: true, type: 'initial_greeting' };
+    console.log('✅ Initial greeting - Voice ENABLED');
+    return { shouldPlay: true, voiceFile: getTimeBasedVoice() };
   }
   
-  // 一文目のみで判定
-  const firstSentence = extractFirstSentence(aiResponse);
-  const responseType = analyzeFirstSentenceForVoice(firstSentence);
+  const firstSentenceType = analyzeFirstSentenceOnly(aiResponse);
   
-  const shouldPlay = ['encouragement', 'agreement'].includes(responseType);
-  
-  console.log(`=== Simple Voice Decision ===`);
-  console.log(`First sentence: "${firstSentence}"`);
-  console.log(`Type: ${responseType}`);
-  console.log(`Voice: ${shouldPlay ? 'ENABLED' : 'DISABLED'}`);
-  console.log(`============================`);
-  
-  return { shouldPlay, type: responseType };
+  switch (firstSentenceType) {
+    case 'encouragement':
+      console.log('✅ Encouragement - Voice ENABLED');
+      return { shouldPlay: true, voiceFile: 'akari_encouragement.wav' };
+      
+    case 'agreement':
+      console.log('✅ Agreement - Voice ENABLED');
+      return { shouldPlay: true, voiceFile: 'akari_agreement.wav' };
+      
+    case 'food_chat':
+    case 'general':
+    default:
+      console.log('❌ Regular chat - Voice DISABLED');
+      return { shouldPlay: false, voiceFile: null };
+  }
 };
 
-// 簡素化版テスト
-export function runSimplifiedVoiceTests(): void {
-  console.log('🧪 Running Simplified Voice Tests');
+// 【完全新システム】メイン関数
+export const determineVoiceFromAiResponse = (aiResponse: string, isInitialGreeting: boolean = false) => {
+  return handleVoiceForResponse(aiResponse, isInitialGreeting);
+};
+
+// 【完全新システム】テスト関数
+export function runCompleteSystemTests(): void {
+  console.log('🧪 Running Complete System Tests');
   console.log('=' .repeat(60));
 
   const testCases = [
     {
+      response: 'チョコ大好き〜♡わかる！',
+      expectedType: 'food_chat',
+      expectVoice: false,
+      scenario: 'Food chat (problematic case)'
+    },
+    {
       response: 'ポッキーね！😊 わかる〜！私も大好き♡...',
-      expected: 'food_discussion',
+      expectedType: 'food_chat',
       expectVoice: false,
       scenario: 'Casual food chat'
     },
     {
       response: '素晴らしい決意ですね！私も応援します...',
-      expected: 'encouragement',
+      expectedType: 'encouragement',
       expectVoice: true,
       scenario: 'Genuine encouragement'
     },
     {
       response: 'そうですね〜♪とても良いと思います...',
-      expected: 'agreement',
+      expectedType: 'agreement',
       expectVoice: true,
       scenario: 'Agreement response'
     },
     {
       response: '美味しいですよね！栄養価も高くて...',
-      expected: 'food_discussion',
+      expectedType: 'food_chat',
       expectVoice: false,
       scenario: 'Food discussion'
     }
@@ -458,12 +478,17 @@ export function runSimplifiedVoiceTests(): void {
     console.log(`\nTest ${index + 1}: ${testCase.scenario}`);
     const result = determineVoiceFromAiResponse(testCase.response, false);
     
-    const typeCorrect = result.type === testCase.expected;
+    // Extract the detected type from the first sentence analysis
+    const firstSentence = testCase.response.split(/[！。？♪♡😊～]/)[0];
+    const detectedType = analyzeFirstSentenceOnly(testCase.response);
+    
+    const typeCorrect = detectedType === testCase.expectedType;
     const voiceCorrect = result.shouldPlay === testCase.expectVoice;
     
     console.log(`  AI Response: "${testCase.response.substring(0, 40)}..."`);
-    console.log(`  Expected: ${testCase.expected} | Voice: ${testCase.expectVoice ? '🎵' : '🔇'}`);
-    console.log(`  Detected: ${result.type} | Voice: ${result.shouldPlay ? '🎵' : '🔇'}`);
+    console.log(`  First sentence: "${firstSentence}"`);
+    console.log(`  Expected: ${testCase.expectedType} | Voice: ${testCase.expectVoice ? '🎵' : '🔇'}`);
+    console.log(`  Detected: ${detectedType} | Voice: ${result.shouldPlay ? '🎵' : '🔇'}`);
     console.log(`  Type: ${typeCorrect ? '✅' : '❌'} | Voice: ${voiceCorrect ? '✅' : '❌'}`);
     
     if (typeCorrect && voiceCorrect) {
@@ -471,14 +496,15 @@ export function runSimplifiedVoiceTests(): void {
       console.log('  Result: ✅ PASS');
     } else {
       console.log('  Result: ❌ FAIL');
+      console.log(`  Debug: shouldPlay=${result.shouldPlay}, voiceFile=${result.voiceFile}`);
     }
   });
 
   console.log(`\n📊 Test Results: ${passedTests}/${testCases.length} tests passed`);
   if (passedTests === testCases.length) {
-    console.log('✅ ALL TESTS PASSED - Simplified voice system working correctly!');
+    console.log('✅ ALL TESTS PASSED - First-sentence system working correctly!');
   } else {
-    console.error('❌ SOME TESTS FAILED - Simplified voice system needs adjustment');
+    console.error('❌ SOME TESTS FAILED - First-sentence system needs adjustment');
   }
 
   console.log('=' .repeat(60));
@@ -490,12 +516,16 @@ if (typeof window !== 'undefined') {
   ;(window as unknown as Record<string, unknown>).runAiVoiceTests = runAiResponseVoiceTests
   ;(window as unknown as Record<string, unknown>).analyzeAiResponse = analyzeAiResponseForVoice
   ;(window as unknown as Record<string, unknown>).determineVoiceFromAiResponse = determineVoiceFromAiResponse
-  ;(window as unknown as Record<string, unknown>).runSimplifiedVoiceTests = runSimplifiedVoiceTests
+  ;(window as unknown as Record<string, unknown>).runCompleteSystemTests = runCompleteSystemTests
+  ;(window as unknown as Record<string, unknown>).analyzeFirstSentenceOnly = analyzeFirstSentenceOnly
   
-  console.log('🎯 AI Response Voice Controller Debug Functions Available:')
-  console.log('- debugAiResponseVoice(aiResponse) : AI返答音声分析')
-  console.log('- runAiVoiceTests() : AI返答音声テスト')
-  console.log('- analyzeAiResponse(aiResponse) : AI返答詳細分析')
-  console.log('- determineVoiceFromAiResponse(aiResponse) : 簡素化版音声判定')
-  console.log('- runSimplifiedVoiceTests() : 簡素化版テスト')
+  console.log('🎯 NutriRoom Voice System - First Sentence Analysis:')
+  console.log('- determineVoiceFromAiResponse(aiResponse) : 完全新システム音声判定')
+  console.log('- runCompleteSystemTests() : 完全システムテスト')
+  console.log('- analyzeFirstSentenceOnly(aiResponse) : 一文目分析')
+  console.log('')
+  console.log('🔧 Legacy Debug Functions (for comparison):')
+  console.log('- debugAiResponseVoice(aiResponse) : レガシー音声分析')
+  console.log('- runAiVoiceTests() : レガシーテスト')
+  console.log('- analyzeAiResponse(aiResponse) : レガシー詳細分析')
 }

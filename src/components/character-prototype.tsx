@@ -9,8 +9,8 @@ import { getCharacterById } from '@/lib/characters'
 import { MicrophoneButton } from '@/components/microphone-button'
 import { useSmartVoice } from '@/hooks/useSmartVoice'
 import { useChatResponseController } from '@/components/ChatResponseController'
-// Legacy response pattern controller import removed - pure AI response system now
-import { analyzeAiResponseComprehensive, debugAiResponseVoice } from '@/lib/ai-response-voice-controller'
+// 🎯 Complete system rebuild - First sentence analysis only
+import { determineVoiceFromAiResponse, debugAiResponseVoice } from '@/lib/ai-response-voice-controller'
 
 // AI音声ファイル名から感情マッピングのヘルパー関数
 function getEmotionFromVoiceFile(voiceFile: string): 'agreement' | 'encouragement' | 'surprise' | 'thinking' | 'concern' | 'joy' {
@@ -265,82 +265,41 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
           setMessages(prev => [...prev, aiMessage])
           setCurrentMessage(data.response)
 
-          // 【改善版】AI返答ベース音声判定
-          const aiResponseAnalysis = analyzeAiResponseComprehensive(data.response, false)
+          // 🎯【完全新システム】一文目判定のみによる音声制御
+          const voiceDecision = determineVoiceFromAiResponse(data.response, false)
           
           if (process.env.NODE_ENV === 'development') {
-            console.log('🎯 AI Response Voice Analysis Result:', {
-              responseType: aiResponseAnalysis.responseType,
-              shouldPlayVoice: aiResponseAnalysis.shouldPlayVoice,
-              voiceFile: aiResponseAnalysis.voiceFile,
-              confidence: (aiResponseAnalysis.confidence * 100).toFixed(1) + '%',
-              reasoning: aiResponseAnalysis.reasoning,
-              detectedPatterns: aiResponseAnalysis.detectedPatterns
-            })
-            console.log('🚨 LEGACY SYSTEMS BYPASSED - Using pure AI response analysis')
+            console.log('🎯 First Sentence Voice Decision:', voiceDecision)
           }
 
-          // 【完全新システム】AI返答ベース音声制御
-          if (aiResponseAnalysis.shouldPlayVoice) {
+          // 【完全新システム】一文目ベース音声制御
+          if (voiceDecision.shouldPlay && voiceDecision.voiceFile) {
             try {
               if (process.env.NODE_ENV === 'development') {
-                console.log('🎵 Voice enabled for AI response type:', aiResponseAnalysis.responseType)
-                console.log('🎵 Direct voice file:', aiResponseAnalysis.voiceFile)
-                console.log('🎵 Detected patterns:', aiResponseAnalysis.detectedPatterns.join(', '))
-                console.log('🚨 BYPASSING LEGACY SYSTEMS - Using direct AI response analysis')
+                console.log('✅ Voice ENABLED - First sentence system')
+                console.log('🎵 Voice file:', voiceDecision.voiceFile)
               }
               
-              // 【新】AI返答解析結果を直接使用（レガシーシステム完全回避）
-              const directVoiceFile = aiResponseAnalysis.voiceFile
+              // 一文目判定結果を直接使用
+              const emotion = getEmotionFromVoiceFile(voiceDecision.voiceFile)
+              const success = await playEmotionResponse(characterId, emotion)
               
-              if (directVoiceFile) {
-                // AI返答解析で特定された音声ファイルを直接再生
-                const success = await playEmotionResponse(characterId, getEmotionFromVoiceFile(directVoiceFile))
-                
-                if (success) {
-                  if (process.env.NODE_ENV === 'development') {
-                    console.log('✅ Direct AI response voice played successfully:', directVoiceFile)
-                  }
-                } else {
-                  // AI返答タイプに基づく最終フォールバック
-                  const emotionMap = {
-                    'encouragement': 'encouragement',
-                    'agreement': 'agreement', 
-                    'emotional_support': 'support',
-                    'thinking': 'thinking'
-                  } as const
-                  
-                  const emotion = emotionMap[aiResponseAnalysis.responseType as keyof typeof emotionMap] || 'joy' // No default fallback
-                  await playEmotionResponse(characterId, emotion as 'agreement' | 'encouragement' | 'surprise' | 'thinking' | 'concern' | 'joy')
-                  
-                  if (process.env.NODE_ENV === 'development') {
-                    console.log('✅ AI response fallback emotion played:', emotion)
-                  }
+              if (success) {
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('✅ First sentence voice played successfully:', voiceDecision.voiceFile)
                 }
               } else {
-                // 音声ファイル指定がない場合は感情マッピング
-                const emotionMap = {
-                  'encouragement': 'encouragement',
-                  'agreement': 'agreement', 
-                  'emotional_support': 'support',
-                  'thinking': 'thinking'
-                } as const
-                
-                const emotion = emotionMap[aiResponseAnalysis.responseType as keyof typeof emotionMap] || 'joy' // No default fallback
-                await playEmotionResponse(characterId, emotion as 'agreement' | 'encouragement' | 'surprise' | 'thinking' | 'concern' | 'joy')
-                
                 if (process.env.NODE_ENV === 'development') {
-                  console.log('✅ AI response emotion mapped and played:', emotion)
+                  console.log('⚠️ Voice file not found, no fallback used')
                 }
               }
             } catch (error) {
-              console.error('❌ AI response voice playback failed:', error)
+              console.error('❌ First sentence voice playback failed:', error)
             }
           } else {
             if (process.env.NODE_ENV === 'development') {
-              console.log('🔇 Voice disabled for AI response type:', aiResponseAnalysis.responseType)
-              console.log('📝 Reasoning:', aiResponseAnalysis.reasoning)
-              console.log('📝 Text-only response is appropriate for this content')
+              console.log('❌ Regular chat - Voice DISABLED')
+              console.log('📝 First sentence analysis determined text-only appropriate')
             }
           }
         }
