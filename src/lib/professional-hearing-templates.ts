@@ -238,9 +238,7 @@ export function selectFollowUpQuestion(
 
 // 自然な質問文の生成
 export function generateNaturalQuestion(
-  question: HearingQuestion,
-  sessionHistory: SessionHistory,
-  userInput: string
+  question: HearingQuestion
 ): string {
   const baseQuestion = question.question
 

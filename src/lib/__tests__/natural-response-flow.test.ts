@@ -12,9 +12,6 @@ import {
   getSessionInfo
 } from '../conversation-context-manager'
 
-import {
-  debugNutritionGuidance
-} from '../nutrition-guidance-system'
 
 // テストシナリオ: ダイエット相談の自然な会話フロー
 export async function testNaturalConversationFlow(): Promise<void> {
@@ -278,6 +275,6 @@ export async function runAllNaturalResponseTests(): Promise<void> {
 // ブラウザ環境でのテスト実行
 if (typeof window !== 'undefined') {
   // デバッグ用グローバル関数として公開
-  (window as any).testNaturalResponse = runAllNaturalResponseTests
-  (window as any).debugNaturalResponse = debugNaturalResponseController
+  ;(window as unknown as Record<string, unknown>).testNaturalResponse = runAllNaturalResponseTests
+  ;(window as unknown as Record<string, unknown>).debugNaturalResponse = debugNaturalResponseController
 }

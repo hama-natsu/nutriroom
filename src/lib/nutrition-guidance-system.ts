@@ -32,6 +32,7 @@ export interface GuidanceResponse {
   content: string
   shouldCollectInfo: boolean
   nextStage?: string
+  confidence?: number
 }
 
 export type GuidanceStage = 
@@ -125,7 +126,7 @@ export function generateMotivationInquiry(userInput: string, basicInfo: { target
 }
 
 // 制約条件の確認質問生成
-export function generateConstraintCheck(motivation: string): string {
+export function generateConstraintCheck(): string {
   return [
     "お話を聞かせていただき、ありがとうございます♪",
     "より良いアドバイスをするために、いくつか確認させてください〜",
@@ -152,7 +153,7 @@ export function generatePersonalizedAdvice(sessionHistory: SessionHistory): stri
 }
 
 // 継続サポートメッセージ生成
-export function generateOngoingSupport(userInput: string): string {
+export function generateOngoingSupport(): string {
   const encouragementPhrases = [
     "頑張っていらっしゃいますね♪",
     "その調子です〜",
@@ -211,7 +212,7 @@ export function generateNutritionGuidanceResponse(context: ConversationContext):
       return {
         responseType: 'constraint_check',
         voicePattern: 'gentle',
-        content: generateConstraintCheck(sessionHistory.userMotivation),
+        content: generateConstraintCheck(),
         shouldCollectInfo: true,
         nextStage: 'personalized_advice'
       }
@@ -229,7 +230,7 @@ export function generateNutritionGuidanceResponse(context: ConversationContext):
       return {
         responseType: 'general_conversation',
         voicePattern: 'encouragement',
-        content: generateOngoingSupport(userInput),
+        content: generateOngoingSupport(),
         shouldCollectInfo: false
       }
 
@@ -237,7 +238,7 @@ export function generateNutritionGuidanceResponse(context: ConversationContext):
       return {
         responseType: 'general_conversation',
         voicePattern: 'cheerful',
-        content: generateGeneralResponse(userInput),
+        content: generateGeneralResponse(),
         shouldCollectInfo: false
       }
   }
@@ -256,7 +257,7 @@ function generateTimeBasedGreeting(timeSlot: string): string {
 }
 
 // 一般的な応答生成
-function generateGeneralResponse(userInput: string): string {
+function generateGeneralResponse(): string {
   const generalResponses = [
     "そうですね〜♪ もう少し詳しく教えてください♪",
     "なるほど〜 他にも気になることはありますか？",

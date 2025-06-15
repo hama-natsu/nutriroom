@@ -219,8 +219,8 @@ export async function runFullSystemTest(): Promise<void> {
 
 // ブラウザ環境でのデモ関数公開
 if (typeof window !== 'undefined') {
-  (window as any).runNutriRoomDemo = runIntegrationDemo
-  (window as any).runNutriRoomFullTest = runFullSystemTest
+  ;(window as unknown as Record<string, unknown>).runNutriRoomDemo = runIntegrationDemo
+  ;(window as unknown as Record<string, unknown>).runNutriRoomFullTest = runFullSystemTest
   
   console.log('🎯 NutriRoom Phase 2.2 Demo Functions Available:')
   console.log('- runNutriRoomDemo() : 統合デモ実行')

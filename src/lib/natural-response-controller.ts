@@ -3,7 +3,6 @@
 import { 
   generateNutritionGuidanceResponse, 
   ConversationContext, 
-  GuidanceResponse,
   SessionHistory,
   updateSessionHistory
 } from './nutrition-guidance-system'
@@ -100,9 +99,7 @@ export async function generateNaturalResponse(
   if (hearingQuestion) {
     // ヒアリング質問を自然に組み込み
     const naturalQuestion = generateNaturalQuestion(
-      hearingQuestion,
-      session.history,
-      userMessage
+      hearingQuestion
     )
     
     // 既存の応答と質問を自然に結合
@@ -263,7 +260,7 @@ function evaluateProgression(sessionHistory: SessionHistory): number {
 
 // キーワード抽出
 function extractKeywords(text: string): string[] {
-  const keywords = []
+  const keywords: string[] = []
   
   // 栄養・健康関連キーワード
   const nutritionKeywords = ['ダイエット', '健康', '栄養', '食事', '運動', '体重', '痩せる']
