@@ -10,6 +10,8 @@ import { useSmartVoice } from '@/hooks/useSmartVoice'
 import { useChatResponseController } from '@/components/ChatResponseController'
 // 🎯 Complete system rebuild - First sentence analysis only
 import { handleAiResponseVoice, debugAiResponseVoice } from '@/lib/ai-response-voice-controller'
+// 🎯 Phase 2.3-実用版: リアルタイムデータ収集
+import { useConversationLogger, debugConversationLogger } from '@/hooks/useConversationLogger'
 
 
 interface Message {
@@ -46,6 +48,9 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
     playSmartVoice, 
     debugVoiceSystem 
   } = useSmartVoice()
+
+  // 🎯 リアルタイム会話ログ収集（透明な動作）
+  const { saveMessage, sessionState, isReady } = useConversationLogger(characterId)
 
   // 応答制御システム（常時初期化、条件付きで実行）
   const responseController = useChatResponseController({
@@ -215,6 +220,14 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
     setIsLoading(true)
     setShowInitialGreeting(false)
 
+    // 🎯 ユーザーメッセージのリアルタイム保存
+    if (isReady) {
+      await saveMessage({
+        message: inputText,
+        type: 'user'
+      })
+    }
+
     try {
       // API呼び出し
       const response = await fetch('/api/chat', {
@@ -264,6 +277,16 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
           // 【新システム】レガシー競合を完全回避した音声制御
           try {
             const voiceSuccess = await handleAiResponseVoice(data.response, false)
+            
+            // 🎯 AIメッセージのリアルタイム保存（音声再生と同時）
+            if (isReady) {
+              await saveMessage({
+                message: data.response,
+                type: 'ai',
+                voiceFile: voiceSuccess ? 'voice_played' : undefined,
+                emotionDetected: voiceSuccess ? 'ai_response' : undefined
+              })
+            }
             
             if (process.env.NODE_ENV === 'development') {
               if (voiceSuccess) {
@@ -415,6 +438,9 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
             onClick={() => {
               debugVoiceSystem()
               console.log('🎭 Response Controller Debug:', responseController.getDebugInfo())
+              
+              // 🎯 会話ログシステムデバッグ
+              debugConversationLogger(sessionState)
               
               // AI返答ベース分析のデモ
               if (messages.length > 0) {
