@@ -339,14 +339,163 @@ export function runAiResponseVoiceTests(): void {
   console.log('=' .repeat(60))
 }
 
+// ===============================================
+// 🎯 NutriRoom 音声判定システム簡素化版
+// AI応答一文目ベース判定
+// ===============================================
+
+// 一文目抽出機能
+const extractFirstSentence = (aiResponse: string): string => {
+  // 句読点や感嘆符で最初の文を切り出し
+  const firstSentence = aiResponse.split(/[！。？♪♡😊]/)[0] + 
+                       (aiResponse.match(/[！。？♪♡😊]/) || [''])[0];
+  
+  console.log(`Original response: "${aiResponse}"`);
+  console.log(`First sentence extracted: "${firstSentence}"`);
+  
+  return firstSentence;
+};
+
+// 一文目ベース音声判定
+const analyzeFirstSentenceForVoice = (firstSentence: string): AIResponseType => {
+  console.log(`Analyzing first sentence: "${firstSentence}"`);
+  
+  // 本当の励まし・重要な反応（音声必要）
+  const encouragementStarters = [
+    '素晴らしい', 'すごい', '頑張って', '応援', 'サポート',
+    'きっと大丈夫', '安心して', 'その調子', 'ファイト'
+  ];
+  
+  if (encouragementStarters.some(pattern => firstSentence.includes(pattern))) {
+    console.log('First sentence type: encouragement (voice enabled)');
+    return 'encouragement';
+  }
+  
+  // あいづち・短い共感（短い音声）
+  const agreementStarters = [
+    'そうですね', 'なるほど', 'わかります', 'いいですね',
+    'そうそう', 'うんうん', 'そのとおり'
+  ];
+  
+  if (agreementStarters.some(pattern => firstSentence.includes(pattern))) {
+    console.log('First sentence type: agreement (short voice)');
+    return 'agreement';
+  }
+  
+  // 軽い反応・雑談（音声不要）
+  const casualStarters = [
+    'ポッキー', '美味しい', '好き', '知ってる', 'あー',
+    'ね', 'だ', 'です', 'ですか'
+  ];
+  
+  if (casualStarters.some(pattern => firstSentence.includes(pattern))) {
+    console.log('First sentence type: casual_chat (text-only)');
+    return 'food_discussion'; // Using existing type for casual chat
+  }
+  
+  console.log('First sentence type: general_conversation (text-only)');
+  return 'general_conversation';
+};
+
+// メイン処理の簡素化
+export const determineVoiceFromAiResponse = (aiResponse: string, isInitialGreeting: boolean = false) => {
+  // 初回挨拶は必ず音声
+  if (isInitialGreeting) {
+    console.log('Voice enabled: Initial greeting');
+    return { shouldPlay: true, type: 'initial_greeting' };
+  }
+  
+  // 一文目のみで判定
+  const firstSentence = extractFirstSentence(aiResponse);
+  const responseType = analyzeFirstSentenceForVoice(firstSentence);
+  
+  const shouldPlay = ['encouragement', 'agreement'].includes(responseType);
+  
+  console.log(`=== Simple Voice Decision ===`);
+  console.log(`First sentence: "${firstSentence}"`);
+  console.log(`Type: ${responseType}`);
+  console.log(`Voice: ${shouldPlay ? 'ENABLED' : 'DISABLED'}`);
+  console.log(`============================`);
+  
+  return { shouldPlay, type: responseType };
+};
+
+// 簡素化版テスト
+export function runSimplifiedVoiceTests(): void {
+  console.log('🧪 Running Simplified Voice Tests');
+  console.log('=' .repeat(60));
+
+  const testCases = [
+    {
+      response: 'ポッキーね！😊 わかる〜！私も大好き♡...',
+      expected: 'food_discussion',
+      expectVoice: false,
+      scenario: 'Casual food chat'
+    },
+    {
+      response: '素晴らしい決意ですね！私も応援します...',
+      expected: 'encouragement',
+      expectVoice: true,
+      scenario: 'Genuine encouragement'
+    },
+    {
+      response: 'そうですね〜♪とても良いと思います...',
+      expected: 'agreement',
+      expectVoice: true,
+      scenario: 'Agreement response'
+    },
+    {
+      response: '美味しいですよね！栄養価も高くて...',
+      expected: 'food_discussion',
+      expectVoice: false,
+      scenario: 'Food discussion'
+    }
+  ];
+
+  let passedTests = 0;
+
+  testCases.forEach((testCase, index) => {
+    console.log(`\nTest ${index + 1}: ${testCase.scenario}`);
+    const result = determineVoiceFromAiResponse(testCase.response, false);
+    
+    const typeCorrect = result.type === testCase.expected;
+    const voiceCorrect = result.shouldPlay === testCase.expectVoice;
+    
+    console.log(`  AI Response: "${testCase.response.substring(0, 40)}..."`);
+    console.log(`  Expected: ${testCase.expected} | Voice: ${testCase.expectVoice ? '🎵' : '🔇'}`);
+    console.log(`  Detected: ${result.type} | Voice: ${result.shouldPlay ? '🎵' : '🔇'}`);
+    console.log(`  Type: ${typeCorrect ? '✅' : '❌'} | Voice: ${voiceCorrect ? '✅' : '❌'}`);
+    
+    if (typeCorrect && voiceCorrect) {
+      passedTests++;
+      console.log('  Result: ✅ PASS');
+    } else {
+      console.log('  Result: ❌ FAIL');
+    }
+  });
+
+  console.log(`\n📊 Test Results: ${passedTests}/${testCases.length} tests passed`);
+  if (passedTests === testCases.length) {
+    console.log('✅ ALL TESTS PASSED - Simplified voice system working correctly!');
+  } else {
+    console.error('❌ SOME TESTS FAILED - Simplified voice system needs adjustment');
+  }
+
+  console.log('=' .repeat(60));
+}
+
 // ブラウザ環境でのデバッグ関数公開
 if (typeof window !== 'undefined') {
   ;(window as unknown as Record<string, unknown>).debugAiResponseVoice = debugAiResponseVoice
   ;(window as unknown as Record<string, unknown>).runAiVoiceTests = runAiResponseVoiceTests
   ;(window as unknown as Record<string, unknown>).analyzeAiResponse = analyzeAiResponseForVoice
+  ;(window as unknown as Record<string, unknown>).determineVoiceFromAiResponse = determineVoiceFromAiResponse
+  ;(window as unknown as Record<string, unknown>).runSimplifiedVoiceTests = runSimplifiedVoiceTests
   
   console.log('🎯 AI Response Voice Controller Debug Functions Available:')
   console.log('- debugAiResponseVoice(aiResponse) : AI返答音声分析')
   console.log('- runAiVoiceTests() : AI返答音声テスト')
   console.log('- analyzeAiResponse(aiResponse) : AI返答詳細分析')
+  console.log('- determineVoiceFromAiResponse(aiResponse) : 簡素化版音声判定')
+  console.log('- runSimplifiedVoiceTests() : 簡素化版テスト')
 }
