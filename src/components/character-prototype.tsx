@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
-import { playEmotionResponse } from '@/lib/voice-player'
 import { useInitialGreeting } from '@/hooks/useInitialGreeting'
 import { getUnifiedTimeSlot, getUnifiedGreetingText } from '@/lib/unified-time-system'
 import { getCharacterById } from '@/lib/characters'
@@ -12,14 +11,6 @@ import { useChatResponseController } from '@/components/ChatResponseController'
 // 🎯 Complete system rebuild - First sentence analysis only
 import { handleAiResponseVoice, debugAiResponseVoice } from '@/lib/ai-response-voice-controller'
 
-// AI音声ファイル名から感情マッピングのヘルパー関数
-function getEmotionFromVoiceFile(voiceFile: string): 'agreement' | 'encouragement' | 'surprise' | 'thinking' | 'concern' | 'joy' {
-  if (voiceFile.includes('encouragement')) return 'encouragement'
-  if (voiceFile.includes('agreement')) return 'agreement'
-  if (voiceFile.includes('support')) return 'joy'
-  if (voiceFile.includes('thinking')) return 'thinking'
-  return 'joy' // No default fallback - use 'joy' as safe alternative
-}
 
 interface Message {
   id: string
