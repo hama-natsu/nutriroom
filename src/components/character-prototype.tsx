@@ -9,6 +9,7 @@ import { getCharacterById } from '@/lib/characters'
 import { MicrophoneButton } from '@/components/microphone-button'
 import { useSmartVoice } from '@/hooks/useSmartVoice'
 import { useChatResponseController } from '@/components/ChatResponseController'
+import { analyzeResponse, debugResponsePattern } from '@/lib/response-pattern-controller'
 
 interface Message {
   id: string
@@ -254,29 +255,54 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
           setMessages(prev => [...prev, aiMessage])
           setCurrentMessage(data.response)
 
-          // 音声再生（スマート音声エンジン使用）
-          try {
-            if (process.env.NODE_ENV === 'development') {
-              console.log('🎯 Playing smart response voice')
-            }
-            
-            const success = await playSmartVoice({
-              characterId,
-              interactionContext: 'response',
-              userMessage: inputText,
-              conversationHistory: messages.map(m => m.text)
+          // 【応答パターン制御】音声再生要否判定
+          const responseAnalysis = analyzeResponse(inputText, data.response, false)
+          
+          if (process.env.NODE_ENV === 'development') {
+            console.log('🎯 Response Pattern Analysis:', {
+              type: responseAnalysis.responseType,
+              shouldPlayVoice: responseAnalysis.shouldPlayVoice,
+              reasoning: responseAnalysis.reasoning
             })
-            
-            if (success) {
+          }
+
+          // 音声再生（条件付き）
+          if (responseAnalysis.shouldPlayVoice) {
+            try {
               if (process.env.NODE_ENV === 'development') {
-                console.log('✅ Smart response voice played successfully')
+                console.log('🎵 Voice enabled for response type:', responseAnalysis.responseType)
               }
-            } else {
-              console.warn('⚠️ Smart voice failed, using legacy system')
-              await playEmotionResponse(characterId, 'agreement')
+              
+              const success = await playSmartVoice({
+                characterId,
+                interactionContext: 'response',
+                userMessage: inputText,
+                conversationHistory: messages.map(m => m.text)
+              })
+              
+              if (success) {
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('✅ Smart response voice played successfully')
+                }
+              } else {
+                console.warn('⚠️ Smart voice failed, using emotion fallback')
+                // 音声感情に基づくフォールバック
+                if (responseAnalysis.voiceEmotion) {
+                  const validEmotions = ['agreement', 'encouragement', 'surprise', 'thinking', 'concern', 'joy', 'default']
+                  const emotion = validEmotions.includes(responseAnalysis.voiceEmotion) 
+                    ? responseAnalysis.voiceEmotion as 'agreement' | 'encouragement' | 'surprise' | 'thinking' | 'concern' | 'joy' | 'default'
+                    : 'default'
+                  await playEmotionResponse(characterId, emotion)
+                }
+              }
+            } catch (error) {
+              console.error('❌ Voice playback failed:', error)
             }
-          } catch (error) {
-            console.error('❌ Voice playback failed:', error)
+          } else {
+            if (process.env.NODE_ENV === 'development') {
+              console.log('🔇 Voice disabled for response type:', responseAnalysis.responseType)
+              console.log('📝 Text-only response appropriate for this conversation')
+            }
           }
         }
       }
@@ -418,6 +444,15 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
             onClick={() => {
               debugVoiceSystem()
               console.log('🎭 Response Controller Debug:', responseController.getDebugInfo())
+              
+              // 応答パターン分析のデモ
+              if (messages.length > 0) {
+                const lastUserMsg = messages.filter(m => m.isUser).pop()?.text || ''
+                const lastAiMsg = messages.filter(m => !m.isUser).pop()?.text || ''
+                if (lastUserMsg && lastAiMsg) {
+                  debugResponsePattern(lastUserMsg, lastAiMsg)
+                }
+              }
             }}
             className="px-3 py-1 text-xs bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
             title="システムデバッグ"
