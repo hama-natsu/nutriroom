@@ -10,7 +10,7 @@ import { MicrophoneButton } from '@/components/microphone-button'
 import { useSmartVoice } from '@/hooks/useSmartVoice'
 import { useChatResponseController } from '@/components/ChatResponseController'
 // 🎯 Complete system rebuild - First sentence analysis only
-import { determineVoiceFromAiResponse, debugAiResponseVoice } from '@/lib/ai-response-voice-controller'
+import { handleAiResponseVoice, debugAiResponseVoice } from '@/lib/ai-response-voice-controller'
 
 // AI音声ファイル名から感情マッピングのヘルパー関数
 function getEmotionFromVoiceFile(voiceFile: string): 'agreement' | 'encouragement' | 'surprise' | 'thinking' | 'concern' | 'joy' {
@@ -265,42 +265,24 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
           setMessages(prev => [...prev, aiMessage])
           setCurrentMessage(data.response)
 
-          // 🎯【完全新システム】一文目判定のみによる音声制御
-          const voiceDecision = determineVoiceFromAiResponse(data.response, false)
-          
+          // 🚫【レガシーシステム完全バイパス】新システム音声制御
           if (process.env.NODE_ENV === 'development') {
-            console.log('🎯 First Sentence Voice Decision:', voiceDecision)
+            console.log('🚫 BYPASSING ALL LEGACY SYSTEMS - Using new voice handler')
           }
 
-          // 【完全新システム】一文目ベース音声制御
-          if (voiceDecision.shouldPlay && voiceDecision.voiceFile) {
-            try {
-              if (process.env.NODE_ENV === 'development') {
-                console.log('✅ Voice ENABLED - First sentence system')
-                console.log('🎵 Voice file:', voiceDecision.voiceFile)
-              }
-              
-              // 一文目判定結果を直接使用
-              const emotion = getEmotionFromVoiceFile(voiceDecision.voiceFile)
-              const success = await playEmotionResponse(characterId, emotion)
-              
-              if (success) {
-                if (process.env.NODE_ENV === 'development') {
-                  console.log('✅ First sentence voice played successfully:', voiceDecision.voiceFile)
-                }
-              } else {
-                if (process.env.NODE_ENV === 'development') {
-                  console.log('⚠️ Voice file not found, no fallback used')
-                }
-              }
-            } catch (error) {
-              console.error('❌ First sentence voice playback failed:', error)
-            }
-          } else {
+          // 【新システム】レガシー競合を完全回避した音声制御
+          try {
+            const voiceSuccess = await handleAiResponseVoice(data.response, false)
+            
             if (process.env.NODE_ENV === 'development') {
-              console.log('❌ Regular chat - Voice DISABLED')
-              console.log('📝 First sentence analysis determined text-only appropriate')
+              if (voiceSuccess) {
+                console.log('✅ NEW SYSTEM: Voice played successfully without legacy interference')
+              } else {
+                console.log('🔇 NEW SYSTEM: No voice needed or playback failed')
+              }
             }
+          } catch (error) {
+            console.error('❌ NEW SYSTEM: Voice playback failed:', error)
           }
         }
       }

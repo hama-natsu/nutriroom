@@ -356,6 +356,19 @@ export const selectDetailedVoicePattern = (aiResponse: string): string | null =>
   console.log(`=== Detailed Voice Pattern Selection ===`);
   console.log(`Analyzing: "${aiResponse}"`);
   
+  // 0. 食べ物雑談の最優先チェック（音声無効化）
+  const firstSentence = aiResponse.split(/[！。？♪♡😊～]/)[0];
+  if (firstSentence.includes('チョコ') || 
+      firstSentence.includes('ポッキー') || 
+      firstSentence.includes('美味しい') ||
+      firstSentence.includes('大好き') ||
+      firstSentence.includes('お菓子') ||
+      firstSentence.includes('食べ物') ||
+      firstSentence.includes('料理')) {
+    console.log('Food chat detected - returning null (no voice)');
+    return null;
+  }
+  
   // 1. 称賛・素晴らしい系
   if (aiResponse.includes('すごい') || aiResponse.includes('素晴らしい') || 
       aiResponse.includes('本当に') || aiResponse.includes('完璧')) {
@@ -707,6 +720,95 @@ export function runDiverseVoiceTests(): void {
   console.log('=' .repeat(60));
 }
 
+// ===============================================
+// 🚫 レガシーシステム競合解決: 完全バイパス制御
+// ===============================================
+
+// 音声再生の最終制御（レガシーシステムを完全無効化）
+const playSelectedVoice = async (selectedVoice: string | null, isInitialGreeting: boolean = false): Promise<boolean> => {
+  console.log(`=== Final Voice Playback Control ===`);
+  console.log(`Selected voice: ${selectedVoice}`);
+  console.log(`Is initial greeting: ${isInitialGreeting}`);
+  
+  // 新システムで音声が選択されている場合、レガシーシステムを完全無視
+  if (selectedVoice) {
+    console.log(`🎵 Playing NEW SYSTEM voice: ${selectedVoice}`);
+    console.log(`❌ BYPASSING legacy system completely`);
+    
+    try {
+      const audioPath = `/audio/recorded/akari/${selectedVoice}`;
+      console.log(`Loading: ${audioPath}`);
+      
+      // 直接音声再生（レガシーシステムを経由しない）
+      if (typeof window !== 'undefined' && window.Audio) {
+        const audio = new Audio(audioPath);
+        await audio.play();
+        console.log(`✅ Successfully played: ${selectedVoice}`);
+        return true;
+      } else {
+        console.log(`⚠️ Audio not available in current environment`);
+        return false;
+      }
+      
+    } catch (error) {
+      console.log(`❌ Failed to play ${selectedVoice}:`, error);
+      // フォールバックもレガシーシステムを使わない
+      return false;
+    }
+  }
+  
+  // 初回挨拶の場合のみ時間帯音声
+  if (isInitialGreeting) {
+    console.log(`🕐 Playing time-based greeting for initial contact`);
+    const timeVoice = getTimeBasedVoice();
+    console.log(`🎵 Time-based voice: ${timeVoice}`);
+    
+    try {
+      const audioPath = `/audio/recorded/akari/${timeVoice}`;
+      console.log(`Loading: ${audioPath}`);
+      
+      if (typeof window !== 'undefined' && window.Audio) {
+        const audio = new Audio(audioPath);
+        await audio.play();
+        console.log(`✅ Successfully played time-based voice: ${timeVoice}`);
+        return true;
+      }
+    } catch (error) {
+      console.log(`❌ Failed to play time-based voice:`, error);
+      return false;
+    }
+  } else {
+    console.log(`❌ No voice selected - silent response`);
+  }
+  
+  return false;
+};
+
+// 新システム優先の制御フロー
+export const handleAiResponseVoice = async (aiResponse: string, isInitialGreeting: boolean = false): Promise<boolean> => {
+  console.log(`=== Voice Response Handler ===`);
+  console.log(`🚫 LEGACY SYSTEM: Completely disabled`);
+  console.log(`✅ NEW SYSTEM: Full control enabled`);
+  
+  if (isInitialGreeting) {
+    // 初回挨拶は時間帯音声
+    console.log(`🎯 Initial greeting - using time-based voice`);
+    return await playSelectedVoice(null, true);
+  }
+  
+  // AI返答に対する音声判定（新システム）
+  const detailedVoice = selectDetailedVoicePattern(aiResponse);
+  
+  if (detailedVoice) {
+    console.log(`🎯 NEW SYSTEM: Playing detailed voice pattern`);
+    return await playSelectedVoice(detailedVoice, false);
+  }
+  
+  // 音声なしの場合
+  console.log(`🔇 NEW SYSTEM: No voice needed for this response`);
+  return await playSelectedVoice(null, false);
+};
+
 // 【互換性維持】旧関数名でのエイリアス（デバッグ関数参照前に宣言）
 export const runCompleteSystemTests = runDiverseVoiceTests;
 
@@ -720,8 +822,10 @@ if (typeof window !== 'undefined') {
   ;(window as unknown as Record<string, unknown>).runCompleteSystemTests = runCompleteSystemTests
   ;(window as unknown as Record<string, unknown>).analyzeFirstSentenceOnly = analyzeFirstSentenceOnly
   ;(window as unknown as Record<string, unknown>).selectDetailedVoicePattern = selectDetailedVoicePattern
+  ;(window as unknown as Record<string, unknown>).handleAiResponseVoice = handleAiResponseVoice
   
   console.log('🎵 NutriRoom Diverse Voice System - 16 Emotional Patterns:')
+  console.log('- handleAiResponseVoice(aiResponse) : 🚫レガシー競合解決版音声制御')
   console.log('- determineVoiceFromAiResponse(aiResponse) : 多様音声システム音声判定')
   console.log('- runDiverseVoiceTests() : 多様音声システムテスト')
   console.log('- selectDetailedVoicePattern(aiResponse) : 16パターン詳細選択')
