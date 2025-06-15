@@ -114,7 +114,7 @@ export function generateAssessmentQuestion(userInput: string): string {
 }
 
 // 動機・背景の理解質問生成
-export function generateMotivationInquiry(userInput: string, basicInfo: any): string {
+export function generateMotivationInquiry(userInput: string, basicInfo: { target?: string; period?: string; currentStatus?: string }): string {
   const responses = [
     "なるほど〜♪",
     `ちなみに、${basicInfo.target || 'そう'}思ったきっかけは何ですか？`,
@@ -135,7 +135,7 @@ export function generateConstraintCheck(motivation: string): string {
 
 // 個別化されたアドバイス生成
 export function generatePersonalizedAdvice(sessionHistory: SessionHistory): string {
-  const { userGoals, userConstraints, userMotivation, userBasicInfo } = sessionHistory
+  const { userGoals } = sessionHistory
   
   if (userGoals.includes('ダイエット')) {
     return [

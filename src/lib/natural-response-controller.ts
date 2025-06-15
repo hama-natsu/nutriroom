@@ -121,7 +121,7 @@ export async function generateNaturalResponse(
   )
 
   // 8. 会話管理システムの更新
-  let sessionUpdated = true
+  const sessionUpdated = true
 
   // メッセージカウント増加
   incrementMessageCount(sessionId)
