@@ -12,6 +12,8 @@ import { useChatResponseController } from '@/components/ChatResponseController'
 import { handleAiResponseVoice, debugAiResponseVoice } from '@/lib/ai-response-voice-controller'
 // 🎯 Phase 2.3-実用版: リアルタイムデータ収集
 import { useConversationLogger, debugConversationLogger } from '@/hooks/useConversationLogger'
+// 🎯 Phase 2.4: 今日のお手紙システム
+import { DailyLetterComponent } from '@/components/DailyLetter'
 
 
 interface Message {
@@ -36,6 +38,7 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
   const [backgroundPosition] = useState('center 20%')
   const [pendingResponse, setPendingResponse] = useState<string | null>(null)
   const [responseControlActive, setResponseControlActive] = useState(false)
+  const [showDailyLetter, setShowDailyLetter] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -108,11 +111,33 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
     delay: 1000,
     onSuccess: () => {
       console.log('✅ Initial greeting completed successfully')
+      // 初期挨拶後に今日のお手紙チェック
+      setTimeout(() => checkForDailyLetter(), 2000)
     },
     onError: (error) => {
       console.error('❌ Initial greeting failed:', error)
     }
   })
+
+  // 今日のお手紙チェック
+  const checkForDailyLetter = async () => {
+    try {
+      const { getTodaySummary } = await import('@/lib/supabase')
+      const summary = await getTodaySummary(characterId)
+      
+      if (summary?.letter_content && !showDailyLetter) {
+        // 今日のお手紙があり、まだ表示していない場合
+        setTimeout(() => {
+          setShowDailyLetter(true)
+          if (process.env.NODE_ENV === 'development') {
+            console.log('💌 Daily letter available - showing to user')
+          }
+        }, 1000)
+      }
+    } catch (error) {
+      console.warn('⚠️ Failed to check for daily letter:', error)
+    }
+  }
 
   // 【緊急修正】直接的な時間帯テキストマッピング
   const getTimeBasedText = (): string => {
@@ -389,6 +414,20 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
         
         <div className="flex items-center gap-2">
           
+          {/* 今日のお手紙ボタン */}
+          <button
+            onClick={() => {
+              setShowDailyLetter(true)
+              if (process.env.NODE_ENV === 'development') {
+                console.log('💌 Daily letter manually opened')
+              }
+            }}
+            className="px-3 py-1 text-xs bg-pink-100 text-pink-600 rounded-lg hover:bg-pink-200 transition-colors"
+            title="今日のお手紙"
+          >
+            💌
+          </button>
+          
           {/* スマート音声テストボタン */}
           <button
             onClick={async () => {
@@ -644,6 +683,15 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
           </div>
         </div>
       </main>
+
+      {/* 今日のお手紙モーダル */}
+      {showDailyLetter && (
+        <DailyLetterComponent
+          characterId={characterId}
+          userName={userName}
+          onClose={() => setShowDailyLetter(false)}
+        />
+      )}
     </div>
   )
 }
