@@ -141,8 +141,6 @@ export function getSafeToDeleteFiles(): string[] {
 }
 
 export function getStepByStepDeletionPlan(): { step: number; files: string[]; description: string }[] {
-  const safeFiles = getSafeToDeleteFiles()
-  
   return [
     {
       step: 1,
