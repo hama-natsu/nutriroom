@@ -352,7 +352,7 @@ export type ResponseType =
   | 'initial_greeting' // 初回挨拶（音声必要）
 
 // 【新】詳細感情音声マッピングシステム
-const selectDetailedVoicePattern = (aiResponse: string): string | null => {
+export const selectDetailedVoicePattern = (aiResponse: string): string | null => {
   console.log(`=== Detailed Voice Pattern Selection ===`);
   console.log(`Analyzing: "${aiResponse}"`);
   
@@ -707,6 +707,9 @@ export function runDiverseVoiceTests(): void {
   console.log('=' .repeat(60));
 }
 
+// 【互換性維持】旧関数名でのエイリアス（デバッグ関数参照前に宣言）
+export const runCompleteSystemTests = runDiverseVoiceTests;
+
 // ブラウザ環境でのデバッグ関数公開
 if (typeof window !== 'undefined') {
   ;(window as unknown as Record<string, unknown>).debugAiResponseVoice = debugAiResponseVoice
@@ -736,6 +739,3 @@ if (typeof window !== 'undefined') {
   console.log('- runAiVoiceTests() : レガシーテスト')
   console.log('- analyzeAiResponse(aiResponse) : レガシー詳細分析')
 }
-
-// 【互換性維持】旧関数名でのエイリアス
-export const runCompleteSystemTests = runDiverseVoiceTests;
