@@ -10,6 +10,7 @@ import { MicrophoneButton } from '@/components/microphone-button'
 import { useSmartVoice } from '@/hooks/useSmartVoice'
 import { useChatResponseController } from '@/components/ChatResponseController'
 import { analyzeResponse, debugResponsePattern } from '@/lib/response-pattern-controller'
+import { analyzeAiResponseComprehensive, debugAiResponseVoice } from '@/lib/ai-response-voice-controller'
 
 interface Message {
   id: string
@@ -255,22 +256,41 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
           setMessages(prev => [...prev, aiMessage])
           setCurrentMessage(data.response)
 
-          // 【応答パターン制御】音声再生要否判定
-          const responseAnalysis = analyzeResponse(inputText, data.response, false)
+          // 【改善版】AI返答ベース音声判定
+          const aiResponseAnalysis = analyzeAiResponseComprehensive(data.response, false)
+          
+          // 【従来版】比較用（デバッグ）
+          const oldAnalysis = analyzeResponse(inputText, data.response, false)
           
           if (process.env.NODE_ENV === 'development') {
-            console.log('🎯 Response Pattern Analysis:', {
-              type: responseAnalysis.responseType,
-              shouldPlayVoice: responseAnalysis.shouldPlayVoice,
-              reasoning: responseAnalysis.reasoning
+            console.log('🎯 Voice Selection Comparison:', {
+              aiResponseBased: {
+                type: aiResponseAnalysis.responseType,
+                shouldPlay: aiResponseAnalysis.shouldPlayVoice,
+                voiceFile: aiResponseAnalysis.voiceFile,
+                patterns: aiResponseAnalysis.detectedPatterns
+              },
+              oldMethod: {
+                type: oldAnalysis.responseType,
+                shouldPlay: oldAnalysis.shouldPlayVoice,
+                reasoning: oldAnalysis.reasoning
+              }
             })
+            
+            if (aiResponseAnalysis.shouldPlayVoice !== oldAnalysis.shouldPlayVoice) {
+              console.log('🚨 Voice decision difference detected!')
+              console.log(`AI Response Based: ${aiResponseAnalysis.shouldPlayVoice ? 'VOICE' : 'NO VOICE'}`)
+              console.log(`Old Method: ${oldAnalysis.shouldPlayVoice ? 'VOICE' : 'NO VOICE'}`)
+            }
           }
 
-          // 音声再生（条件付き）
-          if (responseAnalysis.shouldPlayVoice) {
+          // 音声再生（AI返答ベース判定）
+          if (aiResponseAnalysis.shouldPlayVoice) {
             try {
               if (process.env.NODE_ENV === 'development') {
-                console.log('🎵 Voice enabled for response type:', responseAnalysis.responseType)
+                console.log('🎵 Voice enabled for AI response type:', aiResponseAnalysis.responseType)
+                console.log('🎵 Selected voice file:', aiResponseAnalysis.voiceFile)
+                console.log('🎵 Detected patterns:', aiResponseAnalysis.detectedPatterns.join(', '))
               }
               
               const success = await playSmartVoice({
@@ -285,23 +305,26 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
                   console.log('✅ Smart response voice played successfully')
                 }
               } else {
-                console.warn('⚠️ Smart voice failed, using emotion fallback')
-                // 音声感情に基づくフォールバック
-                if (responseAnalysis.voiceEmotion) {
-                  const validEmotions = ['agreement', 'encouragement', 'surprise', 'thinking', 'concern', 'joy', 'default']
-                  const emotion = validEmotions.includes(responseAnalysis.voiceEmotion) 
-                    ? responseAnalysis.voiceEmotion as 'agreement' | 'encouragement' | 'surprise' | 'thinking' | 'concern' | 'joy' | 'default'
-                    : 'default'
-                  await playEmotionResponse(characterId, emotion)
-                }
+                console.warn('⚠️ Smart voice failed, using AI response-based fallback')
+                // AI返答タイプに基づくフォールバック
+                const emotionMap = {
+                  'encouragement': 'encouragement',
+                  'agreement': 'agreement', 
+                  'emotional_support': 'support',
+                  'thinking': 'thinking'
+                } as const
+                
+                const emotion = emotionMap[aiResponseAnalysis.responseType as keyof typeof emotionMap] || 'default'
+                await playEmotionResponse(characterId, emotion as 'agreement' | 'encouragement' | 'surprise' | 'thinking' | 'concern' | 'joy' | 'default')
               }
             } catch (error) {
               console.error('❌ Voice playback failed:', error)
             }
           } else {
             if (process.env.NODE_ENV === 'development') {
-              console.log('🔇 Voice disabled for response type:', responseAnalysis.responseType)
-              console.log('📝 Text-only response appropriate for this conversation')
+              console.log('🔇 Voice disabled for AI response type:', aiResponseAnalysis.responseType)
+              console.log('📝 Reasoning:', aiResponseAnalysis.reasoning)
+              console.log('📝 Text-only response is appropriate for this content')
             }
           }
         }
@@ -450,7 +473,10 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
                 const lastUserMsg = messages.filter(m => m.isUser).pop()?.text || ''
                 const lastAiMsg = messages.filter(m => !m.isUser).pop()?.text || ''
                 if (lastUserMsg && lastAiMsg) {
+                  console.log('\n=== 従来版分析 ===')
                   debugResponsePattern(lastUserMsg, lastAiMsg)
+                  console.log('\n=== AI返答ベース分析 ===')
+                  debugAiResponseVoice(lastAiMsg)
                 }
               }
             }}
