@@ -19,52 +19,93 @@ export interface AIResponseAnalysis {
   detectedPatterns: string[]
 }
 
-// 【核心機能】AI返答解析による音声判定
+// 【核心機能】AI返答解析による音声判定 - 精度向上版
 export function analyzeAiResponseForVoice(aiResponse: string): AIResponseAnalysis {
   console.log(`🎯 Analyzing AI response for voice: "${aiResponse.substring(0, 50)}..."`)
   
   const response = aiResponse.toLowerCase()
   const detectedPatterns: string[] = []
   
-  // 励まし・サポート系の返答パターン（最優先）
-  const encouragementPatterns = [
-    '素晴らしい', 'サポート', '応援', '一緒に頑張', '頑張って',
-    '大丈夫', '安心', '心配', 'ファイト', '応援します',
-    '全力で', '支えます', 'やりましょう', '負けないで',
-    'その調子', '諦めない', '続けて', '信じて', '頑張り',
-    '励まし', '支援', 'がんばり', 'ガンバ', '応援し'
+  // 【優先度1】本物の励まし・感情サポート（厳格判定）
+  const genuineEncouragementPatterns = [
+    '素晴らしい決意', '全力でサポート', '一緒に頑張り', '応援します',
+    '大丈夫です', '安心してください', 'きっとできます', '負けないで',
+    'ファイト', 'あなたなら', '私が支えます', '励まし', '頑張って',
+    '応援し', '支援し', 'サポートし', '寄り添い', '一緒に乗り越え'
   ]
   
-  const foundEncouragement = encouragementPatterns.filter(pattern => response.includes(pattern))
-  if (foundEncouragement.length > 0) {
-    detectedPatterns.push(...foundEncouragement)
-    console.log('✅ AI response type: encouragement (voice enabled)')
-    return createAnalysis('encouragement', true, 'akari_encouragement.wav', 0.9, 
-      'AI response contains encouragement/support patterns', detectedPatterns)
+  const foundGenuineEncouragement = genuineEncouragementPatterns.filter(pattern => response.includes(pattern))
+  if (foundGenuineEncouragement.length > 0) {
+    detectedPatterns.push(...foundGenuineEncouragement)
+    console.log('✅ AI response type: genuine_encouragement (voice enabled)')
+    return createAnalysis('encouragement', true, 'akari_encouragement.wav', 0.95, 
+      'AI response contains genuine encouragement/emotional support', detectedPatterns)
   }
   
-  // 共感・理解系の返答パターン
-  const agreementPatterns = [
-    'そうですね', 'わかります', '分かります', 'なるほど',
-    'いいですね', 'おっしゃる通り', '同感', 'その通り',
+  // 【優先度2】食べ物についての雑談・共感（音声不要）
+  const foodDiscussionPatterns = [
+    '美味しい', '好き', '食べ', '料理', '味', '香り', 'ですよね',
+    'レシピ', '作り方', '食感', '旬', '季節', 'おすすめ',
+    'いいですね', 'そうですね', '知ってます', '人気', '定番',
+    '調理', '材料', '食材', '風味', '食べ方', 'チョコレート',
+    '温かい', '冷たい', '甘い', '辛い', '酸っぱい', 'ポッキー'
+  ]
+  
+  const foundFood = foodDiscussionPatterns.filter(pattern => response.includes(pattern))
+  if (foundFood.length > 0) {
+    detectedPatterns.push(...foundFood)
+    console.log('❌ AI response type: food_discussion (text-only - casual food talk)')
+    return createAnalysis('food_discussion', false, undefined, 0.9,
+      'AI response is casual food discussion - text-only appropriate', detectedPatterns)
+  }
+  
+  // 【優先度3】重要な共感・理解（食べ物文脈以外での深い理解）
+  const deepAgreementPatterns = [
     'よく理解', '気持ち', 'よくわかり', 'そうなんです',
-    'わかる', '理解でき', '共感', 'その気持ち'
+    'わかる', '理解でき', '共感', 'その気持ち', 'おっしゃる通り'
   ]
   
-  const foundAgreement = agreementPatterns.filter(pattern => response.includes(pattern))
-  if (foundAgreement.length > 0) {
-    detectedPatterns.push(...foundAgreement)
-    console.log('✅ AI response type: agreement (voice enabled)')
+  const foundDeepAgreement = deepAgreementPatterns.filter(pattern => response.includes(pattern))
+  if (foundDeepAgreement.length > 0) {
+    detectedPatterns.push(...foundDeepAgreement)
+    console.log('✅ AI response type: deep_agreement (voice enabled)')
     return createAnalysis('agreement', true, 'akari_agreement.wav', 0.85,
-      'AI response shows understanding/agreement', detectedPatterns)
+      'AI response shows deep understanding/empathy', detectedPatterns)
   }
   
-  // 感情的サポート系
+  // 【優先度4】軽い共感・あいづち（食べ物文脈チェック）
+  const lightAgreementPatterns = [
+    'そうですね', 'なるほど', 'いいですね', 'わかります', '分かります', '同感', 'その通り'
+  ]
+  
+  const foundLightAgreement = lightAgreementPatterns.filter(pattern => response.includes(pattern))
+  if (foundLightAgreement.length > 0) {
+    // 食べ物文脈での軽い共感は food_discussion として扱う
+    const isFoodContext = response.includes('美味しい') || 
+                         response.includes('食べ') || 
+                         response.includes('料理') ||
+                         response.includes('味') ||
+                         response.includes('好き')
+    
+    if (isFoodContext) {
+      detectedPatterns.push(...foundLightAgreement, 'food_context')
+      console.log('❌ AI response type: food_discussion (light agreement in food context)')
+      return createAnalysis('food_discussion', false, undefined, 0.8,
+        'Light agreement in food context - text-only appropriate', detectedPatterns)
+    } else {
+      detectedPatterns.push(...foundLightAgreement)
+      console.log('✅ AI response type: light_agreement (voice enabled)')
+      return createAnalysis('agreement', true, 'akari_agreement.wav', 0.75,
+        'AI response shows light agreement/acknowledgment', detectedPatterns)
+    }
+  }
+  
+  // 【優先度5】深刻な感情的サポート（重要な感情状況での支援）
   const emotionalSupportPatterns = [
-    '元気', '楽しい', '嬉しい', '喜び', '幸せ',
-    '落ち込', '悲し', '辛い', '大変', '困難',
+    '元気出して', '楽しい気持ち', '嬉しい気持ち', '喜び', '幸せ',
+    '落ち込んで', '悲しい', '辛い', '大変', '困難',
     '乗り越え', '克服', '前向き', 'ポジティブ',
-    '寄り添', '一緒', '側にい', '理解し'
+    '寄り添', '側にい', '理解します', '心配しないで'
   ]
   
   const foundEmotional = emotionalSupportPatterns.filter(pattern => response.includes(pattern))
@@ -72,10 +113,10 @@ export function analyzeAiResponseForVoice(aiResponse: string): AIResponseAnalysi
     detectedPatterns.push(...foundEmotional)
     console.log('✅ AI response type: emotional_support (voice enabled)')
     return createAnalysis('emotional_support', true, 'akari_support.wav', 0.8,
-      'AI response provides emotional support', detectedPatterns)
+      'AI response provides important emotional support', detectedPatterns)
   }
   
-  // 栄養・健康アドバイス系（専門的な長い説明 - 音声なし）
+  // 【優先度6】栄養・健康アドバイス系（専門的な説明 - 音声なし）
   const nutritionAdvicePatterns = [
     'タンパク質', 'ビタミン', 'カロリー', '栄養素', 'ミネラル',
     '食物繊維', '炭水化物', '脂質', 'バランス', '摂取',
@@ -87,25 +128,9 @@ export function analyzeAiResponseForVoice(aiResponse: string): AIResponseAnalysi
   const foundNutrition = nutritionAdvicePatterns.filter(pattern => response.includes(pattern))
   if (foundNutrition.length >= 2) { // 複数の専門用語が含まれる場合
     detectedPatterns.push(...foundNutrition)
-    console.log('❌ AI response type: nutrition_advice (text-only)')
+    console.log('❌ AI response type: nutrition_advice (text-only - professional info)')
     return createAnalysis('nutrition_advice', false, undefined, 0.85,
       'AI response contains detailed nutritional information', detectedPatterns)
-  }
-  
-  // 食べ物についての雑談（音声なし）
-  const foodDiscussionPatterns = [
-    '美味しい', '好き', '食べ', '料理', '味', '香り',
-    'レシピ', '作り方', '食感', '旬', '季節',
-    '調理', '材料', '食材', '風味', '食べ方',
-    '温かい', '冷たい', '甘い', '辛い', '酸っぱい'
-  ]
-  
-  const foundFood = foodDiscussionPatterns.filter(pattern => response.includes(pattern))
-  if (foundFood.length > 0) {
-    detectedPatterns.push(...foundFood)
-    console.log('❌ AI response type: food_discussion (text-only)')
-    return createAnalysis('food_discussion', false, undefined, 0.75,
-      'AI response is casual food discussion', detectedPatterns)
   }
   
   // 考えている表現（短いあいづち的な音声）

@@ -21,6 +21,14 @@ export async function testImprovedVoiceSelection(): Promise<void> {
       issue: 'Previously incorrectly detected as food_discussion'
     },
     {
+      name: 'User: "ポッキー" - Should be text-only food discussion',
+      userInput: 'ポッキー',
+      aiResponse: 'ポッキー美味しいですよね〜！チョコレート味が特に人気ですね',
+      expectedType: 'food_discussion',
+      expectedVoice: false,
+      issue: 'Food casual chat should be text-only, not encouragement'
+    },
+    {
       name: 'User: "そば" - Should be text-only',
       userInput: 'そば',
       aiResponse: 'そば美味しいですよね！栄養面では食物繊維が豊富です。',
@@ -43,6 +51,14 @@ export async function testImprovedVoiceSelection(): Promise<void> {
       expectedType: 'emotional_support',
       expectedVoice: true,
       issue: 'Emotional support should have voice'
+    },
+    {
+      name: 'Food context light agreement - Should be text-only',
+      userInput: 'カレー好きです',
+      aiResponse: 'そうですね！カレー美味しいですよね♪',
+      expectedType: 'food_discussion',
+      expectedVoice: false,
+      issue: 'Light agreement in food context should be text-only'
     }
   ]
 
