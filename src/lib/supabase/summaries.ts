@@ -124,9 +124,7 @@ export const updateSummaryFromConversations = async (
     // 今日の会話ログ取得
     const conversations = await getTodayConversationLogs(characterId)
     
-    // 統計計算
-    const userMessages = conversations.filter(c => c.message_type === 'user')
-    const aiMessages = conversations.filter(c => c.message_type === 'ai')
+    // 統計計算（メッセージ総数は conversations.length で取得）
     
     // 感情分析
     const emotions = conversations

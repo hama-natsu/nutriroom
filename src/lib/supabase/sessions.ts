@@ -4,8 +4,7 @@
 import { supabase, getCurrentUserId } from './client'
 import { 
   UserSession, 
-  UserSessionInsert, 
-  UserSessionUpdate,
+  UserSessionInsert,
   ConversationLog,
   ConversationLogInsert 
 } from '@/types/database'
@@ -289,7 +288,13 @@ export const getTodayConversationLogs = async (characterId: string): Promise<Con
 /**
  * セッション統計取得
  */
-export const getSessionStats = async (): Promise<any> => {
+export const getSessionStats = async (): Promise<{
+  total_sessions: number
+  active_sessions: number
+  completed_sessions: number
+  interrupted_sessions: number
+  characters_used: string[]
+} | null> => {
   try {
     const userId = await getCurrentUserId()
     if (!userId) return null
