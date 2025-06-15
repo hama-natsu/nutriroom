@@ -340,55 +340,185 @@ export function runAiResponseVoiceTests(): void {
 }
 
 // ===============================================
-// 🎯 NutriRoom 音声システム完全再構築
-// 一文目判定システムへの完全移行
+// 🎯 NutriRoom 多様音声選択システム
+// スプレッドシート準拠16パターン音声活用
 // ===============================================
 
-// 【完全新システム】ResponseType定義
+// 【多様音声システム】ResponseType定義
 export type ResponseType = 
   | 'food_chat'      // 食べ物雑談（音声不要）
-  | 'encouragement'  // 本当の励まし（音声必要）
-  | 'agreement'      // あいづち（短い音声）
+  | 'emotional_response'  // 感情的反応（詳細パターン選択）
   | 'general'        // 一般会話（音声不要）
   | 'initial_greeting' // 初回挨拶（音声必要）
 
-// 【完全新システム】一文目専用判定
+// 【新】詳細感情音声マッピングシステム
+const selectDetailedVoicePattern = (aiResponse: string): string | null => {
+  console.log(`=== Detailed Voice Pattern Selection ===`);
+  console.log(`Analyzing: "${aiResponse}"`);
+  
+  // 1. 称賛・素晴らしい系
+  if (aiResponse.includes('すごい') || aiResponse.includes('素晴らしい') || 
+      aiResponse.includes('本当に') || aiResponse.includes('完璧')) {
+    console.log('Selected: akari_great.wav (称賛)');
+    return 'akari_great.wav';
+  }
+  
+  // 2. 同意・共感系
+  if (aiResponse.includes('そうですね') || aiResponse.includes('私もそう思') || 
+      aiResponse.includes('同感') || aiResponse.includes('おっしゃる通り')) {
+    console.log('Selected: akari_agreement.wav (同意・共感)');
+    return 'akari_agreement.wav';
+  }
+  
+  // 3. 気持ち共感系（理解より優先）
+  if (aiResponse.includes('その気持ち') || aiResponse.includes('気持ち') ||
+      (aiResponse.includes('分かります') && aiResponse.includes('気持ち'))) {
+    console.log('Selected: akari_empathy.wav (気持ち共感)');
+    return 'akari_empathy.wav';
+  }
+  
+  // 4. 理解・納得系
+  if (aiResponse.includes('なるほど') || aiResponse.includes('勉強になり') || 
+      aiResponse.includes('よく分かり') || aiResponse.includes('理解') ||
+      aiResponse.includes('分かります')) {
+    console.log('Selected: akari_understanding.wav (理解・納得)');
+    return 'akari_understanding.wav';
+  }
+  
+  // 5. 驚き・興味系
+  if (aiResponse.includes('えー') || aiResponse.includes('びっくり') || 
+      aiResponse.includes('そうなんですか') || aiResponse.includes('知らなかった')) {
+    console.log('Selected: akari_surprise.wav (驚き・興味)');
+    return 'akari_surprise.wav';
+  }
+  
+  // 6. 努力認知系
+  if (aiResponse.includes('頑張って') || aiResponse.includes('その調子') || 
+      aiResponse.includes('よくやって') || aiResponse.includes('努力')) {
+    console.log('Selected: akari_effort.wav (努力認知)');
+    return 'akari_effort.wav';
+  }
+  
+  // 7. 肯定評価系
+  if (aiResponse.includes('いいですね') || aiResponse.includes('良いと思') || 
+      aiResponse.includes('素敵') || aiResponse.includes('ナイス')) {
+    console.log('Selected: akari_nice.wav (肯定評価)');
+    return 'akari_nice.wav';
+  }
+  
+  // 8. 応援・励まし系
+  if (aiResponse.includes('一緒に頑張り') || aiResponse.includes('ファイト') || 
+      aiResponse.includes('応援') || aiResponse.includes('負けないで')) {
+    console.log('Selected: akari_cheer.wav (応援)');
+    return 'akari_cheer.wav';
+  }
+  
+  // 9. サポート宣言系
+  if (aiResponse.includes('サポート') || aiResponse.includes('相談') || 
+      aiResponse.includes('いつでも') || aiResponse.includes('支えます')) {
+    console.log('Selected: akari_support.wav (サポート宣言)');
+    return 'akari_support.wav';
+  }
+  
+  // 10. ポジティブ系
+  if (aiResponse.includes('大丈夫') || aiResponse.includes('前向き') || 
+      aiResponse.includes('きっと') || aiResponse.includes('明るく')) {
+    console.log('Selected: akari_positive.wav (ポジティブ)');
+    return 'akari_positive.wav';
+  }
+  
+  // 11. 感謝系
+  if (aiResponse.includes('ありがとう') || aiResponse.includes('嬉しい') || 
+      aiResponse.includes('感謝') || aiResponse.includes('助かり')) {
+    console.log('Selected: akari_thanks.wav (感謝)');
+    return 'akari_thanks.wav';
+  }
+  
+  // 12. どういたしまして系
+  if (aiResponse.includes('どういたしまして') || aiResponse.includes('当然') || 
+      aiResponse.includes('いえいえ') || aiResponse.includes('頼って')) {
+    console.log('Selected: akari_welcome.wav (どういたしまして)');
+    return 'akari_welcome.wav';
+  }
+  
+  // 13. 安心・問題なし系
+  if (aiResponse.includes('問題ありません') || aiResponse.includes('心配') || 
+      aiResponse.includes('安心') || aiResponse.includes('全然大丈夫')) {
+    console.log('Selected: akari_no_problem.wav (安心・問題なし)');
+    return 'akari_no_problem.wav';
+  }
+  
+  // 14. 考え込み系
+  if (aiResponse.includes('う〜ん') || aiResponse.includes('一緒に考え') || 
+      aiResponse.includes('どうでしょう') || aiResponse.includes('検討')) {
+    console.log('Selected: akari_thinking.wav (考え込み)');
+    return 'akari_thinking.wav';
+  }
+  
+  // 15. 謝罪系
+  if (aiResponse.includes('すみません') || aiResponse.includes('ごめん') || 
+      aiResponse.includes('申し訳') || aiResponse.includes('気をつけ')) {
+    console.log('Selected: akari_sorry.wav (謝罪)');
+    return 'akari_sorry.wav';
+  }
+  
+  console.log('No specific voice pattern matched - using general encouragement');
+  return 'akari_encouragement.wav'; // デフォルト
+};
+
+// 【多様音声システム】強力キーワード判定
+const hasStrongEncouragementKeywords = (aiResponse: string): boolean => {
+  const strongKeywords = [
+    '素晴らしい', 'すごい', '頑張って', '応援', 'サポート',
+    '本当に', '完璧', '感謝', 'ありがとう', '大丈夫'
+  ];
+  
+  return strongKeywords.some(keyword => aiResponse.includes(keyword));
+};
+
+// 【多様音声システム】感情的音声必要判定
+const shouldHaveEmotionalVoice = (response: string): boolean => {
+  const emotionalKeywords = [
+    'そうですね', 'なるほど', 'すごい', 'いいですね', 'わかります',
+    'ありがとう', 'びっくり', '頑張って', 'サポート', '大丈夫',
+    '私もそう思', '同感', '理解', '共感', '安心', '気持ち',
+    '分かります', '一緒に頑張り', 'ファイト', '応援', '相談',
+    'その気持ち', '前向き', 'きっと', '嬉しい', '感謝'
+  ];
+  
+  return emotionalKeywords.some(keyword => response.includes(keyword));
+};
+
+// 【多様音声システム】ハイブリッド判定システム
 export const analyzeFirstSentenceOnly = (aiResponse: string): ResponseType => {
-  // 一文目のみ抽出（句読点・絵文字で区切り）
   const firstSentence = aiResponse.split(/[！。？♪♡😊～]/)[0];
   
-  console.log(`=== First Sentence Analysis ===`);
+  console.log(`=== Hybrid Voice Analysis ===`);
   console.log(`Full response: "${aiResponse}"`);
-  console.log(`First sentence only: "${firstSentence}"`);
+  console.log(`First sentence: "${firstSentence}"`);
   
   // 食べ物雑談を最優先判定（音声不要）
   if (firstSentence.includes('チョコ') || 
       firstSentence.includes('ポッキー') || 
       firstSentence.includes('美味しい') ||
       firstSentence.includes('大好き') ||
-      firstSentence.includes('お菓子')) {
-    console.log('First sentence type: FOOD_CHAT (text-only)');
+      firstSentence.includes('お菓子') ||
+      firstSentence.includes('食べ物') ||
+      firstSentence.includes('料理')) {
+    console.log('Food chat detected - Voice DISABLED');
     return 'food_chat';
   }
   
-  // 本当の励まし（音声必要）
-  if (firstSentence.includes('素晴らしい') || 
-      firstSentence.includes('頑張って') ||
-      firstSentence.includes('応援') ||
-      firstSentence.includes('サポート')) {
-    console.log('First sentence type: ENCOURAGEMENT (voice enabled)');
-    return 'encouragement';
+  // 強力キーワードまたは感情的反応がある場合
+  const hasStrongEncouragement = hasStrongEncouragementKeywords(aiResponse);
+  const hasEmotionalContent = shouldHaveEmotionalVoice(aiResponse);
+  
+  if (hasStrongEncouragement || hasEmotionalContent) {
+    console.log('Emotional response detected - Detailed voice pattern selection');
+    return 'emotional_response';
   }
   
-  // あいづち（短い音声）
-  if (firstSentence.includes('そうですね') || 
-      firstSentence.includes('なるほど') ||
-      firstSentence.includes('わかります')) {
-    console.log('First sentence type: AGREEMENT (short voice)');
-    return 'agreement';
-  }
-  
-  console.log('First sentence type: GENERAL (text-only)');
+  console.log('General conversation - Voice DISABLED');
   return 'general';
 };
 
@@ -401,110 +531,177 @@ function getTimeBasedVoice(): string {
   return 'akari_late.wav';
 }
 
-// 【完全新システム】シンプルな音声制御
-const handleVoiceForResponse = (aiResponse: string, isInitialGreeting: boolean = false) => {
-  console.log(`=== Simple Voice Control ===`);
+// 【多様音声システム】最適音声判定
+const determineOptimalVoice = (aiResponse: string, isInitialGreeting: boolean = false) => {
+  console.log(`=== Optimal Voice Determination ===`);
   
   if (isInitialGreeting) {
-    console.log('✅ Initial greeting - Voice ENABLED');
+    console.log('✅ Initial greeting - Time-based voice');
     return { shouldPlay: true, voiceFile: getTimeBasedVoice() };
   }
   
-  const firstSentenceType = analyzeFirstSentenceOnly(aiResponse);
+  const responseType = analyzeFirstSentenceOnly(aiResponse);
   
-  switch (firstSentenceType) {
-    case 'encouragement':
-      console.log('✅ Encouragement - Voice ENABLED');
-      return { shouldPlay: true, voiceFile: 'akari_encouragement.wav' };
-      
-    case 'agreement':
-      console.log('✅ Agreement - Voice ENABLED');
-      return { shouldPlay: true, voiceFile: 'akari_agreement.wav' };
+  switch (responseType) {
+    case 'emotional_response':
+      // 詳細パターン選択で豊かな感情表現
+      const detailedVoice = selectDetailedVoicePattern(aiResponse);
+      console.log(`✅ Emotional voice selected: ${detailedVoice}`);
+      return { shouldPlay: true, voiceFile: detailedVoice };
       
     case 'food_chat':
     case 'general':
     default:
-      console.log('❌ Regular chat - Voice DISABLED');
+      console.log('❌ Regular conversation - Voice DISABLED');
       return { shouldPlay: false, voiceFile: null };
   }
 };
 
-// 【完全新システム】メイン関数
+// 【多様音声システム】メイン関数
 export const determineVoiceFromAiResponse = (aiResponse: string, isInitialGreeting: boolean = false) => {
-  return handleVoiceForResponse(aiResponse, isInitialGreeting);
+  return determineOptimalVoice(aiResponse, isInitialGreeting);
 };
 
-// 【完全新システム】テスト関数
-export function runCompleteSystemTests(): void {
-  console.log('🧪 Running Complete System Tests');
+// 【多様音声システム】豊かな感情テスト
+export function runDiverseVoiceTests(): void {
+  console.log('🎵 Running Diverse Voice System Tests - 16 Patterns');
   console.log('=' .repeat(60));
 
-  const testCases = [
+  const emotionalTestCases = [
+    // 食べ物雑談（音声なし）
     {
       response: 'チョコ大好き〜♡わかる！',
       expectedType: 'food_chat',
-      expectVoice: false,
-      scenario: 'Food chat (problematic case)'
+      expectedVoice: null,
+      scenario: '食べ物雑談 (問題ケース)'
     },
     {
-      response: 'ポッキーね！😊 わかる〜！私も大好き♡...',
+      response: 'ポッキーね！😊 美味しいですよね...',
       expectedType: 'food_chat',
-      expectVoice: false,
-      scenario: 'Casual food chat'
+      expectedVoice: null,
+      scenario: '食べ物雑談'
     },
+    
+    // 称賛・素晴らしい系
     {
-      response: '素晴らしい決意ですね！私も応援します...',
-      expectedType: 'encouragement',
-      expectVoice: true,
-      scenario: 'Genuine encouragement'
+      response: 'すごいですね〜！本当に素晴らしいです♪',
+      expectedType: 'emotional_response',
+      expectedVoice: 'akari_great.wav',
+      scenario: '称賛・素晴らしい系'
     },
+    
+    // 同意・共感系
     {
-      response: 'そうですね〜♪とても良いと思います...',
-      expectedType: 'agreement',
-      expectVoice: true,
-      scenario: 'Agreement response'
+      response: 'そうですね〜♪私もそう思います！',
+      expectedType: 'emotional_response',
+      expectedVoice: 'akari_agreement.wav',
+      scenario: '同意・共感系'
     },
+    
+    // 理解・納得系
     {
-      response: '美味しいですよね！栄養価も高くて...',
-      expectedType: 'food_chat',
-      expectVoice: false,
-      scenario: 'Food discussion'
+      response: 'なるほど！とても勉強になりました〜',
+      expectedType: 'emotional_response',
+      expectedVoice: 'akari_understanding.wav',
+      scenario: '理解・納得系'
+    },
+    
+    // 驚き・興味系
+    {
+      response: 'えー！そうなんですか？びっくりです〜！',
+      expectedType: 'emotional_response',
+      expectedVoice: 'akari_surprise.wav',
+      scenario: '驚き・興味系'
+    },
+    
+    // 気持ち共感系
+    {
+      response: 'その気持ち、よく分かります〜♪',
+      expectedType: 'emotional_response',
+      expectedVoice: 'akari_empathy.wav',
+      scenario: '気持ち共感系'
+    },
+    
+    // 努力認知系
+    {
+      response: '頑張っていますね！その調子です〜♪',
+      expectedType: 'emotional_response',
+      expectedVoice: 'akari_effort.wav',
+      scenario: '努力認知系'
+    },
+    
+    // 肯定評価系
+    {
+      response: 'いいですね〜！とても良いと思います♪',
+      expectedType: 'emotional_response',
+      expectedVoice: 'akari_nice.wav',
+      scenario: '肯定評価系'
+    },
+    
+    // 応援・励まし系
+    {
+      response: '一緒に頑張りましょう！ファイト♪',
+      expectedType: 'emotional_response',
+      expectedVoice: 'akari_cheer.wav',
+      scenario: '応援・励まし系'
+    },
+    
+    // サポート宣言系
+    {
+      response: 'いつでもサポートします〜！相談してくださいね♪',
+      expectedType: 'emotional_response',
+      expectedVoice: 'akari_support.wav',
+      scenario: 'サポート宣言系'
+    },
+    
+    // ポジティブ系
+    {
+      response: '大丈夫ですよ！きっと前向きにいけます♪',
+      expectedType: 'emotional_response',
+      expectedVoice: 'akari_positive.wav',
+      scenario: 'ポジティブ系'
+    },
+    
+    // 感謝系
+    {
+      response: 'ありがとうございます！とても嬉しいです♪',
+      expectedType: 'emotional_response',
+      expectedVoice: 'akari_thanks.wav',
+      scenario: '感謝系'
     }
   ];
 
   let passedTests = 0;
 
-  testCases.forEach((testCase, index) => {
-    console.log(`\nTest ${index + 1}: ${testCase.scenario}`);
+  emotionalTestCases.forEach((testCase, index) => {
+    console.log(`\n🎭 Test ${index + 1}: ${testCase.scenario}`);
     const result = determineVoiceFromAiResponse(testCase.response, false);
-    
-    // Extract the detected type from the first sentence analysis
-    const firstSentence = testCase.response.split(/[！。？♪♡😊～]/)[0];
     const detectedType = analyzeFirstSentenceOnly(testCase.response);
     
     const typeCorrect = detectedType === testCase.expectedType;
-    const voiceCorrect = result.shouldPlay === testCase.expectVoice;
+    const voiceCorrect = result.voiceFile === testCase.expectedVoice;
+    const playCorrect = result.shouldPlay === (testCase.expectedVoice !== null);
     
-    console.log(`  AI Response: "${testCase.response.substring(0, 40)}..."`);
-    console.log(`  First sentence: "${firstSentence}"`);
-    console.log(`  Expected: ${testCase.expectedType} | Voice: ${testCase.expectVoice ? '🎵' : '🔇'}`);
-    console.log(`  Detected: ${detectedType} | Voice: ${result.shouldPlay ? '🎵' : '🔇'}`);
-    console.log(`  Type: ${typeCorrect ? '✅' : '❌'} | Voice: ${voiceCorrect ? '✅' : '❌'}`);
+    console.log(`  🎤 AI Response: "${testCase.response.substring(0, 50)}..."`);
+    console.log(`  🎯 Expected: ${testCase.expectedType} | Voice: ${testCase.expectedVoice || 'None'}`);
+    console.log(`  🔍 Detected: ${detectedType} | Voice: ${result.voiceFile || 'None'}`);
+    console.log(`  📊 Type: ${typeCorrect ? '✅' : '❌'} | Voice: ${voiceCorrect ? '✅' : '❌'} | Play: ${playCorrect ? '✅' : '❌'}`);
     
-    if (typeCorrect && voiceCorrect) {
+    if (typeCorrect && voiceCorrect && playCorrect) {
       passedTests++;
-      console.log('  Result: ✅ PASS');
+      console.log('  ✨ Result: ✅ PASS - Rich emotional voice experience!');
     } else {
-      console.log('  Result: ❌ FAIL');
-      console.log(`  Debug: shouldPlay=${result.shouldPlay}, voiceFile=${result.voiceFile}`);
+      console.log('  ⚠️ Result: ❌ FAIL');
+      console.log(`  📝 Debug: shouldPlay=${result.shouldPlay}, voiceFile=${result.voiceFile}`);
     }
   });
 
-  console.log(`\n📊 Test Results: ${passedTests}/${testCases.length} tests passed`);
-  if (passedTests === testCases.length) {
-    console.log('✅ ALL TESTS PASSED - First-sentence system working correctly!');
+  console.log(`\n📊 Test Results: ${passedTests}/${emotionalTestCases.length} tests passed`);
+  if (passedTests === emotionalTestCases.length) {
+    console.log('✨ ALL TESTS PASSED - Diverse voice system with 16 patterns working perfectly!');
+    console.log('🎵 Rich emotional voice experience achieved!');
   } else {
-    console.error('❌ SOME TESTS FAILED - First-sentence system needs adjustment');
+    console.error('❌ SOME TESTS FAILED - Diverse voice system needs adjustment');
   }
 
   console.log('=' .repeat(60));
@@ -516,16 +713,29 @@ if (typeof window !== 'undefined') {
   ;(window as unknown as Record<string, unknown>).runAiVoiceTests = runAiResponseVoiceTests
   ;(window as unknown as Record<string, unknown>).analyzeAiResponse = analyzeAiResponseForVoice
   ;(window as unknown as Record<string, unknown>).determineVoiceFromAiResponse = determineVoiceFromAiResponse
+  ;(window as unknown as Record<string, unknown>).runDiverseVoiceTests = runDiverseVoiceTests
   ;(window as unknown as Record<string, unknown>).runCompleteSystemTests = runCompleteSystemTests
   ;(window as unknown as Record<string, unknown>).analyzeFirstSentenceOnly = analyzeFirstSentenceOnly
+  ;(window as unknown as Record<string, unknown>).selectDetailedVoicePattern = selectDetailedVoicePattern
   
-  console.log('🎯 NutriRoom Voice System - First Sentence Analysis:')
-  console.log('- determineVoiceFromAiResponse(aiResponse) : 完全新システム音声判定')
-  console.log('- runCompleteSystemTests() : 完全システムテスト')
-  console.log('- analyzeFirstSentenceOnly(aiResponse) : 一文目分析')
+  console.log('🎵 NutriRoom Diverse Voice System - 16 Emotional Patterns:')
+  console.log('- determineVoiceFromAiResponse(aiResponse) : 多様音声システム音声判定')
+  console.log('- runDiverseVoiceTests() : 多様音声システムテスト')
+  console.log('- selectDetailedVoicePattern(aiResponse) : 16パターン詳細選択')
+  console.log('- analyzeFirstSentenceOnly(aiResponse) : ハイブリッド分析')
+  console.log('')
+  console.log('✨ Rich Voice Patterns Available:')
+  console.log('akari_great.wav, akari_agreement.wav, akari_understanding.wav,')
+  console.log('akari_surprise.wav, akari_empathy.wav, akari_effort.wav,')
+  console.log('akari_nice.wav, akari_cheer.wav, akari_support.wav,')
+  console.log('akari_positive.wav, akari_thanks.wav, akari_welcome.wav,')
+  console.log('akari_no_problem.wav, akari_thinking.wav, akari_sorry.wav + time-based voices')
   console.log('')
   console.log('🔧 Legacy Debug Functions (for comparison):')
   console.log('- debugAiResponseVoice(aiResponse) : レガシー音声分析')
   console.log('- runAiVoiceTests() : レガシーテスト')
   console.log('- analyzeAiResponse(aiResponse) : レガシー詳細分析')
 }
+
+// 【互換性維持】旧関数名でのエイリアス
+export const runCompleteSystemTests = runDiverseVoiceTests;
