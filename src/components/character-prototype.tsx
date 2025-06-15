@@ -2,9 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
-import { playEmotionResponse, getCurrentTimeSlot } from '@/lib/voice-player'
+import { playEmotionResponse } from '@/lib/voice-player'
 import { useInitialGreeting } from '@/hooks/useInitialGreeting'
-import { getTimeSlotGreeting } from '@/lib/time-greeting'
+import { getUnifiedTimeSlot, getUnifiedGreetingText } from '@/lib/unified-time-system'
 import { getCharacterById } from '@/lib/characters'
 import { MicrophoneButton } from '@/components/microphone-button'
 import { useSmartVoice } from '@/hooks/useSmartVoice'
@@ -107,12 +107,64 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
     }
   })
 
-  // 挨拶メッセージの設定
+  // 【緊急修正】直接的な時間帯テキストマッピング
+  const getTimeBasedText = (): string => {
+    const hour = new Date().getHours();
+    
+    // 統一システムと完全一致する11段階判定
+    if (hour >= 1 && hour < 5) {
+      return "こんな時間まで...お疲れさまです。早く休んでくださいね〜";
+    }
+    if (hour >= 5 && hour < 7) {
+      return "おはよう！早起きですね〜今日も一緒に頑張りましょう♪";
+    }
+    if (hour >= 7 && hour < 9) {
+      return "おはよう！爽やかな朝ですね〜今日も元気に過ごしましょう♪";
+    }
+    if (hour >= 9 && hour < 11) {
+      return "おはよう！いい時間になりましたね〜朝ごはんは食べましたか？";
+    }
+    if (hour >= 11 && hour < 13) {
+      return "お昼の時間ですね♪お昼ご飯、何食べました〜？";
+    }
+    if (hour >= 13 && hour < 15) {
+      return "こんにちは〜午後もお疲れさまです！水分補給はしっかりと〜";
+    }
+    if (hour >= 15 && hour < 17) {
+      return "おやつの時間ですね〜甘いものもたまにはいいですよ♪";
+    }
+    if (hour >= 17 && hour < 19) {
+      return "お疲れさまです〜夕方になりましたね。今日はどんな一日でしたか？";
+    }
+    if (hour >= 19 && hour < 21) {
+      return "夕食の時間ですね〜今日も一日お疲れさまでした♪";
+    }
+    if (hour >= 21 && hour < 23) {
+      return "こんばんは〜夜の時間ですね。リラックスして過ごしましょう♪";
+    }
+    // 23:00-0:59
+    return "こんばんは...遅い時間ですが、お疲れさまです。明日に備えて早めに休みましょうね〜";
+  };
+
+  // 挨拶メッセージの設定（統一システム使用）
   useEffect(() => {
     if (!character) return
     
-    const timeSlot = getCurrentTimeSlot()
-    const baseGreeting = getTimeSlotGreeting(timeSlot)
+    // 直接的な時間帯テキスト取得
+    const baseGreeting = getTimeBasedText()
+    
+    // デバッグ情報表示
+    const timeSlot = getUnifiedTimeSlot()
+    const unifiedText = getUnifiedGreetingText(timeSlot)
+    const hour = new Date().getHours()
+    
+    console.log('🎯 Greeting Sync Debug:', {
+      hour,
+      timeSlot,
+      directText: baseGreeting.substring(0, 30) + '...',
+      unifiedText: unifiedText.substring(0, 30) + '...',
+      isMatching: baseGreeting === unifiedText
+    })
     
     // ユーザー名がある場合は個人化された挨拶を作成
     const personalizedGreeting = userName 
@@ -440,11 +492,26 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
                   {currentMessage}
                 </p>
                 <div className="text-xs text-gray-500 text-center mt-3">
-                  {getCurrentTimeSlot() === 'morning' && '🌅 朝'}
-                  {getCurrentTimeSlot() === 'afternoon' && '☀️ 昼'}
-                  {getCurrentTimeSlot() === 'evening' && '🌆 夕'}
-                  {getCurrentTimeSlot() === 'night' && '🌙 夜'}
-                  の挨拶
+                  {(() => {
+                    const timeSlot = getUnifiedTimeSlot()
+                    const hour = new Date().getHours()
+                    
+                    const timeIcons = {
+                      very_late: '🌌 深夜',
+                      morning_early: '🌅 早朝', 
+                      morning: '☀️ 朝',
+                      morning_late: '🌤️ 朝遅め',
+                      lunch: '🍽️ 昼食時',
+                      afternoon: '☀️ 午後',
+                      snack: '🍪 おやつ時間',
+                      evening: '🌆 夕方',
+                      dinner: '🍽️ 夕食時',
+                      night: '🌙 夜',
+                      late: '🌌 深夜'
+                    }
+                    
+                    return `${timeIcons[timeSlot]} (${hour}:00) の挨拶`
+                  })()}
                 </div>
               </div>
             ) : (
