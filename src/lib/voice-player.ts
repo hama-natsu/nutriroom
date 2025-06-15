@@ -35,7 +35,7 @@ export class VOICEVOXPlayer {
 
   // 🔊 音声ファイル読み込み
   private async loadVoiceFile(config: VoiceConfig): Promise<Blob> {
-    const fileName = this.generateFileName(config)
+    const fileName = await this.generateFileName(config)
     const filePath = `${this.baseAudioPath}/${config.characterId}/${fileName}`
     const cacheKey = filePath
 
@@ -73,8 +73,23 @@ export class VOICEVOXPlayer {
     }
   }
 
-  // 📄 ファイル名生成ロジック
-  private generateFileName(config: VoiceConfig): string {
+  // 📄 ファイル名生成ロジック - akariは正確な時間帯ファイル使用
+  private async generateFileName(config: VoiceConfig): Promise<string> {
+    // akariキャラクターで感情がdefaultの場合は時間帯音声を使用
+    if (config.characterId === 'akari' && config.emotion === 'default') {
+      const { getAkariVoiceByTime } = await import('./precise-time-voice')
+      const fileName = getAkariVoiceByTime()
+      
+      console.log('🎯 Akari precise time voice file:', {
+        characterId: config.characterId,
+        selectedFileName: fileName,
+        fullPath: `${this.baseAudioPath}/${config.characterId}/${fileName}`
+      })
+      
+      return fileName
+    }
+    
+    // 従来のロジック
     const parts: string[] = []
 
     // 時間帯指定がある場合
@@ -98,7 +113,7 @@ export class VOICEVOXPlayer {
     const fileName = `${parts.join('_')}.wav`
     
     // デバッグ情報を追加
-    console.log('🎵 Voice file generation:', {
+    console.log('🎵 Voice file generation (legacy):', {
       characterId: config.characterId,
       timeSlot: config.timeSlot,
       pattern: config.pattern,
@@ -210,26 +225,43 @@ export function getCurrentTimeSlot(): TimeSlot {
   return 'night'; // 22:00-05:59 (夜)
 }
 
-// 🎯 スマート音声選択（時間帯・ランダムパターン）
+// 🎯 スマート音声選択（正確な時間帯・実ファイル準拠）
 export async function playSmartGreeting(characterId: string): Promise<boolean> {
+  // akariキャラクターの場合は正確な時間帯音声を使用
+  if (characterId === 'akari') {
+    const { getAkariVoiceByTime, getPreciseTimeInfo } = await import('./precise-time-voice')
+    
+    const timeInfo = getPreciseTimeInfo()
+    const voiceFile = getAkariVoiceByTime()
+    
+    console.log('🎯 Precise time-based voice selection:', {
+      characterId,
+      currentTime: new Date().toLocaleString('ja-JP'),
+      hour: timeInfo.hour,
+      timeSlot: timeInfo.timeSlot,
+      selectedVoice: voiceFile,
+      description: timeInfo.description
+    })
+    
+    // 直接音声ファイルを再生
+    const player = new VOICEVOXPlayer()
+    return await player.playVoice({
+      characterId,
+      emotion: 'default' // 実際のファイル名に基づく選択のため固定
+    })
+  }
+  
+  // 他のキャラクターは従来のロジック
   const timeSlot = getCurrentTimeSlot()
   const patterns: VoicePattern[] = ['normal', 'cheerful', 'calm', 'gentle']
   const randomPattern = patterns[Math.floor(Math.random() * patterns.length)]
   
-  console.log('🤖 Smart greeting selection:', {
+  console.log('🤖 Smart greeting selection (legacy):', {
     characterId,
     timeSlot,
     selectedPattern: randomPattern,
     currentTime: new Date().toLocaleString('ja-JP'),
     hour: new Date().getHours()
-  })
-  
-  // 音声ファイル名の生成をデバッグ
-  const fileName = `${timeSlot}_${randomPattern}.wav`
-  console.log('🎵 Expected voice file:', {
-    characterId,
-    fileName,
-    fullPath: `/audio/recorded/${characterId}/${fileName}`
   })
   
   return await playTimeGreeting(characterId, timeSlot, randomPattern)

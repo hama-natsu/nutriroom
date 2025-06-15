@@ -20,6 +20,14 @@ export function getCurrentTimeSlot(): TimeSlot {
 }
 
 export function getTimeSlotGreeting(timeSlot: TimeSlot): string {
+  // 正確な時間帯に基づく挨拶（1:00-5:00は超深夜）
+  const hour = new Date().getHours()
+  if (hour >= 1 && hour < 5) {
+    const preciseGreeting = 'こんな時間まで...お疲れさまです。早く休んでくださいね〜'
+    console.log('🎯 Using precise time greeting for very late hours:', preciseGreeting)
+    return preciseGreeting
+  }
+  
   const greetings = {
     morning: 'おはよう！今日も一緒に頑張りましょう〜♪',
     afternoon: 'こんにちは〜！元気にしてましたか？',
@@ -27,7 +35,7 @@ export function getTimeSlotGreeting(timeSlot: TimeSlot): string {
     night: 'こんばんは...遅い時間ですが、大丈夫ですか？'
   };
   
-  console.log('💬 Greeting Selection:', {
+  console.log('💬 Greeting Selection (legacy):', {
     timeSlot,
     selectedGreeting: greetings[timeSlot]
   });
