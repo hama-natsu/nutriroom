@@ -1,5 +1,10 @@
 // 🎯 NutriRoom Phase 2.2: 自然で専門的な栄養指導システム
 
+import { 
+  getUnifiedGreetingText, 
+  getUnifiedTimeSlot
+} from './unified-time-system'
+
 export interface SessionHistory {
   messageCount: number
   hasGreeted: boolean
@@ -244,16 +249,19 @@ export function generateNutritionGuidanceResponse(context: ConversationContext):
   }
 }
 
-// 時間帯に応じた挨拶生成（重複回避）
+// 時間帯に応じた挨拶生成（統一システム使用）
 function generateTimeBasedGreeting(timeSlot: string): string {
-  const greetings = {
-    morning: 'おはよう♪',
-    afternoon: 'こんにちは〜♪',
-    evening: 'こんばんは♪',
-    night: 'こんばんは〜'
-  }
+  // 統一システムから正確な挨拶を取得
+  const unifiedTimeSlot = getUnifiedTimeSlot()
+  const syncedGreeting = getUnifiedGreetingText(unifiedTimeSlot)
   
-  return greetings[timeSlot as keyof typeof greetings] || 'こんにちは♪'
+  console.log('🎯 Time-based greeting sync:', {
+    inputTimeSlot: timeSlot,
+    detectedTimeSlot: unifiedTimeSlot,
+    syncedGreeting: syncedGreeting.substring(0, 30) + '...'
+  })
+  
+  return syncedGreeting
 }
 
 // 一般的な応答生成

@@ -24,6 +24,8 @@ import {
   HearingQuestion
 } from './professional-hearing-templates'
 
+import { getUnifiedTimeSlot } from './unified-time-system'
+
 export interface NaturalResponseRequest {
   sessionId: string
   userMessage: string
@@ -157,21 +159,9 @@ export async function generateNaturalResponse(
   }
 }
 
-// 時間帯取得ヘルパー
+// 時間帯取得ヘルパー (統一システム使用)
 function getCurrentTimeSlot(): string {
-  const hour = new Date().getHours()
-  
-  if (hour >= 1 && hour < 5) return 'very_late'
-  if (hour >= 5 && hour < 7) return 'morning_early'
-  if (hour >= 7 && hour < 9) return 'morning'
-  if (hour >= 9 && hour < 11) return 'morning_late'
-  if (hour >= 11 && hour < 13) return 'lunch'
-  if (hour >= 13 && hour < 15) return 'afternoon'
-  if (hour >= 15 && hour < 17) return 'snack'
-  if (hour >= 17 && hour < 19) return 'evening'
-  if (hour >= 19 && hour < 21) return 'dinner'
-  if (hour >= 21 && hour < 23) return 'night'
-  return 'late'
+  return getUnifiedTimeSlot()
 }
 
 // 応答品質の評価

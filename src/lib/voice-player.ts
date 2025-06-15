@@ -1,5 +1,7 @@
 // 🎯 VOICEVOX録音音声専用プレイヤー
 
+import { getUnifiedTimeSlot, getUnifiedVoiceFile } from './unified-time-system'
+
 export type TimeSlot = 'morning' | 'afternoon' | 'evening' | 'night'
 export type VoicePattern = 'early' | 'normal' | 'late' | 'cheerful' | 'calm' | 'energetic' | 'gentle'
 export type EmotionType = 'agreement' | 'encouragement' | 'surprise' | 'thinking' | 'concern' | 'joy' | 'default'
@@ -73,15 +75,16 @@ export class VOICEVOXPlayer {
     }
   }
 
-  // 📄 ファイル名生成ロジック - akariは正確な時間帯ファイル使用
+  // 📄 ファイル名生成ロジック - 統一時間システム使用
   private async generateFileName(config: VoiceConfig): Promise<string> {
-    // akariキャラクターで感情がdefaultの場合は時間帯音声を使用
+    // akariキャラクターで感情がdefaultの場合は統一時間帯音声を使用
     if (config.characterId === 'akari' && config.emotion === 'default') {
-      const { getAkariVoiceByTime } = await import('./precise-time-voice')
-      const fileName = getAkariVoiceByTime()
+      const timeSlot = getUnifiedTimeSlot()
+      const fileName = getUnifiedVoiceFile(timeSlot)
       
-      console.log('🎯 Akari precise time voice file:', {
+      console.log('🎯 Unified time voice file:', {
         characterId: config.characterId,
+        timeSlot,
         selectedFileName: fileName,
         fullPath: `${this.baseAudioPath}/${config.characterId}/${fileName}`
       })
