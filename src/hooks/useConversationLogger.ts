@@ -10,6 +10,11 @@ import {
 import { updateSummaryFromConversations } from '@/lib/supabase/summaries'
 import { supabase } from '@/lib/supabase/client'
 
+// Supabaseクライアント型定義
+interface WindowWithSupabase extends Window {
+  supabase?: unknown;
+}
+
 // セッション設定
 const SESSION_TIMEOUT = 6 * 60 * 60 * 1000 // 6時間無応答で休眠
 const HEARTBEAT_INTERVAL = 30 * 1000 // 30秒ごとにハートビート
@@ -47,7 +52,7 @@ export const useConversationLogger = (characterId: string) => {
   useEffect(() => {
     // window.supabase設定（デバッグ用）
     if (typeof window !== 'undefined') {
-      (window as any).supabase = supabase
+      (window as WindowWithSupabase).supabase = supabase
       console.log('🔧 Supabase client attached to window:', !!supabase)
     }
 
@@ -58,6 +63,34 @@ export const useConversationLogger = (characterId: string) => {
     }
 
     console.log('✅ Supabase client initialized successfully')
+  }, [])
+
+  // ハートビート（セッション活性状態維持）
+  const startHeartbeat = useCallback(() => {
+    if (heartbeatRef.current) {
+      clearInterval(heartbeatRef.current)
+    }
+
+    heartbeatRef.current = setInterval(() => {
+      setState(prev => {
+        if (!prev.lastActivity) return prev
+
+        const timeSinceLastActivity = Date.now() - prev.lastActivity.getTime()
+        
+        // 6時間無応答でセッション休眠
+        if (timeSinceLastActivity > SESSION_TIMEOUT) {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('😴 Session going dormant due to inactivity')
+          }
+          return {
+            ...prev,
+            isLogging: false
+          }
+        }
+
+        return prev
+      })
+    }, HEARTBEAT_INTERVAL)
   }, [])
 
   // セッション初期化（一度だけ実行）
@@ -107,35 +140,7 @@ export const useConversationLogger = (characterId: string) => {
       console.error('❌ Failed to initialize session:', error)
       console.error('❌ Detailed error:', JSON.stringify(error, null, 2))
     }
-  }, [characterId])
-
-  // ハートビート（セッション活性状態維持）
-  const startHeartbeat = useCallback(() => {
-    if (heartbeatRef.current) {
-      clearInterval(heartbeatRef.current)
-    }
-
-    heartbeatRef.current = setInterval(() => {
-      setState(prev => {
-        if (!prev.lastActivity) return prev
-
-        const timeSinceLastActivity = Date.now() - prev.lastActivity.getTime()
-        
-        // 6時間無応答でセッション休眠
-        if (timeSinceLastActivity > SESSION_TIMEOUT) {
-          if (process.env.NODE_ENV === 'development') {
-            console.log('😴 Session going dormant due to inactivity')
-          }
-          return {
-            ...prev,
-            isLogging: false
-          }
-        }
-
-        return prev
-      })
-    }, HEARTBEAT_INTERVAL)
-  }, [])
+  }, [characterId, startHeartbeat])
 
   // メッセージ保存（メイン機能）
   const saveMessage = useCallback(async ({
@@ -228,7 +233,7 @@ export const useConversationLogger = (characterId: string) => {
       console.error('🔥 Error details:', JSON.stringify(error, null, 2))
       return false
     }
-  }, [state.sessionId, state.isLogging, characterId])
+  }, [state, characterId])
 
   // 初期化
   useEffect(() => {

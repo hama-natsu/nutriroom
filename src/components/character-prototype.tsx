@@ -15,6 +15,11 @@ import { useConversationLogger, debugConversationLogger } from '@/hooks/useConve
 // 🎯 Phase 2.4: 今日のお手紙システム
 import { DailyLetterComponent } from '@/components/DailyLetter'
 
+// Supabaseクライアント型定義
+interface WindowWithSupabase extends Window {
+  supabase?: unknown;
+}
+
 
 interface Message {
   id: string
@@ -247,7 +252,7 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
 
     // 🔥 Supabaseクライアント存在確認
     console.log('🔧 Checking Supabase client availability...')
-    if (typeof window !== 'undefined' && !(window as any).supabase) {
+    if (typeof window !== 'undefined' && !(window as WindowWithSupabase).supabase) {
       console.error('❌ CRITICAL: window.supabase not available!')
     }
 
@@ -256,7 +261,7 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
       isReady,
       sessionState,
       characterId,
-      supabaseAvailable: typeof window !== 'undefined' ? !!(window as any).supabase : 'unknown'
+      supabaseAvailable: typeof window !== 'undefined' ? !!(window as WindowWithSupabase).supabase : 'unknown'
     })
     
     if (isReady) {
@@ -344,7 +349,7 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
                   message: data.response.substring(0, 50) + '...',
                   messageLength: data.response.length,
                   voiceSuccess,
-                  supabaseAvailable: typeof window !== 'undefined' ? !!(window as any).supabase : 'unknown'
+                  supabaseAvailable: typeof window !== 'undefined' ? !!(window as WindowWithSupabase).supabase : 'unknown'
                 })
                 const saveResult = await saveMessage({
                   message: data.response,
@@ -557,9 +562,9 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
               
               try {
                 // 0. 事前確認 - window.supabase
-                console.log('🔧 Pre-check - window.supabase:', typeof window !== 'undefined' ? typeof (window as any).supabase : 'undefined')
+                console.log('🔧 Pre-check - window.supabase:', typeof window !== 'undefined' ? typeof (window as WindowWithSupabase).supabase : 'undefined')
                 if (typeof window !== 'undefined') {
-                  if (!(window as any).supabase) {
+                  if (!(window as WindowWithSupabase).supabase) {
                     console.error('❌ CRITICAL: window.supabase not found')
                     throw new Error('Supabase client not found on window object')
                   }
