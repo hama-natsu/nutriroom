@@ -75,18 +75,6 @@ export async function GET(request: NextRequest) {
         : 'お手紙内容が見つかりません'
     }))
 
-    // 総数取得（ページネーション用）
-    const { count, error: countError } = await supabase
-      .from('daily_summaries')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('character_id', characterId)
-      .not('letter_content', 'is', null)
-
-    if (countError) {
-      console.warn('⚠️ Failed to get total count:', countError)
-    }
-
     console.log(`✅ Retrieved ${formattedLetters.length} letters`)
 
     return NextResponse.json({
