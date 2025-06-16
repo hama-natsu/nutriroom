@@ -117,12 +117,12 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
       }
     }
     
-    let subscription: any = null
+    let subscription: unknown = null
     setupAuthListener().then(sub => { subscription = sub })
     
     return () => {
-      if (subscription) {
-        subscription.unsubscribe()
+      if (subscription && typeof subscription === 'object' && subscription !== null && 'unsubscribe' in subscription) {
+        (subscription as { unsubscribe: () => void }).unsubscribe()
       }
     }
   }, [])
