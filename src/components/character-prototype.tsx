@@ -13,7 +13,7 @@ import { handleAiResponseVoice, debugAiResponseVoice } from '@/lib/ai-response-v
 // 🎯 Phase 2.3-実用版: リアルタイムデータ収集
 import { useConversationLogger, debugConversationLogger } from '@/hooks/useConversationLogger'
 // 🎯 Phase 2.4: 今日のお手紙システム
-import { DailyLetterComponent } from '@/components/DailyLetter'
+import { DailyLetter } from '@/components/DailyLetterSimple'
 
 // Supabaseクライアント型定義
 interface WindowWithSupabase extends Window {
@@ -44,6 +44,7 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
   const [pendingResponse, setPendingResponse] = useState<string | null>(null)
   const [responseControlActive, setResponseControlActive] = useState(false)
   const [showDailyLetter, setShowDailyLetter] = useState(false)
+  const [letterData, setLetterData] = useState<{date: string, content: string} | null>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -475,10 +476,47 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
           
           {/* 今日のお手紙ボタン */}
           <button
-            onClick={() => {
-              setShowDailyLetter(true)
-              if (process.env.NODE_ENV === 'development') {
-                console.log('💌 Daily letter manually opened')
+            onClick={async () => {
+              try {
+                // API呼び出し
+                const response = await fetch('/api/generate-letter', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    characterId: characterId,
+                    testMode: true
+                  })
+                })
+                
+                const result = await response.json()
+                
+                if (result.success) {
+                  setLetterData({
+                    date: new Date().toISOString(),
+                    content: result.data?.greeting || result.message || '今日も素敵な一日になりそうですね♪'
+                  })
+                  setShowDailyLetter(true)
+                  
+                  if (process.env.NODE_ENV === 'development') {
+                    console.log('💌 Daily letter loaded successfully:', result)
+                  }
+                } else {
+                  console.error('❌ Failed to load letter:', result)
+                  // フォールバック表示
+                  setLetterData({
+                    date: new Date().toISOString(),
+                    content: 'おはようございます！今日も素敵な一日になりそうですね♪\n\n栄養バランスを意識した食事を心がけて、健康的な一日を過ごしましょう！'
+                  })
+                  setShowDailyLetter(true)
+                }
+              } catch (error) {
+                console.error('❌ Letter API error:', error)
+                // エラー時もフォールバック表示
+                setLetterData({
+                  date: new Date().toISOString(),
+                  content: 'おはようございます！今日も素敵な一日になりそうですね♪\n\n栄養バランスを意識した食事を心がけて、健康的な一日を過ごしましょう！'
+                })
+                setShowDailyLetter(true)
               }
             }}
             className="px-3 py-1 text-xs bg-pink-100 text-pink-600 rounded-lg hover:bg-pink-200 transition-colors"
@@ -862,10 +900,11 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
       </main>
 
       {/* 今日のお手紙モーダル */}
-      {showDailyLetter && (
-        <DailyLetterComponent
-          characterId={characterId}
-          userName={userName}
+      {showDailyLetter && letterData && (
+        <DailyLetter
+          date={letterData.date}
+          content={letterData.content}
+          characterName={character.name}
           onClose={() => setShowDailyLetter(false)}
         />
       )}
