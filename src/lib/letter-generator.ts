@@ -1,9 +1,11 @@
 // 🎯 NutriRoom Phase 2.4: 「今日のお手紙」生成システム
 // 革新的差別化価値: 栄養士からの温かい日次お手紙
+// Gemini 1.5 Pro統合 - 無料枠大・日本語得意・会話分析最適
 
 import { getTodayConversationLogs } from '@/lib/supabase/sessions'
 // import { setLetterContent } from '@/lib/supabase/summaries' // 現在未使用
 import { getCharacterById } from '@/lib/characters'
+import { getGeminiModel, isGeminiAvailable, debugGeminiSetup } from '@/lib/gemini-client'
 
 // お手紙データ構造
 export interface DailyLetter {
@@ -28,6 +30,8 @@ export interface LetterGenerationConfig {
   personalizedGreeting: boolean
   includeNutritionAdvice: boolean
   tomorrowHint: boolean
+  useGemini: boolean  // Gemini使用フラグ
+  fallbackToLocal: boolean  // Gemini失敗時のローカル生成フォールバック
 }
 
 const DEFAULT_CONFIG: LetterGenerationConfig = {
@@ -35,7 +39,9 @@ const DEFAULT_CONFIG: LetterGenerationConfig = {
   maxHighlights: 3,
   personalizedGreeting: true,
   includeNutritionAdvice: true,
-  tomorrowHint: true
+  tomorrowHint: true,
+  useGemini: true,  // デフォルトでGemini使用
+  fallbackToLocal: true  // 失敗時はローカル生成
 }
 
 /**
@@ -85,7 +91,8 @@ export class DailyLetterGenerator {
         analysis,
         summary,
         userName,
-        config
+        config,
+        conversations  // Gemini用の生データも渡す
       )
 
       // 4. データベースに保存
@@ -159,17 +166,40 @@ export class DailyLetterGenerator {
     analysis: { topics: string[]; conversationFlow: string[]; nutritionFocus: boolean; userMessages: { message_content: string }[]; aiMessages: { message_content: string }[] },
     _summary: null,
     userName?: string,
-    config: LetterGenerationConfig = DEFAULT_CONFIG
+    config: LetterGenerationConfig = DEFAULT_CONFIG,
+    conversations?: { message_type: string; message_content: string; emotion_detected?: string | null }[]
   ): Promise<DailyLetter> {
     const today = new Date().toISOString().split('T')[0]
     
-    // あかりキャラクター専用の温かい文体
-    const letterContent = this.generateAkariStyleLetter(
-      character,
-      analysis,
-      config,
-      userName
-    )
+    let letterContent: Pick<DailyLetter, 'greeting' | 'mainTopics' | 'conversationHighlights' | 'encouragementMessage' | 'nextSessionHint' | 'signature'>
+
+    // Gemini生成を試行
+    if (config.useGemini && isGeminiAvailable() && conversations) {
+      try {
+        console.log('🤖 Attempting Gemini letter generation...')
+        letterContent = await this.generateLetterWithGemini(
+          character,
+          analysis,
+          userName,
+          conversations,
+          config
+        )
+        console.log('✅ Gemini letter generation successful')
+      } catch (error) {
+        console.error('❌ Gemini generation failed:', error)
+        
+        if (config.fallbackToLocal) {
+          console.log('🔄 Falling back to local generation...')
+          letterContent = this.generateAkariStyleLetter(character, analysis, config, userName)
+        } else {
+          throw error
+        }
+      }
+    } else {
+      // ローカル生成（従来の方式）
+      console.log('💻 Using local letter generation')
+      letterContent = this.generateAkariStyleLetter(character, analysis, config, userName)
+    }
 
     return {
       id: `letter_${today}_${character.id}`,
@@ -179,6 +209,106 @@ export class DailyLetterGenerator {
       userName,
       ...letterContent,
       createdAt: new Date()
+    }
+  }
+
+  /**
+   * 🤖 Gemini 1.5 Proを使用したお手紙生成
+   */
+  private static async generateLetterWithGemini(
+    character: { id: string; name: string },
+    analysis: { topics: string[]; nutritionFocus: boolean; userMessages: { message_content: string }[]; aiMessages: { message_content: string }[] },
+    userName?: string,
+    conversations?: { message_type: string; message_content: string; emotion_detected?: string | null }[],
+    config: LetterGenerationConfig = DEFAULT_CONFIG
+  ): Promise<Pick<DailyLetter, 'greeting' | 'mainTopics' | 'conversationHighlights' | 'encouragementMessage' | 'nextSessionHint' | 'signature'>> {
+    
+    const model = getGeminiModel()
+    if (!model) {
+      throw new Error('Gemini model not available')
+    }
+
+    // 会話データを整理
+    const conversationData = conversations?.map(conv => 
+      `${conv.message_type === 'user' ? 'ユーザー' : 'あかり'}: ${conv.message_content}`
+    ).join('\n') || ''
+
+    const userNameDisplay = userName || 'あなた'
+    const timeSlot = this.getTimeSlot()
+
+    // 🎯 あかりキャラクター専用プロンプト設計
+    const letterPrompt = `あなたは「あかり」という元気で温かい管理栄養士です。
+今日1日の会話を振り返って、${userNameDisplay}さんに温かいお手紙を書いてください。
+
+【キャラクター設定】
+- 名前: あかり
+- 職業: 管理栄養士
+- 性格: 元気、温かい、親しみやすい、専門知識豊富
+- 話し方: 丁寧だが親しみやすい、絵文字を適度に使用（♪、🌸など）
+
+【会話データ】
+${conversationData}
+
+【分析結果】
+- 会話数: ${analysis.userMessages.length + analysis.aiMessages.length}回
+- 栄養関連の話題: ${analysis.nutritionFocus ? 'あり' : 'なし'}
+- 主要トピック: ${analysis.topics.join(', ')}
+
+【現在時刻】${timeSlot === 'morning' ? '朝' : '夕方'}
+
+【お手紙の構成】
+以下のJSON形式で回答してください：
+
+{
+  "greeting": "時間帯に応じた親しみやすい挨拶（2-3文）",
+  "mainTopics": ["今日話したトピック1", "今日話したトピック2", "今日話したトピック3", "今日話したトピック4"],
+  "conversationHighlights": ["印象深い会話のハイライト1", "印象深い会話のハイライト2", "印象深い会話のハイライト3"],
+  "encouragementMessage": "あかりらしい励ましのメッセージ（2-3文、栄養士としての専門性も含める）",
+  "nextSessionHint": "明日の会話への期待やヒント（1-2文）",
+  "signature": "あかりらしい署名"
+}
+
+【重要な注意点】
+1. ${userNameDisplay}さんに対して親しみを込めて書く
+2. 栄養士としての専門性を活かした温かいアドバイス
+3. 今日の会話内容を具体的に振り返る
+4. 励ましと感謝の気持ちを込める
+5. 絵文字は控えめに（♪、🌸程度）
+6. JSON形式を厳守（コメントや余計な文字を含めない）
+7. 各項目は日本語で自然な文章にする
+
+必ずJSON形式で回答してください。`
+
+    try {
+      console.log('📤 Sending prompt to Gemini...')
+      const result = await model.generateContent(letterPrompt)
+      const responseText = result.response.text()
+      
+      console.log('📥 Gemini response received, parsing JSON...')
+      
+      // JSONパース
+      const parsedResponse = JSON.parse(responseText)
+      
+      // バリデーション
+      if (!parsedResponse.greeting || !parsedResponse.mainTopics || !parsedResponse.encouragementMessage) {
+        throw new Error('Invalid response structure from Gemini')
+      }
+
+      console.log('✅ Gemini response parsed successfully')
+      
+      return {
+        greeting: parsedResponse.greeting,
+        mainTopics: Array.isArray(parsedResponse.mainTopics) ? parsedResponse.mainTopics : [parsedResponse.mainTopics],
+        conversationHighlights: Array.isArray(parsedResponse.conversationHighlights) ? parsedResponse.conversationHighlights : [],
+        encouragementMessage: parsedResponse.encouragementMessage,
+        nextSessionHint: parsedResponse.nextSessionHint || '明日も一緒にお話ししましょう♪',
+        signature: parsedResponse.signature || 'あかりより♪'
+      }
+      
+    } catch (parseError) {
+      console.error('❌ Failed to parse Gemini response:', parseError)
+      console.log('📝 Raw Gemini response:', result?.response?.text?.() || 'No response')
+      throw new Error(`Gemini response parsing failed: ${parseError}`)
     }
   }
 
@@ -413,10 +543,23 @@ ${letter.signature}`
 /**
  * 手動でお手紙生成をテスト（開発用）
  */
-export const testLetterGeneration = async (characterId: string = 'akari', userName?: string): Promise<void> => {
+export const testLetterGeneration = async (
+  characterId: string = 'akari', 
+  userName?: string,
+  useGemini: boolean = true
+): Promise<void> => {
   console.log('🧪 Testing letter generation...')
   
-  const letter = await DailyLetterGenerator.generateDailyLetter(characterId, userName)
+  // Geminiセットアップデバッグ
+  debugGeminiSetup()
+  
+  const config: LetterGenerationConfig = {
+    ...DEFAULT_CONFIG,
+    useGemini,
+    fallbackToLocal: true
+  }
+  
+  const letter = await DailyLetterGenerator.generateDailyLetter(characterId, userName, config)
   
   if (letter) {
     console.log('✅ Letter generated successfully!')
@@ -424,7 +567,24 @@ export const testLetterGeneration = async (characterId: string = 'akari', userNa
     console.log('='.repeat(50))
     console.log(DailyLetterGenerator['formatLetterForStorage'](letter))
     console.log('='.repeat(50))
+    console.log('📊 Generation method:', useGemini && isGeminiAvailable() ? 'Gemini 1.5 Pro' : 'Local generation')
   } else {
     console.log('❌ No letter generated (no conversations or error)')
   }
+}
+
+/**
+ * Gemini専用テスト（開発用）
+ */
+export const testGeminiLetterGeneration = async (characterId: string = 'akari', userName?: string): Promise<void> => {
+  console.log('🤖 Testing Gemini letter generation specifically...')
+  await testLetterGeneration(characterId, userName, true)
+}
+
+/**
+ * ローカル生成専用テスト（開発用）
+ */
+export const testLocalLetterGeneration = async (characterId: string = 'akari', userName?: string): Promise<void> => {
+  console.log('💻 Testing local letter generation specifically...')
+  await testLetterGeneration(characterId, userName, false)
 }
