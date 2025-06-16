@@ -203,10 +203,10 @@ export const addConversationLog = async (
       emotion_detected: emotionDetected || null
     }
 
-    console.log('📤 Attempting to insert into conversations table with data:', logData)
+    console.log('📤 Attempting to insert into conversation_logs table with data:', logData)
 
     const { data, error } = await supabase
-      .from('conversations')
+      .from('conversation_logs')
       .insert(logData)
       .select()
       .single()
@@ -240,7 +240,7 @@ export const addConversationLog = async (
 export const getSessionConversationLogs = async (sessionId: string): Promise<ConversationLog[]> => {
   try {
     const { data, error } = await supabase
-      .from('conversations')
+      .from('conversation_logs')
       .select('*')
       .eq('session_id', sessionId)
       .order('timestamp', { ascending: true })
@@ -268,7 +268,7 @@ export const getTodayConversationLogs = async (characterId: string): Promise<Con
     const today = new Date().toISOString().split('T')[0]
 
     const { data, error } = await supabase
-      .from('conversations')
+      .from('conversation_logs')
       .select(`
         *,
         user_sessions!inner (
