@@ -245,11 +245,18 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
     setIsLoading(true)
     setShowInitialGreeting(false)
 
+    // 🔥 Supabaseクライアント存在確認
+    console.log('🔧 Checking Supabase client availability...')
+    if (typeof window !== 'undefined' && !(window as any).supabase) {
+      console.error('❌ CRITICAL: window.supabase not available!')
+    }
+
     // 🎯 ユーザーメッセージのリアルタイム保存
     console.log('🔥 SEND MESSAGE - Checking conversation logger state:', {
       isReady,
       sessionState,
-      characterId
+      characterId,
+      supabaseAvailable: typeof window !== 'undefined' ? !!(window as any).supabase : 'unknown'
     })
     
     if (isReady) {
@@ -333,19 +340,31 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
             // 🎯 AIメッセージのリアルタイム保存（音声再生と同時）
             if (isReady) {
               try {
-                console.log('💾 Attempting to save AI message:', data.response.substring(0, 50) + '...')
+                console.log('🔥 SAVING AI MESSAGE:', {
+                  message: data.response.substring(0, 50) + '...',
+                  messageLength: data.response.length,
+                  voiceSuccess,
+                  supabaseAvailable: typeof window !== 'undefined' ? !!(window as any).supabase : 'unknown'
+                })
                 const saveResult = await saveMessage({
                   message: data.response,
                   type: 'ai',
                   voiceFile: voiceSuccess ? 'voice_played' : undefined,
                   emotionDetected: voiceSuccess ? 'ai_response' : undefined
                 })
-                console.log('✅ AI message save result:', saveResult)
+                console.log('🔥 AI MESSAGE SAVE RESULT:', saveResult)
+                if (!saveResult) {
+                  console.error('🔥 AI MESSAGE SAVE FAILED - RETURNED FALSE')
+                }
               } catch (error) {
-                console.error('❌ Failed to save AI message:', error)
+                console.error('🔥 AI MESSAGE SAVE EXCEPTION:', error)
               }
             } else {
-              console.warn('⚠️ Conversation logger not ready - AI message not saved')
+              console.error('🔥 CONVERSATION LOGGER NOT READY FOR AI MESSAGE:', {
+                isReady,
+                sessionId: sessionState?.sessionId,
+                isLogging: sessionState?.isLogging
+              })
             }
             
             if (process.env.NODE_ENV === 'development') {
@@ -537,15 +556,30 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
               console.log('🧪 MANUAL DATABASE TEST STARTED')
               
               try {
+                // 0. 事前確認 - window.supabase
+                console.log('🔧 Pre-check - window.supabase:', typeof window !== 'undefined' ? typeof (window as any).supabase : 'undefined')
+                if (typeof window !== 'undefined') {
+                  if (!(window as any).supabase) {
+                    console.error('❌ CRITICAL: window.supabase not found')
+                    throw new Error('Supabase client not found on window object')
+                  }
+                  console.log('✅ window.supabase available')
+                }
+
                 // 1. Supabaseクライアント接続テスト
                 const { supabase } = await import('@/lib/supabase/client')
-                console.log('✅ Supabase client imported')
+                console.log('✅ Supabase client imported:', !!supabase)
+                
+                if (!supabase) {
+                  console.error('❌ CRITICAL: Imported supabase client is null/undefined')
+                  throw new Error('Supabase client import failed')
+                }
                 
                 // 2. 認証状態確認
                 const { data: { user }, error: authError } = await supabase.auth.getUser()
                 if (authError) {
                   console.error('❌ Auth error:', authError)
-                  return
+                  throw new Error(`Authentication failed: ${authError.message}`)
                 }
                 console.log('✅ User authenticated:', user?.id?.substring(0, 8) + '...')
                 
@@ -618,10 +652,14 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
                   console.log('Session state:', { isReady, sessionId: sessionState?.sessionId })
                 }
                 
-                console.log('🧪 MANUAL DATABASE TEST COMPLETED')
+                console.log('🧪 MANUAL DATABASE TEST COMPLETED SUCCESSFULLY')
                 
               } catch (error) {
-                console.error('❌ Manual test exception:', error)
+                console.error('❌ MANUAL DATABASE TEST FAILED')
+                console.error('❌ Error type:', typeof error)
+                console.error('❌ Error message:', error instanceof Error ? error.message : String(error))
+                console.error('❌ Full error:', error)
+                console.error('❌ Stack trace:', error instanceof Error ? error.stack : 'No stack available')
               }
             }}
             className="px-3 py-1 text-xs bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors"

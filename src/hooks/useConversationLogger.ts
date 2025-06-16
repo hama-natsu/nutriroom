@@ -8,6 +8,7 @@ import {
   getCurrentActiveSession
 } from '@/lib/supabase/sessions'
 import { updateSummaryFromConversations } from '@/lib/supabase/summaries'
+import { supabase } from '@/lib/supabase/client'
 
 // セッション設定
 const SESSION_TIMEOUT = 6 * 60 * 60 * 1000 // 6時間無応答で休眠
@@ -41,6 +42,23 @@ export const useConversationLogger = (characterId: string) => {
 
   const heartbeatRef = useRef<NodeJS.Timeout | null>(null)
   const initializationRef = useRef<boolean>(false)
+
+  // 🔥 Supabaseクライアント初期化確認
+  useEffect(() => {
+    // window.supabase設定（デバッグ用）
+    if (typeof window !== 'undefined') {
+      (window as any).supabase = supabase
+      console.log('🔧 Supabase client attached to window:', !!supabase)
+    }
+
+    // Supabaseクライアント存在確認
+    if (!supabase) {
+      console.error('❌ CRITICAL: Supabase client not initialized!')
+      return
+    }
+
+    console.log('✅ Supabase client initialized successfully')
+  }, [])
 
   // セッション初期化（一度だけ実行）
   const initializeSession = useCallback(async () => {
@@ -134,6 +152,12 @@ export const useConversationLogger = (characterId: string) => {
       sessionId: state.sessionId?.substring(0, 8) + '...',
       isLogging: state.isLogging
     })
+
+    // 🔥 Supabaseクライアント確認
+    if (!supabase) {
+      console.error('❌ CRITICAL: Supabase client not available for save operation!')
+      return false
+    }
 
     if (!state.sessionId || !state.isLogging) {
       console.error('🔥 SAVE MESSAGE FAILED - NO SESSION:', {
