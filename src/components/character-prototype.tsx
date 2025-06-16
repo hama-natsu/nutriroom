@@ -69,7 +69,11 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const { supabase } = await import('@/lib/supabase/client')
+        const { createClient } = await import('@supabase/supabase-js')
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        )
         const { data: { user }, error } = await supabase.auth.getUser()
         
         if (error || !user) {
@@ -86,6 +90,41 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
     }
 
     checkAuth()
+    
+    // 認証状態変更の監視
+    const setupAuthListener = async () => {
+      try {
+        const { createClient } = await import('@supabase/supabase-js')
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        )
+        
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+          if (session?.user) {
+            console.log('✅ Auth state changed: authenticated')
+            setAuthState('authenticated')
+          } else {
+            console.log('❌ Auth state changed: unauthenticated')
+            setAuthState('unauthenticated')
+          }
+        })
+        
+        return subscription
+      } catch (error) {
+        console.error('❌ Failed to setup auth listener:', error)
+        return null
+      }
+    }
+    
+    let subscription: any = null
+    setupAuthListener().then(sub => { subscription = sub })
+    
+    return () => {
+      if (subscription) {
+        subscription.unsubscribe()
+      }
+    }
   }, [])
 
   // 応答制御システム（常時初期化、条件付きで実行）
@@ -555,22 +594,42 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
           {/* 過去のお手紙ボタン */}
           <button
             onClick={() => {
-              if (authState !== 'authenticated') {
-                alert('お手紙履歴を見るには認証が必要です')
+              if (authState === 'loading') {
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('⏳ Auth state still loading, please wait')
+                }
                 return
               }
+              
+              if (authState !== 'authenticated') {
+                if (process.env.NODE_ENV === 'development') {
+                  console.log('⚠️ Anonymous user accessing history (development mode)')
+                }
+                // 開発用：匿名ユーザーでも履歴表示可能
+                setShowLetterHistory(true)
+                return
+              }
+              
               setShowLetterHistory(true)
               if (process.env.NODE_ENV === 'development') {
-                console.log('📚 Letter history opened')
+                console.log('📚 Letter history opened for authenticated user')
               }
             }}
-            disabled={authState !== 'authenticated'}
+            disabled={authState === 'loading'}
             className={`px-3 py-1 text-xs rounded-lg transition-colors ${
-              authState === 'authenticated' 
-                ? 'bg-purple-100 text-purple-600 hover:bg-purple-200' 
-                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              authState === 'loading'
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : authState === 'authenticated' 
+                  ? 'bg-purple-100 text-purple-600 hover:bg-purple-200' 
+                  : 'bg-orange-100 text-orange-600 hover:bg-orange-200'
             }`}
-            title={authState === 'authenticated' ? '過去のお手紙' : '認証が必要です'}
+            title={
+              authState === 'loading' 
+                ? '読み込み中...' 
+                : authState === 'authenticated' 
+                  ? '過去のお手紙' 
+                  : '過去のお手紙 (開発モード)'
+            }
           >
             📚
           </button>
@@ -806,10 +865,17 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
             </div>
           )}
           
+          {authState === 'authenticated' && (
+            <div className="flex items-center gap-1 text-green-500 text-xs">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span>認証済み</span>
+            </div>
+          )}
+          
           {authState === 'unauthenticated' && (
-            <div className="flex items-center gap-1 text-red-500 text-xs">
-              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-              <span>未認証</span>
+            <div className="flex items-center gap-1 text-orange-500 text-xs">
+              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+              <span>開発モード</span>
             </div>
           )}
 
