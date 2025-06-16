@@ -254,6 +254,12 @@ ${conversationData}
 - 栄養関連の話題: ${analysis.nutritionFocus ? 'あり' : 'なし'}
 - 主要トピック: ${analysis.topics.join(', ')}
 
+【設定】
+- 最大トピック数: ${config.maxTopics}個
+- 最大ハイライト数: ${config.maxHighlights}個
+- 栄養アドバイス含む: ${config.includeNutritionAdvice ? 'はい' : 'いいえ'}
+- 明日のヒント含む: ${config.tomorrowHint ? 'はい' : 'いいえ'}
+
 【現在時刻】${timeSlot === 'morning' ? '朝' : '夕方'}
 
 【お手紙の構成】
@@ -279,9 +285,10 @@ ${conversationData}
 
 必ずJSON形式で回答してください。`
 
+    let result: { response: { text: () => string } } | null = null
     try {
       console.log('📤 Sending prompt to Gemini...')
-      const result = await model.generateContent(letterPrompt)
+      result = await model.generateContent(letterPrompt)
       const responseText = result.response.text()
       
       console.log('📥 Gemini response received, parsing JSON...')
@@ -298,10 +305,16 @@ ${conversationData}
       
       return {
         greeting: parsedResponse.greeting,
-        mainTopics: Array.isArray(parsedResponse.mainTopics) ? parsedResponse.mainTopics : [parsedResponse.mainTopics],
-        conversationHighlights: Array.isArray(parsedResponse.conversationHighlights) ? parsedResponse.conversationHighlights : [],
+        mainTopics: Array.isArray(parsedResponse.mainTopics) 
+          ? parsedResponse.mainTopics.slice(0, config.maxTopics) 
+          : [parsedResponse.mainTopics],
+        conversationHighlights: Array.isArray(parsedResponse.conversationHighlights) 
+          ? parsedResponse.conversationHighlights.slice(0, config.maxHighlights)
+          : [],
         encouragementMessage: parsedResponse.encouragementMessage,
-        nextSessionHint: parsedResponse.nextSessionHint || '明日も一緒にお話ししましょう♪',
+        nextSessionHint: config.tomorrowHint 
+          ? (parsedResponse.nextSessionHint || '明日も一緒にお話ししましょう♪')
+          : '',
         signature: parsedResponse.signature || 'あかりより♪'
       }
       
