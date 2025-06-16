@@ -75,40 +75,75 @@ export async function POST(request: NextRequest) {
       console.log('💌 Real mode: Generated letter using Gemini');
     }
     
+    // 保存処理の詳細ログ追加
+    console.log('💾 Starting database save...');
+    console.log('💾 Data to save:', {
+      character_id: characterId,
+      letter_content: letterContent.substring(0, 100) + '...',
+      user_id: 'anonymous_user', // 一時的
+    });
+
     // daily_summariesテーブルに保存（一時的に簡略化）
     try {
       console.log('💾 Saving letter to daily_summaries...');
       
       const today = new Date().toISOString().split('T')[0];
       
-      // 一時的に直接挿入（開発用）
+      const saveData = {
+        user_id: 'anonymous_user', // 一時的な匿名ユーザー
+        character_id: characterId,
+        date: today,
+        letter_content: letterContent,
+        main_topics: ['今日の会話'],
+        session_count: 1,
+        total_messages: 1,
+        emotions_detected: ['friendly'],
+        created_at: new Date().toISOString(),
+      };
+
+      console.log('💾 Attempting to save with data structure:', {
+        ...saveData,
+        letter_content: saveData.letter_content.substring(0, 50) + '...'
+      });
+      
+      // Supabase保存処理
       const { data: insertResult, error: insertError } = await supabase
         .from('daily_summaries')
-        .upsert({
-          user_id: '00000000-0000-0000-0000-000000000000', // 一時的な固定値
-          character_id: characterId,
-          date: today,
-          letter_content: letterContent,
-          main_topics: ['今日の会話'],
-          session_count: 1,
-          total_messages: 1,
-          emotions_detected: ['friendly']
-        })
+        .upsert(saveData)
         .select()
         .single();
       
       if (insertError) {
-        console.error('❌ Failed to save letter:', insertError);
+        console.error('❌ Save error details:', insertError);
+        console.error('❌ Error code:', insertError.code);
+        console.error('❌ Error message:', insertError.message);
+        console.error('❌ Error details:', insertError.details);
         letterId = 'save_error';
+        
+        return NextResponse.json({
+          success: false,
+          error: 'Save failed',
+          details: insertError.message,
+          errorCode: insertError.code
+        });
       } else if (insertResult) {
         letterId = insertResult.id;
+        console.log('✅ Save successful:', insertResult);
         console.log('✅ Letter saved successfully with ID:', letterId);
       } else {
+        console.log('⚠️ No result returned from database');
         letterId = 'no_result';
       }
     } catch (saveError) {
       console.error('❌ Error saving letter to database:', saveError);
+      console.error('❌ Save error stack:', saveError instanceof Error ? saveError.stack : 'No stack trace');
       letterId = 'save_error';
+      
+      return NextResponse.json({
+        success: false,
+        error: 'Server error during save',
+        details: saveError instanceof Error ? saveError.message : 'Unknown error'
+      });
     }
     
     return NextResponse.json({
