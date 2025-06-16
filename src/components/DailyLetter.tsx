@@ -3,9 +3,9 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { DailyLetter } from '@/lib/letter-generator'
-import { getTodaySummary } from '@/lib/supabase'
+import { getTodaySummary } from '@/lib/supabase/summaries'
 
 interface DailyLetterProps {
   characterId: string
@@ -29,14 +29,8 @@ export function DailyLetterComponent({ characterId, userName, onClose }: DailyLe
   })
 
   const [typingText, setTypingText] = useState('')
-  const [currentSection, setCurrentSection] = useState(0)
 
-  // お手紙データ取得
-  useEffect(() => {
-    loadTodayLetter()
-  }, [characterId])
-
-  const loadTodayLetter = async () => {
+  const loadTodayLetter = useCallback(async () => {
     try {
       setState(prev => ({ ...prev, isLoading: true }))
 
@@ -73,7 +67,12 @@ export function DailyLetterComponent({ characterId, userName, onClose }: DailyLe
         isVisible: false 
       }))
     }
-  }
+  }, [characterId, userName])
+
+  // お手紙データ取得
+  useEffect(() => {
+    loadTodayLetter()
+  }, [loadTodayLetter])
 
   // タイピングアニメーション
   const startTypingAnimation = (letter: DailyLetter) => {
@@ -109,7 +108,6 @@ export function DailyLetterComponent({ characterId, userName, onClose }: DailyLe
       } else {
         sectionIndex++
         charIndex = 0
-        setCurrentSection(sectionIndex)
         setTimeout(typeCharacter, 300) // セクション間の停止
       }
     }
@@ -280,7 +278,8 @@ function formatLetterForDisplay(letter: DailyLetter): string {
  * お手紙コンポーネントのプレビュー（開発用）
  */
 export function DailyLetterPreview() {
-  const sampleLetter: DailyLetter = {
+  // サンプルお手紙データ（開発用）
+  /* const sampleLetter: DailyLetter = {
     id: 'sample_letter',
     date: new Date().toISOString().split('T')[0],
     characterId: 'akari',
@@ -300,7 +299,7 @@ export function DailyLetterPreview() {
     nextSessionHint: '明日はお昼ご飯のお話を聞かせてくださいね♪',
     signature: 'あかりより♪',
     createdAt: new Date()
-  }
+  } */
 
   return (
     <DailyLetterComponent 

@@ -5,9 +5,9 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { 
   addConversationLog, 
   startSession, 
-  getCurrentActiveSession,
-  updateSummaryFromConversations 
-} from '@/lib/supabase'
+  getCurrentActiveSession
+} from '@/lib/supabase/sessions'
+import { updateSummaryFromConversations } from '@/lib/supabase/summaries'
 
 // セッション設定
 const SESSION_TIMEOUT = 6 * 60 * 60 * 1000 // 6時間無応答で休眠

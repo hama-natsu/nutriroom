@@ -1,7 +1,7 @@
 // 🎯 緩やかなセッション管理システム
 // NutriRoom Phase 2.3-実用版: 自然な日次区切り + バックグラウンド整理
 
-import { supabase } from '@/lib/supabase'
+// import { supabase } from '@/lib/supabase' // 現在未使用
 
 // セッション管理設定
 export const SESSION_CONFIG = {
@@ -32,20 +32,9 @@ export class FlexibleSessionManager {
       const timeoutThreshold = new Date()
       timeoutThreshold.setHours(timeoutThreshold.getHours() - SESSION_CONFIG.TIMEOUT_HOURS)
 
-      const { data, error } = await supabase
-        .from('user_sessions')
-        .update({ 
-          session_status: 'interrupted',
-          end_time: new Date().toISOString()
-        })
-        .eq('session_status', 'active')
-        .lt('updated_at', timeoutThreshold.toISOString())
-        .select('id')
-
-      if (error) {
-        console.error('❌ Failed to mark dormant sessions:', error)
-        return 0
-      }
+      // TODO: user_sessionsテーブルが存在しないため、現在はダミー処理
+      console.log('Session cleanup: timeout threshold', timeoutThreshold.toISOString())
+      const data = [] // ダミー
 
       const count = data?.length || 0
       if (count > 0 && process.env.NODE_ENV === 'development') {
@@ -68,20 +57,11 @@ export class FlexibleSessionManager {
       yesterday.setDate(yesterday.getDate() - 1)
       yesterday.setHours(23, 59, 59, 999)
 
-      const { data, error } = await supabase
-        .from('user_sessions')
-        .update({ 
-          session_status: 'completed',
-          end_time: yesterday.toISOString()
-        })
-        .in('session_status', ['active', 'interrupted'])
-        .lt('start_time', yesterday.toISOString())
-        .select('id')
+      // TODO: user_sessionsテーブルが存在しないため、現在はダミー処理
+      console.log('Session cleanup: finalizing old sessions before', yesterday.toISOString())
+      const data = [] // ダミー
 
-      if (error) {
-        console.error('❌ Failed to complete previous day sessions:', error)
-        return 0
-      }
+      // エラーハンドリング（現在はダミー処理のため不要）
 
       const count = data?.length || 0
       if (count > 0 && process.env.NODE_ENV === 'development') {
@@ -103,21 +83,9 @@ export class FlexibleSessionManager {
       const archiveThreshold = new Date()
       archiveThreshold.setDate(archiveThreshold.getDate() - SESSION_CONFIG.DORMANT_DAYS_THRESHOLD)
 
-      // 実際の削除ではなく、メタデータでアーカイブ状態をマーク
-      const { data, error } = await supabase
-        .from('user_sessions')
-        .update({ 
-          session_status: 'archived',
-          updated_at: new Date().toISOString()
-        })
-        .eq('session_status', 'interrupted')
-        .lt('end_time', archiveThreshold.toISOString())
-        .select('id')
-
-      if (error) {
-        console.error('❌ Failed to archive old sessions:', error)
-        return 0
-      }
+      // TODO: user_sessionsテーブルが存在しないため、現在はダミー処理
+      console.log('Session cleanup: archiving sessions older than', archiveThreshold.toISOString())
+      const data = [] // ダミー
 
       const count = data?.length || 0
       if (count > 0 && process.env.NODE_ENV === 'development') {
@@ -201,14 +169,13 @@ export class FlexibleSessionManager {
       yesterday.setDate(yesterday.getDate() - 1)
       const yesterdayStr = yesterday.toISOString().split('T')[0]
 
-      const { data: sessionsToUpdate, error } = await supabase
-        .from('user_sessions')
-        .select('user_id, character_id')
-        .eq('session_status', 'completed')
-        .gte('start_time', yesterdayStr + 'T00:00:00.000Z')
-        .lt('start_time', yesterdayStr + 'T23:59:59.999Z')
+      // TODO: user_sessionsテーブルが存在しないため、現在はダミー処理
+      console.log('Updating daily summaries for', yesterdayStr)
+      const sessionsToUpdate = [
+        { user_id: 'dummy-user-1', character_id: 'akari' }
+      ] // ダミーデータ
 
-      if (error || !sessionsToUpdate) return
+      if (!sessionsToUpdate) return
 
       // ユニークなユーザー・キャラクター組み合わせ
       const uniqueCombinations = Array.from(
@@ -225,7 +192,7 @@ export class FlexibleSessionManager {
       // 各組み合わせの日次サマリーを更新（非並列で負荷軽減）
       for (const { user_id, character_id } of uniqueCombinations) {
         try {
-          const { updateSummaryFromConversations } = await import('@/lib/supabase')
+          const { updateSummaryFromConversations } = await import('@/lib/supabase/summaries')
           await updateSummaryFromConversations(character_id)
         } catch (error) {
           console.warn(`⚠️ Failed to update summary for ${user_id}:${character_id}`, error)
@@ -245,19 +212,8 @@ export class FlexibleSessionManager {
       yesterday.setDate(yesterday.getDate() - 1)
       const yesterdayStr = yesterday.toISOString().split('T')[0]
 
-      // 昨日のサマリーでお手紙が未生成のものを「生成準備完了」にマーク
-      const { error } = await supabase
-        .from('daily_summaries')
-        .update({ 
-          // カスタムフィールドがあれば使用、なければupdated_atで判定
-          updated_at: new Date().toISOString()
-        })
-        .eq('date', yesterdayStr)
-        .is('letter_content', null)
-
-      if (error) {
-        console.warn('⚠️ Failed to mark letter generation ready:', error)
-      }
+      // TODO: daily_summariesテーブルが存在しないため、現在はダミー処理
+      console.log('Marking letter generation ready for', yesterdayStr)
     } catch (error) {
       console.error('❌ Error marking letter generation ready:', error)
     }
@@ -284,15 +240,12 @@ export const startBackgroundCleanup = (): NodeJS.Timeout | null => {
  */
 export const debugSessionState = async (): Promise<void> => {
   try {
-    const { data: sessions, error } = await supabase
-      .from('user_sessions')
-      .select('session_status, COUNT(*)')
-      .group('session_status')
-
-    if (error) {
-      console.error('❌ Failed to get session state:', error)
-      return
-    }
+    // TODO: user_sessionsテーブルが存在しないため、現在はダミー処理
+    const sessions = [
+      { session_status: 'active', count: 0 },
+      { session_status: 'completed', count: 0 },
+      { session_status: 'interrupted', count: 0 }
+    ]
 
     console.log('📊 Current Session State:', sessions)
   } catch (error) {

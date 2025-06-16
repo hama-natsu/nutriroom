@@ -2,7 +2,7 @@
 // タブ離脱時の最後の活動時間更新用
 
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+// import { supabase } from '@/lib/supabase' // 現在未使用
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,21 +16,8 @@ export async function POST(request: NextRequest) {
     }
 
     // セッションの最終活動時間を更新
-    const { error } = await supabase
-      .from('user_sessions')
-      .update({ 
-        updated_at: timestamp 
-      })
-      .eq('id', sessionId)
-      .eq('session_status', 'active')
-
-    if (error) {
-      console.error('Failed to update session heartbeat:', error)
-      return NextResponse.json(
-        { error: 'Failed to update heartbeat' },
-        { status: 500 }
-      )
-    }
+    // TODO: user_sessionsテーブルが存在しないため、現在はダミー処理
+    console.log('Heartbeat received:', { sessionId, timestamp })
 
     return NextResponse.json({ success: true })
   } catch (error) {

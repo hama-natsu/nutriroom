@@ -122,7 +122,7 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
   // 今日のお手紙チェック
   const checkForDailyLetter = async () => {
     try {
-      const { getTodaySummary } = await import('@/lib/supabase')
+      const { getTodaySummary } = await import('@/lib/supabase/summaries')
       const summary = await getTodaySummary(characterId)
       
       if (summary?.letter_content && !showDailyLetter) {
