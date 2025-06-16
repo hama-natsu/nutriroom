@@ -246,19 +246,38 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
     setShowInitialGreeting(false)
 
     // 🎯 ユーザーメッセージのリアルタイム保存
+    console.log('🔥 SEND MESSAGE - Checking conversation logger state:', {
+      isReady,
+      sessionState,
+      characterId
+    })
+    
     if (isReady) {
       try {
-        console.log('💾 Attempting to save user message:', inputText.substring(0, 50) + '...')
+        console.log('🔥 SAVING USER MESSAGE:', {
+          message: inputText.substring(0, 50) + '...',
+          messageLength: inputText.length,
+          type: 'user',
+          timestamp: new Date().toISOString()
+        })
         const saveResult = await saveMessage({
           message: inputText,
           type: 'user'
         })
-        console.log('✅ User message save result:', saveResult)
+        console.log('🔥 USER MESSAGE SAVE RESULT:', saveResult)
+        if (!saveResult) {
+          console.error('🔥 USER MESSAGE SAVE FAILED - RETURNED FALSE')
+        }
       } catch (error) {
-        console.error('❌ Failed to save user message:', error)
+        console.error('🔥 USER MESSAGE SAVE EXCEPTION:', error)
       }
     } else {
-      console.warn('⚠️ Conversation logger not ready - user message not saved')
+      console.error('🔥 CONVERSATION LOGGER NOT READY:', {
+        isReady,
+        sessionId: sessionState?.sessionId,
+        isLogging: sessionState?.isLogging,
+        messageCount: sessionState?.messageCount
+      })
     }
 
     try {
@@ -510,6 +529,105 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
             title="システムデバッグ"
           >
             🔍
+          </button>
+          
+          {/* 手動テストボタン */}
+          <button
+            onClick={async () => {
+              console.log('🧪 MANUAL DATABASE TEST STARTED')
+              
+              try {
+                // 1. Supabaseクライアント接続テスト
+                const { supabase } = await import('@/lib/supabase/client')
+                console.log('✅ Supabase client imported')
+                
+                // 2. 認証状態確認
+                const { data: { user }, error: authError } = await supabase.auth.getUser()
+                if (authError) {
+                  console.error('❌ Auth error:', authError)
+                  return
+                }
+                console.log('✅ User authenticated:', user?.id?.substring(0, 8) + '...')
+                
+                // 3. テーブル存在確認
+                const { data: tables, error: tableError } = await supabase
+                  .from('information_schema.tables')
+                  .select('table_name')
+                  .eq('table_schema', 'public')
+                  .in('table_name', ['user_sessions', 'conversation_logs'])
+                
+                if (tableError) {
+                  console.error('❌ Table check error:', tableError)
+                } else {
+                  console.log('✅ Available tables:', tables?.map(t => t.table_name))
+                }
+                
+                // 4. user_sessionsテーブル直接テスト
+                console.log('🔍 Testing user_sessions table...')
+                const { data: sessions, error: sessionError } = await supabase
+                  .from('user_sessions')
+                  .select('*')
+                  .limit(1)
+                
+                if (sessionError) {
+                  console.error('❌ user_sessions query error:', sessionError)
+                } else {
+                  console.log('✅ user_sessions accessible, found:', sessions?.length, 'sessions')
+                }
+                
+                // 5. conversation_logsテーブル直接テスト
+                console.log('🔍 Testing conversation_logs table...')
+                const { data: logs, error: logError } = await supabase
+                  .from('conversation_logs')
+                  .select('*')
+                  .limit(1)
+                
+                if (logError) {
+                  console.error('❌ conversation_logs query error:', logError)
+                } else {
+                  console.log('✅ conversation_logs accessible, found:', logs?.length, 'logs')
+                }
+                
+                // 6. 手動データ挿入テスト
+                if (isReady && sessionState?.sessionId) {
+                  console.log('🧪 Testing manual conversation log insertion...')
+                  const testLogData = {
+                    session_id: sessionState.sessionId,
+                    message_type: 'user' as const,
+                    message_content: '手動テストメッセージ - ' + new Date().toISOString(),
+                    voice_file_used: null,
+                    emotion_detected: 'test_emotion'
+                  }
+                  
+                  console.log('📤 Attempting manual insert with data:', testLogData)
+                  
+                  const { data: insertResult, error: insertError } = await supabase
+                    .from('conversation_logs')
+                    .insert(testLogData)
+                    .select()
+                    .single()
+                  
+                  if (insertError) {
+                    console.error('❌ Manual insert failed:', insertError)
+                    console.error('❌ Insert error details:', JSON.stringify(insertError, null, 2))
+                  } else {
+                    console.log('✅ Manual insert successful:', insertResult)
+                  }
+                } else {
+                  console.warn('⚠️ Cannot test insertion - session not ready')
+                  console.log('Session state:', { isReady, sessionId: sessionState?.sessionId })
+                }
+                
+                console.log('🧪 MANUAL DATABASE TEST COMPLETED')
+                
+              } catch (error) {
+                console.error('❌ Manual test exception:', error)
+              }
+            }}
+            className="px-3 py-1 text-xs bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors"
+            title="手動データベーステスト"
+          >
+            🧪
           </button>
           
           {/* ステータス表示 */}

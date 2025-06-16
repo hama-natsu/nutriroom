@@ -126,8 +126,21 @@ export const useConversationLogger = (characterId: string) => {
     voiceFile,
     emotionDetected
   }: SaveMessageParams): Promise<boolean> => {
+    console.log('🔥 SAVE MESSAGE CALLED:', {
+      message: message.substring(0, 100) + '...',
+      type,
+      voiceFile,
+      emotionDetected,
+      sessionId: state.sessionId?.substring(0, 8) + '...',
+      isLogging: state.isLogging
+    })
+
     if (!state.sessionId || !state.isLogging) {
-      console.warn('⚠️ No active session for logging - sessionId:', state.sessionId, 'isLogging:', state.isLogging)
+      console.error('🔥 SAVE MESSAGE FAILED - NO SESSION:', {
+        sessionId: state.sessionId,
+        isLogging: state.isLogging,
+        sessionState: state
+      })
       return false
     }
 
@@ -162,15 +175,15 @@ export const useConversationLogger = (characterId: string) => {
           lastActivity: new Date()
         }))
 
-        if (process.env.NODE_ENV === 'development') {
-          console.log('📝 Message logged:', {
-            type,
-            length: message.length,
-            voiceFile,
-            emotion: taggedEmotion,
-            nutritionTags: nutritionTags.length > 0 ? nutritionTags : undefined
-          })
-        }
+        console.log('🔥 SAVE MESSAGE SUCCESS:', {
+          logEntryId: logEntry.id,
+          type,
+          messageLength: message.length,
+          voiceFile,
+          emotion: taggedEmotion,
+          nutritionTags: nutritionTags.length > 0 ? nutritionTags : undefined,
+          newMessageCount: state.messageCount + 1
+        })
 
         // 非同期で日次サマリー更新（UIブロックしない）
         setTimeout(async () => {
@@ -182,11 +195,13 @@ export const useConversationLogger = (characterId: string) => {
         }, 100)
 
         return true
+      } else {
+        console.error('🔥 SAVE MESSAGE FAILED - NO LOG ENTRY RETURNED')
+        return false
       }
-
-      return false
     } catch (error) {
-      console.error('❌ Failed to save message:', error)
+      console.error('🔥 SAVE MESSAGE EXCEPTION:', error)
+      console.error('🔥 Error details:', JSON.stringify(error, null, 2))
       return false
     }
   }, [state.sessionId, state.isLogging, characterId])
