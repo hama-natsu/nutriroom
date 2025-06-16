@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { DailyLetterGenerator } from '@/lib/letter-generator'
-import { setLetterContent, getTodaySummary } from '@/lib/supabase/summaries'
+import { setLetterContent } from '@/lib/supabase/summaries'
 import { supabase } from '@/lib/supabase/client'
 
 export async function POST(request: NextRequest) {

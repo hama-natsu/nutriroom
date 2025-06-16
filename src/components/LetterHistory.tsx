@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { DailyLetter } from '@/components/DailyLetterSimple'
 
 interface LetterRecord {
@@ -46,12 +46,7 @@ export function LetterHistory({ characterId, characterName, onClose }: LetterHis
     return () => clearTimeout(timer)
   }, [])
 
-  // 初回お手紙履歴ロード
-  useEffect(() => {
-    loadLetterHistory(true)
-  }, [characterId])
-
-  const loadLetterHistory = async (reset = false) => {
+  const loadLetterHistory = useCallback(async (reset = false) => {
     try {
       const currentOffset = reset ? 0 : state.offset
       
@@ -96,7 +91,12 @@ export function LetterHistory({ characterId, characterName, onClose }: LetterHis
         error: error instanceof Error ? error.message : 'Unknown error'
       }))
     }
-  }
+  }, [characterId, state.offset])
+
+  // 初回お手紙履歴ロード
+  useEffect(() => {
+    loadLetterHistory(true)
+  }, [loadLetterHistory])
 
   const handleLoadMore = () => {
     if (!state.isLoading && state.hasMore) {

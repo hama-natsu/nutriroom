@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase/client'
 
-interface LetterHistoryRecord {
+interface DailySummaryRow {
   id: string
   date: string
   character_id: string
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     }
 
     // フォーマット済みレスポンス
-    const formattedLetters = (letters || []).map((letter: any) => ({
+    const formattedLetters = (letters || []).map((letter: DailySummaryRow) => ({
       id: letter.id,
       date: letter.date,
       characterId: letter.character_id,
