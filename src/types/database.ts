@@ -9,7 +9,7 @@ export interface Database {
         Insert: UserSessionInsert
         Update: UserSessionUpdate
       }
-      conversation_logs: {
+      conversations: {
         Row: ConversationLog
         Insert: ConversationLogInsert
         Update: ConversationLogUpdate

@@ -187,6 +187,14 @@ export const addConversationLog = async (
   emotionDetected?: string
 ): Promise<ConversationLog | null> => {
   try {
+    console.log('🔄 addConversationLog called with:', {
+      sessionId: sessionId.substring(0, 8) + '...',
+      messageType,
+      messageLength: messageContent.length,
+      voiceFileUsed,
+      emotionDetected
+    })
+
     const logData: ConversationLogInsert = {
       session_id: sessionId,
       message_type: messageType,
@@ -195,16 +203,21 @@ export const addConversationLog = async (
       emotion_detected: emotionDetected || null
     }
 
+    console.log('📤 Attempting to insert into conversations table with data:', logData)
+
     const { data, error } = await supabase
-      .from('conversation_logs')
+      .from('conversations')
       .insert(logData)
       .select()
       .single()
 
     if (error) {
-      console.error('Failed to add conversation log:', error)
+      console.error('❌ Database insert error:', error)
+      console.error('❌ Error details:', JSON.stringify(error, null, 2))
       return null
     }
+
+    console.log('✅ Database insert successful:', data)
 
     console.log('📝 Conversation logged:', {
       sessionId: sessionId.substring(0, 8) + '...',
@@ -227,7 +240,7 @@ export const addConversationLog = async (
 export const getSessionConversationLogs = async (sessionId: string): Promise<ConversationLog[]> => {
   try {
     const { data, error } = await supabase
-      .from('conversation_logs')
+      .from('conversations')
       .select('*')
       .eq('session_id', sessionId)
       .order('timestamp', { ascending: true })
@@ -255,7 +268,7 @@ export const getTodayConversationLogs = async (characterId: string): Promise<Con
     const today = new Date().toISOString().split('T')[0]
 
     const { data, error } = await supabase
-      .from('conversation_logs')
+      .from('conversations')
       .select(`
         *,
         user_sessions!inner (

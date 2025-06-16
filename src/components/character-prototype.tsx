@@ -247,10 +247,18 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
 
     // 🎯 ユーザーメッセージのリアルタイム保存
     if (isReady) {
-      await saveMessage({
-        message: inputText,
-        type: 'user'
-      })
+      try {
+        console.log('💾 Attempting to save user message:', inputText.substring(0, 50) + '...')
+        const saveResult = await saveMessage({
+          message: inputText,
+          type: 'user'
+        })
+        console.log('✅ User message save result:', saveResult)
+      } catch (error) {
+        console.error('❌ Failed to save user message:', error)
+      }
+    } else {
+      console.warn('⚠️ Conversation logger not ready - user message not saved')
     }
 
     try {
@@ -305,12 +313,20 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
             
             // 🎯 AIメッセージのリアルタイム保存（音声再生と同時）
             if (isReady) {
-              await saveMessage({
-                message: data.response,
-                type: 'ai',
-                voiceFile: voiceSuccess ? 'voice_played' : undefined,
-                emotionDetected: voiceSuccess ? 'ai_response' : undefined
-              })
+              try {
+                console.log('💾 Attempting to save AI message:', data.response.substring(0, 50) + '...')
+                const saveResult = await saveMessage({
+                  message: data.response,
+                  type: 'ai',
+                  voiceFile: voiceSuccess ? 'voice_played' : undefined,
+                  emotionDetected: voiceSuccess ? 'ai_response' : undefined
+                })
+                console.log('✅ AI message save result:', saveResult)
+              } catch (error) {
+                console.error('❌ Failed to save AI message:', error)
+              }
+            } else {
+              console.warn('⚠️ Conversation logger not ready - AI message not saved')
             }
             
             if (process.env.NODE_ENV === 'development') {

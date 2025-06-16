@@ -44,27 +44,34 @@ export const useConversationLogger = (characterId: string) => {
 
   // セッション初期化（一度だけ実行）
   const initializeSession = useCallback(async () => {
-    if (initializationRef.current) return
+    if (initializationRef.current) {
+      console.log('🔄 Session already initialized, skipping...')
+      return
+    }
 
     try {
+      console.log('🚀 Initializing conversation session for character:', characterId)
       initializationRef.current = true
       
       // 既存のアクティブセッションを検索
+      console.log('🔍 Checking for existing active session...')
       let session = await getCurrentActiveSession(characterId)
       
       if (!session) {
+        console.log('📝 No existing session found, creating new session...')
         // 新しいセッションを開始
         session = await startSession(characterId)
-        if (process.env.NODE_ENV === 'development') {
-          console.log('✅ New session started:', session?.id.substring(0, 8) + '...')
+        if (session) {
+          console.log('✅ New session created successfully:', session.id.substring(0, 8) + '...')
+        } else {
+          console.error('❌ Failed to create new session')
         }
       } else {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('🔄 Resumed existing session:', session.id.substring(0, 8) + '...')
-        }
+        console.log('🔄 Resuming existing session:', session.id.substring(0, 8) + '...')
       }
 
       if (session) {
+        console.log('🎯 Setting session state - sessionId:', session.id.substring(0, 8) + '...', 'isLogging: true')
         setState(prev => ({
           ...prev,
           sessionId: session!.id,
@@ -74,9 +81,13 @@ export const useConversationLogger = (characterId: string) => {
 
         // ハートビート開始
         startHeartbeat()
+        console.log('💓 Heartbeat started for session')
+      } else {
+        console.error('❌ No session available - conversation logging will not work')
       }
     } catch (error) {
       console.error('❌ Failed to initialize session:', error)
+      console.error('❌ Detailed error:', JSON.stringify(error, null, 2))
     }
   }, [characterId])
 
@@ -116,11 +127,19 @@ export const useConversationLogger = (characterId: string) => {
     emotionDetected
   }: SaveMessageParams): Promise<boolean> => {
     if (!state.sessionId || !state.isLogging) {
-      console.warn('⚠️ No active session for logging')
+      console.warn('⚠️ No active session for logging - sessionId:', state.sessionId, 'isLogging:', state.isLogging)
       return false
     }
 
     try {
+      console.log('📝 Saving message to database:', {
+        sessionId: state.sessionId.substring(0, 8) + '...',
+        type,
+        messageLength: message.length,
+        voiceFile,
+        emotionDetected
+      })
+
       // 栄養トピック自動タグ付け
       const nutritionTags = extractNutritionTags(message)
       const taggedEmotion = emotionDetected || (nutritionTags.length > 0 ? 'nutrition_focused' : undefined)
@@ -133,6 +152,8 @@ export const useConversationLogger = (characterId: string) => {
         voiceFile || undefined,
         taggedEmotion
       )
+      
+      console.log('💾 Database save attempt result:', logEntry ? 'SUCCESS' : 'FAILED')
 
       if (logEntry) {
         setState(prev => ({
