@@ -1,11 +1,13 @@
 // 🎯 NutriRoom Phase 2.4: 毎晩22:00自動お手紙生成API
 // Vercel Cron Jobs対応エンドポイント
 
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { DailyLetterGenerator } from '@/lib/letter-generator'
 import { setLetterContent } from '@/lib/supabase/summaries'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,20 +16,10 @@ export async function POST(request: NextRequest) {
     
     console.log('API called with:', { characterId, testMode, userName });
     
-    // Supabase認証クライアント作成
-    const supabase = createRouteHandlerClient({ cookies })
+    // 既存のSupabaseクライアント使用
+    const supabase = createClient(supabaseUrl, supabaseKey)
     
-    // 認証状態確認
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      console.log('❌ Authentication failed:', authError)
-      return NextResponse.json(
-        { success: false, error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-    
-    console.log('✅ User authenticated:', user.id.substring(0, 8) + '...')
+    console.log('📝 Processing letter generation request...')
     
     let letterContent: string;
     let letterId: string;
@@ -84,35 +76,39 @@ export async function POST(request: NextRequest) {
       console.log('💌 Real mode: Generated letter using Gemini');
     }
     
-    // daily_summariesテーブルに保存
+    // daily_summariesテーブルに保存（一時的に簡略化）
     try {
       console.log('💾 Saving letter to daily_summaries...');
       
-      // 今日のサマリーを取得または作成
-      const { getTodaySummary } = await import('@/lib/supabase/summaries');
-      const todaySummary = await getTodaySummary(characterId);
+      const today = new Date().toISOString().split('T')[0];
       
-      if (!todaySummary) {
-        console.error('❌ Failed to get or create today summary');
-        letterId = 'no_summary';
+      // 一時的に直接挿入（開発用）
+      const { data: insertResult, error: insertError } = await supabase
+        .from('daily_summaries')
+        .upsert({
+          user_id: '00000000-0000-0000-0000-000000000000', // 一時的な固定値
+          character_id: characterId,
+          date: today,
+          letter_content: letterContent,
+          main_topics: ['今日の会話'],
+          session_count: 1,
+          total_messages: 1,
+          emotions_detected: ['friendly']
+        })
+        .select()
+        .single();
+      
+      if (insertError) {
+        console.error('❌ Failed to save letter:', insertError);
+        letterId = 'save_error';
+      } else if (insertResult) {
+        letterId = insertResult.id;
+        console.log('✅ Letter saved successfully with ID:', letterId);
       } else {
-        const saveResult = await setLetterContent(
-          todaySummary.id,
-          letterContent
-        );
-        
-        if (saveResult) {
-          letterId = saveResult.id;
-          console.log('✅ Letter saved successfully with ID:', letterId);
-        } else {
-          console.error('❌ Failed to save letter - no result returned');
-          // 保存失敗でもレスポンスは返す（UX優先）
-          letterId = 'unsaved';
-        }
+        letterId = 'no_result';
       }
     } catch (saveError) {
       console.error('❌ Error saving letter to database:', saveError);
-      // 保存エラーでもレスポンスは返す（UX優先）
       letterId = 'save_error';
     }
     
