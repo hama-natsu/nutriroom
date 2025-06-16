@@ -81,19 +81,27 @@ export async function POST(request: NextRequest) {
     try {
       console.log('💾 Saving letter to daily_summaries...');
       
-      const saveResult = await setLetterContent(
-        characterId,
-        letterContent,
-        user.id
-      );
+      // 今日のサマリーを取得または作成
+      const { getTodaySummary } = await import('@/lib/supabase/summaries');
+      const todaySummary = await getTodaySummary(characterId);
       
-      if (saveResult) {
-        letterId = saveResult.id;
-        console.log('✅ Letter saved successfully with ID:', letterId);
+      if (!todaySummary) {
+        console.error('❌ Failed to get or create today summary');
+        letterId = 'no_summary';
       } else {
-        console.error('❌ Failed to save letter - no result returned');
-        // 保存失敗でもレスポンスは返す（UX優先）
-        letterId = 'unsaved';
+        const saveResult = await setLetterContent(
+          todaySummary.id,
+          letterContent
+        );
+        
+        if (saveResult) {
+          letterId = saveResult.id;
+          console.log('✅ Letter saved successfully with ID:', letterId);
+        } else {
+          console.error('❌ Failed to save letter - no result returned');
+          // 保存失敗でもレスポンスは返す（UX優先）
+          letterId = 'unsaved';
+        }
       }
     } catch (saveError) {
       console.error('❌ Error saving letter to database:', saveError);
