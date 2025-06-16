@@ -48,6 +48,7 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
   const [showDailyLetter, setShowDailyLetter] = useState(false)
   const [letterData, setLetterData] = useState<{date: string, content: string} | null>(null)
   const [showLetterHistory, setShowLetterHistory] = useState(false)
+  const [authState, setAuthState] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading')
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -63,6 +64,29 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
 
   // 🎯 リアルタイム会話ログ収集（透明な動作）
   const { saveMessage, sessionState, isReady } = useConversationLogger(characterId)
+
+  // 認証状態チェック
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { supabase } = await import('@/lib/supabase/client')
+        const { data: { user }, error } = await supabase.auth.getUser()
+        
+        if (error || !user) {
+          console.log('❌ User not authenticated:', error)
+          setAuthState('unauthenticated')
+        } else {
+          console.log('✅ User authenticated:', user.id.substring(0, 8) + '...')
+          setAuthState('authenticated')
+        }
+      } catch (error) {
+        console.error('❌ Auth check failed:', error)
+        setAuthState('unauthenticated')
+      }
+    }
+
+    checkAuth()
+  }, [])
 
   // 応答制御システム（常時初期化、条件付きで実行）
   const responseController = useChatResponseController({
@@ -531,13 +555,22 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
           {/* 過去のお手紙ボタン */}
           <button
             onClick={() => {
+              if (authState !== 'authenticated') {
+                alert('お手紙履歴を見るには認証が必要です')
+                return
+              }
               setShowLetterHistory(true)
               if (process.env.NODE_ENV === 'development') {
                 console.log('📚 Letter history opened')
               }
             }}
-            className="px-3 py-1 text-xs bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition-colors"
-            title="過去のお手紙"
+            disabled={authState !== 'authenticated'}
+            className={`px-3 py-1 text-xs rounded-lg transition-colors ${
+              authState === 'authenticated' 
+                ? 'bg-purple-100 text-purple-600 hover:bg-purple-200' 
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
+            title={authState === 'authenticated' ? '過去のお手紙' : '認証が必要です'}
           >
             📚
           </button>
@@ -765,6 +798,21 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
             🧪
           </button>
           
+          {/* 認証状態表示 */}
+          {authState === 'loading' && (
+            <div className="flex items-center gap-1 text-gray-500 text-xs">
+              <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
+              <span>認証中...</span>
+            </div>
+          )}
+          
+          {authState === 'unauthenticated' && (
+            <div className="flex items-center gap-1 text-red-500 text-xs">
+              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+              <span>未認証</span>
+            </div>
+          )}
+
           {/* ステータス表示 */}
           {(isPlaying || responseControlActive) && (
             <div className="flex items-center gap-1 text-pink-500 text-sm">

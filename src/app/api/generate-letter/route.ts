@@ -1,10 +1,11 @@
 // 🎯 NutriRoom Phase 2.4: 毎晩22:00自動お手紙生成API
 // Vercel Cron Jobs対応エンドポイント
 
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 import { DailyLetterGenerator } from '@/lib/letter-generator'
 import { setLetterContent } from '@/lib/supabase/summaries'
-import { supabase } from '@/lib/supabase/client'
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,14 +14,20 @@ export async function POST(request: NextRequest) {
     
     console.log('API called with:', { characterId, testMode, userName });
     
-    // 認証チェック
+    // Supabase認証クライアント作成
+    const supabase = createRouteHandlerClient({ cookies })
+    
+    // 認証状態確認
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
+      console.log('❌ Authentication failed:', authError)
       return NextResponse.json(
         { success: false, error: 'Authentication required' },
         { status: 401 }
       );
     }
+    
+    console.log('✅ User authenticated:', user.id.substring(0, 8) + '...')
     
     let letterContent: string;
     let letterId: string;

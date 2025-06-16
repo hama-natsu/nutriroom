@@ -1,8 +1,9 @@
 // 🎯 NutriRoom Phase 3 Step 2: お手紙履歴取得API
 // GET /api/letters/history?characterId=akari&limit=10
 
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase/client'
 
 interface DailySummaryRow {
   id: string
@@ -15,14 +16,22 @@ interface DailySummaryRow {
 
 export async function GET(request: NextRequest) {
   try {
-    // 認証チェック
+    // Supabase認証クライアント作成
+    const supabase = createRouteHandlerClient({ cookies })
+    
+    // 認証状態確認
     const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
     if (authError || !user) {
-      return NextResponse.json(
-        { success: false, error: 'Authentication required' },
-        { status: 401 }
-      )
+      console.log('❌ Authentication failed:', authError)
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Authentication required',
+        letters: []
+      }, { status: 401 })
     }
+    
+    console.log('✅ User authenticated:', user.id.substring(0, 8) + '...')
 
     // クエリパラメータ取得
     const { searchParams } = new URL(request.url)
@@ -37,7 +46,7 @@ export async function GET(request: NextRequest) {
       offset 
     })
 
-    // daily_summariesテーブルからお手紙履歴を取得
+    // 認証済みユーザーのお手紙履歴取得
     const { data: letters, error: fetchError } = await supabase
       .from('daily_summaries')
       .select(`
@@ -48,7 +57,7 @@ export async function GET(request: NextRequest) {
         created_at,
         updated_at
       `)
-      .eq('user_id', user.id)
+      .eq('user_id', user.id)  // 重要: 認証済みユーザーのデータのみ
       .eq('character_id', characterId)
       .not('letter_content', 'is', null)
       .order('date', { ascending: false })
@@ -56,10 +65,11 @@ export async function GET(request: NextRequest) {
 
     if (fetchError) {
       console.error('❌ Database error:', fetchError)
-      return NextResponse.json(
-        { success: false, error: 'Failed to fetch letter history' },
-        { status: 500 }
-      )
+      return NextResponse.json({
+        success: false,
+        error: 'Database error',
+        letters: []
+      }, { status: 500 })
     }
 
     // フォーマット済みレスポンス
@@ -130,9 +140,13 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    // Supabase認証クライアント作成
+    const supabase = createRouteHandlerClient({ cookies })
+    
     // 認証チェック
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
+      console.log('❌ Authentication failed in POST:', authError)
       return NextResponse.json(
         { success: false, error: 'Authentication required' },
         { status: 401 }
