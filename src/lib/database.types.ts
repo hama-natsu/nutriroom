@@ -275,6 +275,138 @@ export type Database = {
           }
         ]
       }
+      daily_summaries: {
+        Row: {
+          id: string
+          user_id: string
+          character_id: string
+          date: string
+          letter_content: string | null
+          main_topics: string[]
+          session_count: number
+          total_messages: number
+          emotions_detected: string[]
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          character_id: string
+          date?: string
+          letter_content?: string | null
+          main_topics?: string[]
+          session_count?: number
+          total_messages?: number
+          emotions_detected?: string[]
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          character_id?: string
+          date?: string
+          letter_content?: string | null
+          main_topics?: string[]
+          session_count?: number
+          total_messages?: number
+          emotions_detected?: string[]
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_summaries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      user_sessions: {
+        Row: {
+          id: string
+          user_id: string
+          character_id: string
+          session_start: string
+          session_end: string | null
+          heartbeat_count: number
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          character_id: string
+          session_start?: string
+          session_end?: string | null
+          heartbeat_count?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          character_id?: string
+          session_start?: string
+          session_end?: string | null
+          heartbeat_count?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      conversation_logs: {
+        Row: {
+          id: string
+          session_id: string
+          message_type: 'user' | 'ai'
+          message_content: string
+          voice_file_used: string | null
+          emotion_detected: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          session_id: string
+          message_type: 'user' | 'ai'
+          message_content: string
+          voice_file_used?: string | null
+          emotion_detected?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          session_id?: string
+          message_type?: 'user' | 'ai'
+          message_content?: string
+          voice_file_used?: string | null
+          emotion_detected?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_logs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "user_sessions"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

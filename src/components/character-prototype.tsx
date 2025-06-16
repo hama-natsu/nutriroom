@@ -14,6 +14,8 @@ import { handleAiResponseVoice, debugAiResponseVoice } from '@/lib/ai-response-v
 import { useConversationLogger, debugConversationLogger } from '@/hooks/useConversationLogger'
 // 🎯 Phase 2.4: 今日のお手紙システム
 import { DailyLetter } from '@/components/DailyLetterSimple'
+// 🎯 Phase 3 Step 2: お手紙履歴システム
+import { LetterHistory } from '@/components/LetterHistory'
 
 // Supabaseクライアント型定義
 interface WindowWithSupabase extends Window {
@@ -45,6 +47,7 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
   const [responseControlActive, setResponseControlActive] = useState(false)
   const [showDailyLetter, setShowDailyLetter] = useState(false)
   const [letterData, setLetterData] = useState<{date: string, content: string} | null>(null)
+  const [showLetterHistory, setShowLetterHistory] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -492,8 +495,8 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
                 
                 if (result.success) {
                   setLetterData({
-                    date: new Date().toISOString(),
-                    content: result.data?.greeting || result.message || '今日も素敵な一日になりそうですね♪'
+                    date: result.data?.date || new Date().toISOString(),
+                    content: result.data?.content || result.data?.greeting || result.message || '今日も素敵な一日になりそうですね♪'
                   })
                   setShowDailyLetter(true)
                   
@@ -523,6 +526,20 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
             title="今日のお手紙"
           >
             💌
+          </button>
+
+          {/* 過去のお手紙ボタン */}
+          <button
+            onClick={() => {
+              setShowLetterHistory(true)
+              if (process.env.NODE_ENV === 'development') {
+                console.log('📚 Letter history opened')
+              }
+            }}
+            className="px-3 py-1 text-xs bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition-colors"
+            title="過去のお手紙"
+          >
+            📚
           </button>
           
           {/* スマート音声テストボタン */}
@@ -593,6 +610,43 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
             🔍
           </button>
           
+          {/* テストお手紙生成ボタン */}
+          <button
+            onClick={async () => {
+              if (process.env.NODE_ENV === 'development') {
+                console.log('🧪 Generating test letters...')
+                
+                try {
+                  const response = await fetch('/api/letters/history', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      characterId: characterId,
+                      daysBack: 5
+                    })
+                  })
+                  
+                  const result = await response.json()
+                  
+                  if (result.success) {
+                    console.log('✅ Test letters generated:', result.data.generatedLetters)
+                    alert(`${result.data.generatedLetters.length}通のテストお手紙を生成しました！`)
+                  } else {
+                    console.error('❌ Failed to generate test letters:', result.error)
+                    alert('テストお手紙の生成に失敗しました')
+                  }
+                } catch (error) {
+                  console.error('❌ Test letter generation error:', error)
+                  alert('エラーが発生しました')
+                }
+              }
+            }}
+            className="px-3 py-1 text-xs bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200 transition-colors"
+            title="テストお手紙生成（開発用）"
+          >
+            📝
+          </button>
+
           {/* 手動テストボタン */}
           <button
             onClick={async () => {
@@ -906,6 +960,15 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
           content={letterData.content}
           characterName={character.name}
           onClose={() => setShowDailyLetter(false)}
+        />
+      )}
+
+      {/* お手紙履歴モーダル */}
+      {showLetterHistory && (
+        <LetterHistory
+          characterId={characterId}
+          characterName={character.name}
+          onClose={() => setShowLetterHistory(false)}
         />
       )}
     </div>
