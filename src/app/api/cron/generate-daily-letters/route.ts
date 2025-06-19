@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+// 🔍 環境変数チェック
+console.log('🔍 環境変数チェック:');
+console.log('SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? '✅設定済み' : '❌未設定');
+console.log('SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY ? '✅設定済み' : '❌未設定');
+console.log('CRON_SECRET:', process.env.CRON_SECRET ? '✅設定済み' : '❌未設定');
+
 // Supabase client initialization with error handling
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
