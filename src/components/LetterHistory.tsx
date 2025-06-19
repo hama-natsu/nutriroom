@@ -48,14 +48,19 @@ export function LetterHistory({ characterId, characterName, onClose }: LetterHis
 
   const loadLetterHistory = useCallback(async (reset = false) => {
     try {
+      setState(prev => {
+        const currentOffset = reset ? 0 : prev.offset
+        
+        return { 
+          ...prev, 
+          isLoading: true, 
+          error: null,
+          ...(reset && { letters: [], offset: 0 })
+        }
+      })
+
+      // Use state within the function instead of dependency
       const currentOffset = reset ? 0 : state.offset
-      
-      setState(prev => ({ 
-        ...prev, 
-        isLoading: true, 
-        error: null,
-        ...(reset && { letters: [], offset: 0 })
-      }))
 
       const response = await fetch(
         `/api/letters/history?characterId=${characterId}&limit=10&offset=${currentOffset}`
@@ -91,12 +96,12 @@ export function LetterHistory({ characterId, characterName, onClose }: LetterHis
         error: error instanceof Error ? error.message : 'Unknown error'
       }))
     }
-  }, [characterId, state.offset])
+  }, [characterId]) // Removed state.offset dependency
 
   // 初回お手紙履歴ロード
   useEffect(() => {
     loadLetterHistory(true)
-  }, [loadLetterHistory])
+  }, [characterId]) // Changed to depend on characterId only
 
   const handleLoadMore = () => {
     if (!state.isLoading && state.hasMore) {

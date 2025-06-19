@@ -72,7 +72,7 @@ export function DailyLetterComponent({ characterId, userName, onClose }: DailyLe
   // お手紙データ取得
   useEffect(() => {
     loadTodayLetter()
-  }, [loadTodayLetter])
+  }, [loadTodayLetter]) // Keep original dependency to avoid eslint warnings
 
   // タイピングアニメーション
   const startTypingAnimation = (letter: DailyLetter) => {

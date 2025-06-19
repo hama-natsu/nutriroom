@@ -235,7 +235,7 @@ export const useConversationLogger = (characterId: string) => {
     }
   }, [state, characterId])
 
-  // 初期化
+  // 初期化（characterIdが変更された時のみ実行）
   useEffect(() => {
     initializeSession()
 
@@ -245,8 +245,10 @@ export const useConversationLogger = (characterId: string) => {
         clearInterval(heartbeatRef.current)
         heartbeatRef.current = null
       }
+      // Reset initialization flag when component unmounts or characterId changes
+      initializationRef.current = false
     }
-  }, [initializeSession])
+  }, [characterId]) // Changed to depend only on characterId
 
   // タブ離脱時の処理
   useEffect(() => {
