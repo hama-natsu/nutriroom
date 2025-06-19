@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/generate-letter",
+      "path": "/api/cron/generate-daily-letters",
       "schedule": "0 22 * * *"
     }
   ]
