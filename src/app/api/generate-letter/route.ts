@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
         console.error('❌ Supabase connection failed:', testError);
       } else {
         console.log('✅ Supabase connection OK, table exists');
+        console.log('💾 Connection test result:', testData);
       }
     } catch (connError) {
       console.error('❌ Connection error:', connError);
@@ -102,7 +103,11 @@ export async function POST(request: NextRequest) {
         .limit(1);
       
       console.log('💾 Table schema check:', schemaError ? 'FAILED' : 'OK');
-      if (schemaError) console.error('❌ Schema error:', schemaError);
+      if (schemaError) {
+        console.error('❌ Schema error:', schemaError);
+      } else {
+        console.log('💾 Schema test result:', schemaData);
+      }
     } catch (schemaErr) {
       console.error('❌ Schema check error:', schemaErr);
     }
