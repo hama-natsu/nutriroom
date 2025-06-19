@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { DailyLetter } from '@/components/DailyLetterSimple'
 
 interface LetterRecord {
@@ -39,6 +39,12 @@ export function LetterHistory({ characterId, characterName, onClose }: LetterHis
   
   const [selectedLetter, setSelectedLetter] = useState<LetterRecord | null>(null)
   const [isVisible, setIsVisible] = useState(false)
+  const stateRef = useRef(state)
+
+  // Update ref when state changes
+  useEffect(() => {
+    stateRef.current = state
+  }, [state])
 
   // フェードインアニメーション
   useEffect(() => {
@@ -48,19 +54,15 @@ export function LetterHistory({ characterId, characterName, onClose }: LetterHis
 
   const loadLetterHistory = useCallback(async (reset = false) => {
     try {
-      setState(prev => {
-        const currentOffset = reset ? 0 : prev.offset
-        
-        return { 
-          ...prev, 
-          isLoading: true, 
-          error: null,
-          ...(reset && { letters: [], offset: 0 })
-        }
-      })
-
-      // Use state within the function instead of dependency
-      const currentOffset = reset ? 0 : state.offset
+      // Use ref to get current offset without adding it to dependencies
+      const currentOffset = reset ? 0 : stateRef.current.offset
+      
+      setState(prev => ({ 
+        ...prev, 
+        isLoading: true, 
+        error: null,
+        ...(reset && { letters: [], offset: 0 })
+      }))
 
       const response = await fetch(
         `/api/letters/history?characterId=${characterId}&limit=10&offset=${currentOffset}`
@@ -96,12 +98,12 @@ export function LetterHistory({ characterId, characterName, onClose }: LetterHis
         error: error instanceof Error ? error.message : 'Unknown error'
       }))
     }
-  }, [characterId]) // Removed state.offset dependency
+  }, [characterId]) // Only characterId dependency
 
   // 初回お手紙履歴ロード
   useEffect(() => {
     loadLetterHistory(true)
-  }, [characterId]) // Changed to depend on characterId only
+  }, [characterId]) // Only characterId dependency to avoid infinite loop
 
   const handleLoadMore = () => {
     if (!state.isLoading && state.hasMore) {
