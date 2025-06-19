@@ -4,6 +4,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { DailyLetterGenerator } from '@/lib/letter-generator'
+import { randomUUID } from 'crypto'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -170,13 +171,23 @@ export async function POST(request: NextRequest) {
     }
     
     // Step 3: 保存データ準備（安全な最小限のデータ）
-    const saveData = {
+    // まず最小限のデータでテスト（user_idなし）
+    let saveData: any = {
       character_id: characterId || 'akari',
-      letter_content: letterContent,
-      user_id: 'anonymous_user_' + Date.now() // ユニークID
+      letter_content: letterContent
+      // user_id: 一旦削除してテスト
       // conversation_summary: 存在しないカラムのため削除
       // created_at: 自動設定の可能性があるため削除
     };
+
+    // user_idが必要な場合は適切なUUIDを生成
+    try {
+      const testUUID = randomUUID();
+      console.log('💾 Generated UUID for user_id:', testUUID);
+      // saveData.user_id = testUUID; // 必要に応じてコメントアウト解除
+    } catch (uuidError) {
+      console.log('💾 UUID generation failed, proceeding without user_id');
+    }
     
     console.log('💾 Step 3: Data to save:', {
       ...saveData,
