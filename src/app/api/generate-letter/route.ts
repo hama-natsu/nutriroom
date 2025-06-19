@@ -171,23 +171,23 @@ export async function POST(request: NextRequest) {
     }
     
     // Step 3: 保存データ準備（安全な最小限のデータ）
+    // user_idが必要な場合は適切なUUIDを生成
+    let generatedUUID: string | undefined;
+    try {
+      generatedUUID = randomUUID();
+      console.log('💾 Generated UUID for user_id:', generatedUUID);
+    } catch {
+      console.log('💾 UUID generation failed, proceeding without user_id');
+    }
+
     // まず最小限のデータでテスト（user_idなし）
-    let saveData: any = {
+    const saveData: Record<string, unknown> = {
       character_id: characterId || 'akari',
       letter_content: letterContent
-      // user_id: 一旦削除してテスト
+      // user_id: generatedUUID, // 必要に応じてコメントアウト解除
       // conversation_summary: 存在しないカラムのため削除
       // created_at: 自動設定の可能性があるため削除
     };
-
-    // user_idが必要な場合は適切なUUIDを生成
-    try {
-      const testUUID = randomUUID();
-      console.log('💾 Generated UUID for user_id:', testUUID);
-      // saveData.user_id = testUUID; // 必要に応じてコメントアウト解除
-    } catch (uuidError) {
-      console.log('💾 UUID generation failed, proceeding without user_id');
-    }
     
     console.log('💾 Step 3: Data to save:', {
       ...saveData,
