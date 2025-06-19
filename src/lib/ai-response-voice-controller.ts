@@ -784,29 +784,97 @@ const playSelectedVoice = async (selectedVoice: string | null, isInitialGreeting
   return false;
 };
 
-// 新システム優先の制御フロー
-export const handleAiResponseVoice = async (aiResponse: string, isInitialGreeting: boolean = false): Promise<boolean> => {
+// 新システム優先の制御フロー（みなと対応）
+export const handleAiResponseVoice = async (
+  aiResponse: string, 
+  isInitialGreeting: boolean = false,
+  characterId: string = 'akari'
+): Promise<boolean> => {
   console.log(`=== Voice Response Handler ===`);
+  console.log(`Character: ${characterId}`);
   console.log(`🚫 LEGACY SYSTEM: Completely disabled`);
   console.log(`✅ NEW SYSTEM: Full control enabled`);
   
   if (isInitialGreeting) {
     // 初回挨拶は時間帯音声
     console.log(`🎯 Initial greeting - using time-based voice`);
-    return await playSelectedVoice(null, true);
+    return await playSelectedVoiceWithFallback(null, true, characterId);
   }
   
   // AI返答に対する音声判定（新システム）
-  const detailedVoice = selectDetailedVoicePattern(aiResponse);
+  const detailedVoice = selectDetailedVoicePatternForCharacter(aiResponse, characterId);
   
   if (detailedVoice) {
-    console.log(`🎯 NEW SYSTEM: Playing detailed voice pattern`);
-    return await playSelectedVoice(detailedVoice, false);
+    console.log(`🎯 NEW SYSTEM: Playing detailed voice pattern for ${characterId}`);
+    return await playSelectedVoiceWithFallback(detailedVoice, false, characterId);
   }
   
   // 音声なしの場合
   console.log(`🔇 NEW SYSTEM: No voice needed for this response`);
-  return await playSelectedVoice(null, false);
+  return false;
+};
+
+// キャラクター別音声パターン選択（みなと対応）
+const selectDetailedVoicePatternForCharacter = (aiResponse: string, characterId: string): string | null => {
+  console.log(`=== Character Voice Pattern Selection ===`);
+  console.log(`Character: ${characterId}, Analyzing: "${aiResponse}"`);
+  
+  // みなとの場合は音声ファイルが存在しないため、フォールバック処理
+  if (characterId === 'minato') {
+    console.log('⚠️ Minato voice files not available yet - using fallback');
+    
+    // みなと用の感情判定（音声なしだが感情を検出）
+    const hasEmotionalContent = shouldHaveEmotionalVoice(aiResponse);
+    if (hasEmotionalContent) {
+      console.log('🎭 Minato emotional response detected - fallback to text-only');
+      return 'default.wav'; // フォールバック用のプレースホルダー
+    }
+    
+    return null; // 音声なし
+  }
+  
+  // あかりの場合は既存のパターン選択を使用
+  return selectDetailedVoicePattern(aiResponse);
+};
+
+// フォールバック付き音声再生（みなと対応）
+const playSelectedVoiceWithFallback = async (
+  selectedVoice: string | null, 
+  isInitialGreeting: boolean = false,
+  characterId: string = 'akari'
+): Promise<boolean> => {
+  console.log(`=== Voice Playback with Fallback ===`);
+  console.log(`Character: ${characterId}, Voice: ${selectedVoice}, Initial: ${isInitialGreeting}`);
+  
+  // みなとの場合のフォールバック処理
+  if (characterId === 'minato') {
+    if (isInitialGreeting) {
+      console.log('🎭 Minato initial greeting - no voice available yet');
+      return false; // 音声なしで正常動作
+    }
+    
+    if (selectedVoice === 'default.wav') {
+      console.log('🎭 Minato emotional response - fallback to default tone');
+      // default.wavファイルを試行（存在しない場合は正常に失敗）
+      try {
+        const audioPath = `/audio/recorded/default.wav`;
+        if (typeof window !== 'undefined' && window.Audio) {
+          const audio = new Audio(audioPath);
+          await audio.play();
+          console.log('✅ Default fallback voice played');
+          return true;
+        }
+      } catch {
+        console.log('⚠️ Default fallback voice not available - continuing without voice');
+        return false; // エラーではなく正常な動作として処理
+      }
+    }
+    
+    return false; // みなとは基本的に音声なし
+  }
+  
+  // あかりの場合は既存の音声再生を使用
+  return await playSelectedVoice(selectedVoice, isInitialGreeting);
 };
 
 // 【互換性維持】旧関数名でのエイリアス（デバッグ関数参照前に宣言）

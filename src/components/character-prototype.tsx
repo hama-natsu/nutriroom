@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import Image from 'next/image'
 import { useInitialGreeting } from '@/hooks/useInitialGreeting'
 import { getUnifiedTimeSlot, getUnifiedGreetingText } from '@/lib/unified-time-system'
@@ -239,11 +239,47 @@ export function CharacterPrototype({
     }
   }
 
-  // 【緊急修正】直接的な時間帯テキストマッピング
-  const getTimeBasedText = (): string => {
+  // キャラクター別時間帯テキストマッピング（みなと対応） - useCallbackでメモ化
+  const getTimeBasedText = useCallback((): string => {
     const hour = new Date().getHours();
     
-    // 統一システムと完全一致する11段階判定
+    // みなとキャラクターの場合はツンデレ挨拶
+    if (characterId === 'minato') {
+      if (hour >= 1 && hour < 5) {
+        return "チッ...こんな時間まで起きてるのか。体調管理も栄養管理のうちだぞ。";
+      }
+      if (hour >= 5 && hour < 7) {
+        return "早起きか...まあ、悪くないな。朝食はちゃんと摂れよ。";
+      }
+      if (hour >= 7 && hour < 9) {
+        return "別に君を待ってたわけじゃない。栄養相談があるなら聞いてやる。";
+      }
+      if (hour >= 9 && hour < 11) {
+        return "朝食は摂ったのか？摂ってないなら今すぐ食べろ。話はそれからだ。";
+      }
+      if (hour >= 11 && hour < 13) {
+        return "昼食時間だな。バランスの良い食事を心がけろよ...別に心配してるわけじゃない。";
+      }
+      if (hour >= 13 && hour < 15) {
+        return "午後の相談か。まあ、仕方ないな。何が聞きたい？";
+      }
+      if (hour >= 15 && hour < 17) {
+        return "おやつか...糖分も適度なら悪くない。でも食べ過ぎるなよ。";
+      }
+      if (hour >= 17 && hour < 19) {
+        return "一日の疲れが溜まってる時間だな。栄養で疲労回復を図れ。";
+      }
+      if (hour >= 19 && hour < 21) {
+        return "夕食時間だ。今日一日の栄養バランス、ちゃんと考えたのか？";
+      }
+      if (hour >= 21 && hour < 23) {
+        return "夜遅いな...でも相談があるなら聞いてやる。ただし手短にしろ。";
+      }
+      // 23:00-0:59
+      return "こんな時間に...仕方ない、少しだけなら相談に乗ってやる。";
+    }
+    
+    // あかりキャラクターの場合は従来の明るい挨拶
     if (hour >= 1 && hour < 5) {
       return "こんな時間まで...お疲れさまです。早く休んでくださいね〜";
     }
@@ -276,7 +312,7 @@ export function CharacterPrototype({
     }
     // 23:00-0:59
     return "こんばんは...遅い時間ですが、お疲れさまです。明日に備えて早めに休みましょうね〜";
-  };
+  }, [characterId]);
 
   // 挨拶メッセージの設定（統一システム使用）
   useEffect(() => {
@@ -304,7 +340,7 @@ export function CharacterPrototype({
       : baseGreeting
     
     setCurrentMessage(personalizedGreeting)
-  }, [userName, characterId, character])
+  }, [userName, characterId, character, getTimeBasedText])
 
   // スクロール調整
   useEffect(() => {
@@ -434,9 +470,9 @@ export function CharacterPrototype({
             console.log('🚫 BYPASSING ALL LEGACY SYSTEMS - Using new voice handler')
           }
 
-          // 【新システム】レガシー競合を完全回避した音声制御
+          // 【新システム】レガシー競合を完全回避した音声制御（みなと対応）
           try {
-            const voiceSuccess = await handleAiResponseVoice(data.response, false)
+            const voiceSuccess = await handleAiResponseVoice(data.response, false, characterId)
             
             // 🎯 AIメッセージのリアルタイム保存（音声再生と同時）
             if (isReady) {
