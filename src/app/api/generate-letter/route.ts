@@ -161,18 +161,21 @@ export async function POST(request: NextRequest) {
         console.error('❌ Schema error:', schemaError);
       } else {
         console.log('💾 Schema test result:', schemaData);
+        if (schemaData && schemaData.length > 0) {
+          console.log('💾 Available columns:', Object.keys(schemaData[0]));
+        }
       }
     } catch (schemaErr) {
       console.error('❌ Schema check error:', schemaErr);
     }
     
-    // Step 3: 保存データ準備
+    // Step 3: 保存データ準備（安全な最小限のデータ）
     const saveData = {
       character_id: characterId || 'akari',
       letter_content: letterContent,
-      conversation_summary: 'Generated from conversation',
-      user_id: 'anonymous_user_' + Date.now(), // ユニークID
-      created_at: new Date().toISOString()
+      user_id: 'anonymous_user_' + Date.now() // ユニークID
+      // conversation_summary: 存在しないカラムのため削除
+      // created_at: 自動設定の可能性があるため削除
     };
     
     console.log('💾 Step 3: Data to save:', {
