@@ -1,13 +1,27 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Supabase client initialization with error handling
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+let supabase: ReturnType<typeof createClient> | null = null;
+
+if (supabaseUrl && supabaseServiceKey) {
+  supabase = createClient(supabaseUrl, supabaseServiceKey);
+}
 
 export async function GET(request: Request) {
   try {
+    // Environment variables check
+    if (!supabase) {
+      console.error('❌ Supabase client not initialized - missing environment variables');
+      return NextResponse.json(
+        { error: 'Configuration error', details: 'Database not available' },
+        { status: 500 }
+      );
+    }
+
     // 認証チェック (Vercel Cronからのリクエストのみ許可)
     const authHeader = request.headers.get('authorization');
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -28,12 +42,24 @@ export async function GET(request: Request) {
 
     if (usersError) throw usersError;
 
+    // Ensure activeUsers is not null
+    if (!activeUsers) {
+      console.log('📊 アクティブユーザーなし');
+      return NextResponse.json({
+        success: true,
+        timestamp: new Date().toISOString(),
+        processed: 0,
+        success_count: 0,
+        error_count: 0
+      });
+    }
+
     // ユニークなユーザー・キャラクター組み合わせを抽出
     const uniqueUserCharacters = Array.from(
       new Map(
         activeUsers.map(log => [`${log.user_id}-${log.character_id}`, log])
       ).values()
-    );
+    ) as Array<{ user_id: string; character_id: string }>;
 
     console.log(`📊 対象ユーザー数: ${uniqueUserCharacters.length}`);
 
@@ -75,18 +101,18 @@ export async function GET(request: Request) {
         }
 
         // お手紙生成API呼び出し
-        const response = await fetch(`${process.env.VERCEL_URL || 'http://localhost:3000'}/api/generate-letter`, {
+        const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
+        const response = await fetch(`${baseUrl}/api/generate-letter`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             character_id,
             user_id,
-            conversations: conversations.slice(0, 10) // 最新10件
+            conversations: conversations.slice(0, 10)
           })
         });
 
         if (response.ok) {
-          const result = await response.json();
           console.log(`✅ 成功: ${character_id} → ${user_id}`);
           successCount++;
         } else {
@@ -103,7 +129,8 @@ export async function GET(request: Request) {
       }
     }
 
-    const result = {
+    // 結果を返却（この行で result 変数を使用）
+    const cronResult = {
       success: true,
       timestamp: new Date().toISOString(),
       processed: uniqueUserCharacters.length,
@@ -111,8 +138,8 @@ export async function GET(request: Request) {
       error_count: errorCount
     };
 
-    console.log('🎊 22:00自動生成完了:', result);
-    return NextResponse.json(result);
+    console.log('🎊 22:00自動生成完了:', cronResult);
+    return NextResponse.json(cronResult);
 
   } catch (error) {
     console.error('🚨 Cron実行エラー:', error);

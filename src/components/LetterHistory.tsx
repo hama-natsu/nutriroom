@@ -103,6 +103,7 @@ export function LetterHistory({ characterId, characterName, onClose }: LetterHis
   // 初回お手紙履歴ロード
   useEffect(() => {
     loadLetterHistory(true)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [characterId]) // Only characterId dependency to avoid infinite loop
 
   const handleLoadMore = () => {

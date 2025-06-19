@@ -248,6 +248,7 @@ export const useConversationLogger = (characterId: string) => {
       // Reset initialization flag when component unmounts or characterId changes
       initializationRef.current = false
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [characterId]) // Changed to depend only on characterId
 
   // タブ離脱時の処理
