@@ -34,9 +34,26 @@ interface CharacterPrototypeProps {
   characterId: string
   userName?: string
   onBack?: () => void
+  characterName?: string
+  systemPrompt?: string
+  themeConfig?: {
+    primary: string
+    secondary: string
+    accent: string
+    background: string
+  }
+  backgroundImage?: string
 }
 
-export function CharacterPrototype({ characterId, userName, onBack }: CharacterPrototypeProps) {
+export function CharacterPrototype({ 
+  characterId, 
+  userName, 
+  onBack, 
+  characterName,
+  systemPrompt: _systemPrompt,
+  themeConfig: _themeConfig,
+  backgroundImage 
+}: CharacterPrototypeProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [inputText, setInputText] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -499,8 +516,8 @@ export function CharacterPrototype({ characterId, userName, onBack }: CharacterP
       {/* PNG背景イラスト */}
       <div className="absolute inset-0">
         <Image
-          src={`/images/characters/${characterId}-room-full.png`}
-          alt={`${character.name}の部屋`}
+          src={backgroundImage || `/images/characters/${characterId}-room-full.png`}
+          alt={`${characterName || character.name}の部屋`}
           fill
           className="object-cover"
           style={{ objectPosition: backgroundPosition }}

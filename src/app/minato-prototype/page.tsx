@@ -1,5 +1,5 @@
-import { CharacterPrototype } from '@/components/character-prototype'
+import { MinatoCharacter } from '@/components/minato/MinatoCharacter'
 
 export default function MinatoPrototypePage() {
-  return <CharacterPrototype characterId="minato" />
+  return <MinatoCharacter />
 }
