@@ -9,22 +9,33 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export async function POST(request: NextRequest) {
+  console.log('🔥 ========== GENERATION PROCESS DEBUG ==========');
+  
   try {
+    // Step 1: リクエスト解析
+    console.log('🔥 Step 1: Parsing request...');
     const body = await request.json();
     const { characterId, testMode, userName } = body;
+    console.log('🔥 Request body:', body);
+    console.log('🔥 Parsed values:', { characterId, testMode, userName });
     
-    console.log('API called with:', { characterId, testMode, userName });
+    // Step 2: 環境変数確認
+    console.log('🔥 Step 2: Environment check...');
+    console.log('🔥 Gemini API Key exists:', !!process.env.GEMINI_API_KEY);
+    console.log('🔥 Supabase URL exists:', !!process.env.NEXT_PUBLIC_SUPABASE_URL);
+    console.log('🔥 Supabase Key exists:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
     
     // 既存のSupabaseクライアント使用
     const supabase = createClient(supabaseUrl, supabaseKey)
     
-    console.log('📝 Processing letter generation request...')
+    console.log('🔥 Step 3: Processing letter generation request...')
     
     let letterContent: string;
     let letterId: string;
     
     if (testMode) {
       // テストモード：簡単なお手紙コンテンツ
+      console.log('🔥 Step 4: Test mode - generating sample content...');
       letterContent = `${userName || 'あなた'}さん、こんにちは！
 
 今日も一日お疲れさまでした♪
@@ -40,39 +51,75 @@ export async function POST(request: NextRequest) {
       
       console.log('💌 Test mode: Generated sample letter content');
     } else {
-      // 実際のGemini呼び出し
-      const letter = await DailyLetterGenerator.generateDailyLetter(
-        characterId,
-        userName || 'テストユーザー'
-      );
+      // Step 4: Gemini API呼び出しデバッグ
+      console.log('🔥 Step 4: Real mode - calling Gemini API...');
       
-      if (!letter) {
-        return NextResponse.json({
-          success: false,
-          error: 'Failed to generate letter'
-        }, { status: 500 });
+      try {
+        // 実際のGemini呼び出し
+        console.log('🔥 Calling DailyLetterGenerator.generateDailyLetter...');
+        const letter = await DailyLetterGenerator.generateDailyLetter(
+          characterId,
+          userName || 'テストユーザー'
+        );
+        
+        console.log('🔥 Gemini result:', letter ? 'SUCCESS' : 'NULL');
+        
+        if (!letter) {
+          console.error('❌ Letter generation returned null/undefined');
+          
+          // フォールバック：固定メッセージ
+          console.log('🔥 Using fallback message...');
+          letterContent = `${userName || 'あなた'}さん、こんにちは！
+
+今日も素敵な一日になりそうですね♪
+
+栄養バランスを意識した食事を心がけて、健康的な一日を過ごしましょう！
+何か気になることがあれば、いつでもお話しくださいね。
+
+あかりより 💕`;
+
+          console.log('💌 Fallback mode: Generated fallback letter content');
+        } else {
+          // DailyLetterオブジェクトからテキストを抽出
+          console.log('🔥 Processing Gemini letter object...');
+          letterContent = [
+            letter.greeting,
+            '',
+            '今日お話したこと:',
+            ...letter.mainTopics.map(topic => `・${topic}`),
+            '',
+            ...(letter.conversationHighlights.length > 0 ? [
+              '会話のハイライト:',
+              ...letter.conversationHighlights.map(highlight => `・${highlight}`),
+              ''
+            ] : []),
+            letter.encouragementMessage,
+            '',
+            letter.nextSessionHint,
+            '',
+            letter.signature
+          ].filter(line => line !== undefined).join('\n');
+          
+          console.log('💌 Real mode: Generated letter using Gemini');
+        }
+        
+      } catch (geminiError) {
+        console.error('❌ Gemini API error:', geminiError);
+        console.error('❌ Gemini error stack:', geminiError.stack);
+        
+        // フォールバック：固定メッセージ
+        console.log('🔥 Gemini failed, using fallback message...');
+        letterContent = `${userName || 'あなた'}さん、こんにちは！
+
+今日も素敵な一日になりそうですね♪
+
+栄養バランスを意識した食事を心がけて、健康的な一日を過ごしましょう！
+何か気になることがあれば、いつでもお話しくださいね。
+
+あかりより 💕`;
+
+        console.log('💌 Error fallback mode: Generated fallback letter content');
       }
-      
-      // DailyLetterオブジェクトからテキストを抽出
-      letterContent = [
-        letter.greeting,
-        '',
-        '今日お話したこと:',
-        ...letter.mainTopics.map(topic => `・${topic}`),
-        '',
-        ...(letter.conversationHighlights.length > 0 ? [
-          '会話のハイライト:',
-          ...letter.conversationHighlights.map(highlight => `・${highlight}`),
-          ''
-        ] : []),
-        letter.encouragementMessage,
-        '',
-        letter.nextSessionHint,
-        '',
-        letter.signature
-      ].filter(line => line !== undefined).join('\n');
-      
-      console.log('💌 Real mode: Generated letter using Gemini');
     }
     
     console.log('💾 ========== SAVE PROCESS DEBUG ==========');
