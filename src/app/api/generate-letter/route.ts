@@ -190,8 +190,9 @@ export async function POST(request: NextRequest) {
     };
     
     console.log('💾 Step 3: Data to save:', {
-      ...saveData,
-      letter_content: saveData.letter_content.substring(0, 50) + '...'
+      character_id: saveData.character_id,
+      letter_content_length: String(saveData.letter_content).length,
+      user_id: saveData.user_id || 'not_set'
     });
     
     // Step 4: 実際の保存実行
