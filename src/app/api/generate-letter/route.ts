@@ -105,7 +105,14 @@ export async function POST(request: NextRequest) {
         
       } catch (geminiError) {
         console.error('❌ Gemini API error:', geminiError);
-        console.error('❌ Gemini error stack:', geminiError.stack);
+        
+        // 型安全なエラー処理
+        if (geminiError instanceof Error) {
+          console.error('❌ Gemini error stack:', geminiError.stack);
+          console.error('❌ Gemini error message:', geminiError.message);
+        } else {
+          console.error('❌ Unknown gemini error:', String(geminiError));
+        }
         
         // フォールバック：固定メッセージ
         console.log('🔥 Gemini failed, using fallback message...');
