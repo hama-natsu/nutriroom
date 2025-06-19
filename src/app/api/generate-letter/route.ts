@@ -16,9 +16,14 @@ export async function POST(request: NextRequest) {
     // Step 1: リクエスト解析
     console.log('🔥 Step 1: Parsing request...');
     const body = await request.json();
-    const { characterId, testMode, userName } = body;
+    const { characterId, character_id, testMode, userName, cron_mode } = body;
+    
+    // Cronモード対応: character_id → characterId 変換
+    const finalCharacterId = characterId || character_id || 'akari';
+    const isCronMode = cron_mode || false;
+    
     console.log('🔥 Request body:', body);
-    console.log('🔥 Parsed values:', { characterId, testMode, userName });
+    console.log('🔥 Parsed values:', { finalCharacterId, testMode, userName, isCronMode });
     
     // Step 2: 環境変数確認
     console.log('🔥 Step 2: Environment check...');
@@ -59,7 +64,7 @@ export async function POST(request: NextRequest) {
         // 実際のGemini呼び出し
         console.log('🔥 Calling DailyLetterGenerator.generateDailyLetter...');
         const letter = await DailyLetterGenerator.generateDailyLetter(
-          characterId,
+          finalCharacterId,
           userName || 'テストユーザー'
         );
         
@@ -182,7 +187,7 @@ export async function POST(request: NextRequest) {
 
     // まず最小限のデータでテスト（user_idなし）
     const saveData: Record<string, unknown> = {
-      character_id: characterId || 'akari',
+      character_id: finalCharacterId,
       letter_content: letterContent
       // user_id: generatedUUID, // 必要に応じてコメントアウト解除
       // conversation_summary: 存在しないカラムのため削除
@@ -244,7 +249,7 @@ export async function POST(request: NextRequest) {
       data: {
         letterId,
         content: letterContent,
-        characterId,
+        characterId: finalCharacterId,
         date: new Date().toISOString().split('T')[0],
         saved: letterId !== 'unsaved' && letterId !== 'save_error' && letterId !== 'success_no_id'
       }
