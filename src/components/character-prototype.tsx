@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import Image from 'next/image'
 import { useInitialGreeting } from '@/hooks/useInitialGreeting'
 import { getUnifiedTimeSlot, getUnifiedGreetingText } from '@/lib/unified-time-system'
@@ -50,8 +50,8 @@ export function CharacterPrototype({
   userName, 
   onBack, 
   characterName,
-  systemPrompt: _systemPrompt,
-  themeConfig: _themeConfig,
+  systemPrompt,
+  themeConfig,
   backgroundImage 
 }: CharacterPrototypeProps) {
   const [messages, setMessages] = useState<Message[]>([])
@@ -69,8 +69,19 @@ export function CharacterPrototype({
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // キャラクター情報を取得
-  const character = getCharacterById(characterId)
+  // キャラクター情報を取得 (プロパティで上書き可能) - useMemoで最適化
+  const character = useMemo(() => {
+    const baseCharacter = getCharacterById(characterId)
+    return baseCharacter ? {
+      ...baseCharacter,
+      name: characterName || baseCharacter.name,
+      colorTheme: themeConfig ? {
+        primary: themeConfig.primary,
+        secondary: themeConfig.secondary,
+        accent: themeConfig.accent
+      } : baseCharacter.colorTheme
+    } : null
+  }, [characterId, characterName, themeConfig])
 
   // スマート音声エンジン
   const { 
@@ -385,8 +396,9 @@ export function CharacterPrototype({
           characterId: characterId,
           message: inputText,
           conversationHistory: messages.map(m => 
-            `${m.isUser ? 'ユーザー' : character.name}: ${m.text}`
-          )
+            `${m.isUser ? 'ユーザー' : character?.name}: ${m.text}`
+          ),
+          ...(systemPrompt && { systemPrompt })
         })
       })
 

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 const characters = [
   {
@@ -42,10 +43,12 @@ export function CharacterSelector() {
             >
               <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 group-hover:scale-105">
                 <div className="aspect-video relative overflow-hidden">
-                  <img 
+                  <Image
                     src={character.image}
                     alt={character.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    fill
+                    className="object-cover group-hover:scale-110 transition-transform duration-300"
+                    sizes="(max-width: 768px) 100vw, 50vw"
                   />
                 </div>
                 
