@@ -40,9 +40,24 @@ export async function POST(request: NextRequest) {
     let letterId: string;
     
     if (testMode) {
-      // テストモード：簡単なお手紙コンテンツ
+      // テストモード：キャラクター別お手紙コンテンツ
       console.log('🔥 Step 4: Test mode - generating sample content...');
-      letterContent = `${userName || 'あなた'}さん、こんにちは！
+      
+      if (finalCharacterId === 'minato') {
+        letterContent = `${userName || '君'}へ
+
+今日の栄養相談について話したが...まあ、少しは改善の兆しが見えたな。
+
+朝食にヨーグルトとフルーツを取り入れるという話、悪くない判断だ。
+タンパク質とビタミンの摂取バランスを考えれば、理にかなっている。
+
+ただし、これで満足するなよ。継続してこそ意味がある。
+
+明日も食事の報告をしろ。...別に心配しているわけではないが、データとして必要だからな。
+
+みなと`;
+      } else {
+        letterContent = `${userName || 'あなた'}さん、こんにちは！
 
 今日も一日お疲れさまでした♪
 
@@ -54,6 +69,7 @@ export async function POST(request: NextRequest) {
 明日は、お昼ご飯のお話も聞かせてくださいね！
 
 あかりより 💕`;
+      }
       
       console.log('💌 Test mode: Generated sample letter content');
     } else {
@@ -73,9 +89,20 @@ export async function POST(request: NextRequest) {
         if (!letter) {
           console.error('❌ Letter generation returned null/undefined');
           
-          // フォールバック：固定メッセージ
+          // フォールバック：キャラクター別固定メッセージ
           console.log('🔥 Using fallback message...');
-          letterContent = `${userName || 'あなた'}さん、こんにちは！
+          
+          if (finalCharacterId === 'minato') {
+            letterContent = `${userName || '君'}へ
+
+今日の相談、まあ悪くなかった。
+
+栄養バランスを意識した食事を心がけろ。基本的なことだが重要だ。
+何か質問があれば、また来い。
+
+みなと`;
+          } else {
+            letterContent = `${userName || 'あなた'}さん、こんにちは！
 
 今日も素敵な一日になりそうですね♪
 
@@ -83,6 +110,7 @@ export async function POST(request: NextRequest) {
 何か気になることがあれば、いつでもお話しくださいね。
 
 あかりより 💕`;
+          }
 
           console.log('💌 Fallback mode: Generated fallback letter content');
         } else {
@@ -120,9 +148,20 @@ export async function POST(request: NextRequest) {
           console.error('❌ Unknown gemini error:', String(geminiError));
         }
         
-        // フォールバック：固定メッセージ
+        // フォールバック：キャラクター別固定メッセージ
         console.log('🔥 Gemini failed, using fallback message...');
-        letterContent = `${userName || 'あなた'}さん、こんにちは！
+        
+        if (finalCharacterId === 'minato') {
+          letterContent = `${userName || '君'}へ
+
+今日の相談、システムに問題があったが...まあ、時にはこういうこともある。
+
+栄養バランスを意識した食事を心がけろ。基本的なことだが重要だ。
+また明日、相談に来い。
+
+みなと`;
+        } else {
+          letterContent = `${userName || 'あなた'}さん、こんにちは！
 
 今日も素敵な一日になりそうですね♪
 
@@ -130,6 +169,7 @@ export async function POST(request: NextRequest) {
 何か気になることがあれば、いつでもお話しくださいね。
 
 あかりより 💕`;
+        }
 
         console.log('💌 Error fallback mode: Generated fallback letter content');
       }

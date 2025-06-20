@@ -190,7 +190,7 @@ export class DailyLetterGenerator {
         
         if (config.fallbackToLocal) {
           console.log('🔄 Falling back to local generation...')
-          letterContent = this.generateAkariStyleLetter(character, analysis, config, userName)
+          letterContent = this.generateCharacterStyleLetter(character, analysis, config, userName)
         } else {
           throw error
         }
@@ -198,7 +198,7 @@ export class DailyLetterGenerator {
     } else {
       // ローカル生成（従来の方式）
       console.log('💻 Using local letter generation')
-      letterContent = this.generateAkariStyleLetter(character, analysis, config, userName)
+      letterContent = this.generateCharacterStyleLetter(character, analysis, config, userName)
     }
 
     return {
@@ -213,31 +213,109 @@ export class DailyLetterGenerator {
   }
 
   /**
-   * 🤖 Gemini 1.5 Proを使用したお手紙生成
+   * キャラクター別お手紙プロンプト生成
    */
-  private static async generateLetterWithGemini(
+  private static getCharacterLetterPrompt(
     character: { id: string; name: string },
+    userNameDisplay: string,
+    conversationData: string,
     analysis: { topics: string[]; nutritionFocus: boolean; userMessages: { message_content: string }[]; aiMessages: { message_content: string }[] },
-    userName?: string,
-    conversations?: { message_type: string; message_content: string; emotion_detected?: string | null }[],
-    config: LetterGenerationConfig = DEFAULT_CONFIG
-  ): Promise<Pick<DailyLetter, 'greeting' | 'mainTopics' | 'conversationHighlights' | 'encouragementMessage' | 'nextSessionHint' | 'signature'>> {
-    
-    const model = getGeminiModel()
-    if (!model) {
-      throw new Error('Gemini model not available')
+    config: LetterGenerationConfig,
+    timeSlot: 'morning' | 'evening'
+  ): string {
+    if (character.id === 'minato') {
+      return this.getMinatoLetterPrompt(userNameDisplay, conversationData, analysis, config, timeSlot)
+    } else {
+      return this.getAkariLetterPrompt(userNameDisplay, conversationData, analysis, config, timeSlot)
     }
+  }
 
-    // 会話データを整理
-    const conversationData = conversations?.map(conv => 
-      `${conv.message_type === 'user' ? 'ユーザー' : 'あかり'}: ${conv.message_content}`
-    ).join('\n') || ''
+  /**
+   * みなと専用お手紙プロンプト
+   */
+  private static getMinatoLetterPrompt(
+    userNameDisplay: string,
+    conversationData: string,
+    analysis: { topics: string[]; nutritionFocus: boolean; userMessages: { message_content: string }[]; aiMessages: { message_content: string }[] },
+    config: LetterGenerationConfig,
+    timeSlot: 'morning' | 'evening'
+  ): string {
+    return `あなたは「みなと」という26歳男性のツンデレ系スパルタ栄養士です。
+今日1日の会話を振り返って、${userNameDisplay}に手紙を書いてください。
 
-    const userNameDisplay = userName || 'あなた'
-    const timeSlot = this.getTimeSlot()
+【キャラクター設定】
+- 名前: みなと
+- 年齢: 26歳男性
+- 職業: 管理栄養士
+- 性格: ツンデレ、スパルタだが根は優しい、真面目、プライドが高い
+- 話し方: クールで男性的、敬語は使わない、「♪」「♥」「🌸」などの可愛い記号は一切使わない
+- 口癖: 「...別に心配しているわけではないが」「データとして必要だからな」
 
-    // 🎯 あかりキャラクター専用プロンプト設計
-    const letterPrompt = `あなたは「あかり」という元気で温かい管理栄養士です。
+【会話データ】
+${conversationData}
+
+【分析結果】
+- 会話数: ${analysis.userMessages.length + analysis.aiMessages.length}回
+- 栄養関連の話題: ${analysis.nutritionFocus ? 'あり' : 'なし'}
+- 主要トピック: ${analysis.topics.join(', ')}
+
+【設定】
+- 最大トピック数: ${config.maxTopics}個
+- 最大ハイライト数: ${config.maxHighlights}個
+- 栄養アドバイス含む: ${config.includeNutritionAdvice ? 'はい' : 'いいえ'}
+- 明日のヒント含む: ${config.tomorrowHint ? 'はい' : 'いいえ'}
+
+【現在時刻】${timeSlot === 'morning' ? '朝' : '夕方'}
+
+【お手紙の構成】
+以下のJSON形式で回答してください：
+
+{
+  "greeting": "みなとらしいクールな挨拶（2-3文、可愛い記号は一切使わない）",
+  "mainTopics": ["今日話したトピック1", "今日話したトピック2", "今日話したトピック3", "今日話したトピック4"],
+  "conversationHighlights": ["印象深い会話のハイライト1", "印象深い会話のハイライト2", "印象深い会話のハイライト3"],
+  "encouragementMessage": "みなとらしいツンデレな励まし（2-3文、素直じゃないが根は優しい）",
+  "nextSessionHint": "明日への期待（1-2文、ツンデレ要素含む）",
+  "signature": "みなと"
+}
+
+【重要な注意点】
+1. ${userNameDisplay}に対してはクールだが、根の優しさが伝わるように
+2. 栄養士としての専門性を活かした厳しいが的確なアドバイス
+3. 今日の会話内容を具体的に振り返る
+4. 素直になれないが心配している気持ちを表現
+5. 絵文字や可愛い記号は絶対に使わない（♪、🌸、♥、💕など禁止）
+6. JSON形式を厳守（コメントや余切な文字を含めない）
+7. 男性的で威厳のある文体を保つ
+8. 「君」「お前」などの呼び方でも可
+
+【みなとの手紙例】
+"君へ
+
+今日の栄養相談について話したが...まあ、少しは改善の兆しが見えたな。
+
+ヨーグルトとフルーツの組み合わせは悪くない。タンパク質とビタミンの摂取バランスを考えれば、理にかなっている。
+
+ただし、これで満足するなよ。継続してこそ意味がある。
+
+明日も食事の報告をしろ。...別に心配しているわけではないが、データとして必要だからな。
+
+みなと"
+
+必ずJSON形式で回答してください。`
+  }
+
+  /**
+   * あかり専用お手紙プロンプト
+   */
+  private static getAkariLetterPrompt(
+    userNameDisplay: string,
+    conversationData: string,
+    analysis: { topics: string[]; nutritionFocus: boolean; userMessages: { message_content: string }[]; aiMessages: { message_content: string }[] },
+    config: LetterGenerationConfig,
+    timeSlot: 'morning' | 'evening'
+  ): string {
+    return `あなたは「あかり」という元気で温かい管理栄養士です。
 今日1日の会話を振り返って、${userNameDisplay}さんに温かいお手紙を書いてください。
 
 【キャラクター設定】
@@ -284,6 +362,34 @@ ${conversationData}
 7. 各項目は日本語で自然な文章にする
 
 必ずJSON形式で回答してください。`
+  }
+
+  /**
+   * 🤖 Gemini 1.5 Proを使用したお手紙生成
+   */
+  private static async generateLetterWithGemini(
+    character: { id: string; name: string },
+    analysis: { topics: string[]; nutritionFocus: boolean; userMessages: { message_content: string }[]; aiMessages: { message_content: string }[] },
+    userName?: string,
+    conversations?: { message_type: string; message_content: string; emotion_detected?: string | null }[],
+    config: LetterGenerationConfig = DEFAULT_CONFIG
+  ): Promise<Pick<DailyLetter, 'greeting' | 'mainTopics' | 'conversationHighlights' | 'encouragementMessage' | 'nextSessionHint' | 'signature'>> {
+    
+    const model = getGeminiModel()
+    if (!model) {
+      throw new Error('Gemini model not available')
+    }
+
+    // 会話データを整理
+    const conversationData = conversations?.map(conv => 
+      `${conv.message_type === 'user' ? 'ユーザー' : character.name}: ${conv.message_content}`
+    ).join('\n') || ''
+
+    const userNameDisplay = userName || 'あなた'
+    const timeSlot = this.getTimeSlot()
+
+    // 🎯 キャラクター別プロンプト設計
+    const letterPrompt = this.getCharacterLetterPrompt(character, userNameDisplay, conversationData, analysis, config, timeSlot)
 
     let result: { response: { text: () => string } } | null = null
     try {
@@ -313,15 +419,75 @@ ${conversationData}
           : [],
         encouragementMessage: parsedResponse.encouragementMessage,
         nextSessionHint: config.tomorrowHint 
-          ? (parsedResponse.nextSessionHint || '明日も一緒にお話ししましょう♪')
+          ? (parsedResponse.nextSessionHint || (character.id === 'minato' ? '明日も報告しろ。' : '明日も一緒にお話ししましょう♪'))
           : '',
-        signature: parsedResponse.signature || 'あかりより♪'
+        signature: parsedResponse.signature || (character.id === 'minato' ? 'みなと' : 'あかりより♪')
       }
       
     } catch (parseError) {
       console.error('❌ Failed to parse Gemini response:', parseError)
       console.log('📝 Raw Gemini response:', result?.response?.text?.() || 'No response')
       throw new Error(`Gemini response parsing failed: ${parseError}`)
+    }
+  }
+
+  /**
+   * キャラクター別ローカルお手紙生成
+   */
+  private static generateCharacterStyleLetter(
+    character: { id: string; name: string },
+    analysis: { topics: string[]; conversationFlow: string[]; nutritionFocus: boolean; userMessages: { message_content: string }[]; aiMessages: { message_content: string }[] },
+    config: LetterGenerationConfig,
+    userName?: string
+  ): Pick<DailyLetter, 'greeting' | 'mainTopics' | 'conversationHighlights' | 'encouragementMessage' | 'nextSessionHint' | 'signature'> {
+    if (character.id === 'minato') {
+      return this.generateMinatoStyleLetter(character, analysis, config, userName)
+    } else {
+      return this.generateAkariStyleLetter(character, analysis, config, userName)
+    }
+  }
+
+  /**
+   * みなと専用のクールなお手紙生成
+   */
+  private static generateMinatoStyleLetter(
+    _character: { id: string; name: string },
+    analysis: { topics: string[]; conversationFlow: string[]; nutritionFocus: boolean; userMessages: { message_content: string }[]; aiMessages: { message_content: string }[] },
+    config: LetterGenerationConfig,
+    userName?: string
+  ): Pick<DailyLetter, 'greeting' | 'mainTopics' | 'conversationHighlights' | 'encouragementMessage' | 'nextSessionHint' | 'signature'> {
+    
+    const userNameDisplay = userName || '君'
+    
+    // 1. みなと風クールな挨拶
+    const greeting = this.generateMinatoGreeting(userNameDisplay, analysis)
+    
+    // 2. 主要トピック（最大4つ）- みなと風
+    const mainTopics = analysis.topics
+      .slice(0, config.maxTopics)
+      .map(topic => this.formatTopicForMinato(topic))
+    
+    // 3. 会話ハイライト（最大3つ）- みなと風
+    const conversationHighlights = analysis.conversationFlow
+      .slice(0, config.maxHighlights)
+      .map(highlight => this.formatHighlightForMinato(highlight))
+    
+    // 4. ツンデレ励ましメッセージ
+    const encouragementMessage = this.generateMinatoEncouragement(analysis, userNameDisplay)
+    
+    // 5. 明日のヒント（ツンデレ風）
+    const nextSessionHint = this.generateMinatoTomorrowHint(analysis)
+    
+    // 6. みなと署名
+    const signature = 'みなと'
+
+    return {
+      greeting,
+      mainTopics,
+      conversationHighlights,
+      encouragementMessage,
+      nextSessionHint,
+      signature
     }
   }
 
@@ -550,6 +716,99 @@ ${letter.conversationHighlights.length > 0 ?
 ${letter.nextSessionHint}
 
 ${letter.signature}`
+  }
+
+  // ===============================
+  // みなと専用ヘルパー関数
+  // ===============================
+
+  /**
+   * みなと風挨拶生成
+   */
+  private static generateMinatoGreeting(userName: string, analysis: { userMessages: { message_content: string }[]; aiMessages: { message_content: string }[] }): string {
+    const timeSlot = this.getTimeSlot()
+    const conversationCount = analysis.userMessages.length + analysis.aiMessages.length
+
+    const greetings = {
+      morning: [
+        `${userName}へ\n\n朝から栄養相談とは...まあ、悪い心がけではないな。`,
+        `${userName}へ\n\n早起きは良い習慣だ。今日も規則正しい食生活を心がけろ。`,
+        `${userName}へ\n\n朝からの相談、受け付けてやる。`
+      ],
+      evening: [
+        `${userName}へ\n\n今日の栄養管理について話したが...`,
+        `${userName}へ\n\n一日の食事内容、まあ及第点といったところか。`,
+        `${userName}へ\n\n今日も相談に来たな。悪い習慣ではない。`
+      ]
+    }
+
+    const selectedGreetings = greetings[timeSlot] || greetings.evening
+    const baseGreeting = selectedGreetings[Math.floor(Math.random() * selectedGreetings.length)]
+
+    // 会話量に応じた追加メッセージ
+    let additionalMessage = ''
+    if (conversationCount > 10) {
+      additionalMessage = '\n今日は長時間の相談だったな。集中力は認めてやる。'
+    } else if (conversationCount > 5) {
+      additionalMessage = '\nそれなりに真面目に取り組んでいるようだな。'
+    }
+
+    return baseGreeting + additionalMessage
+  }
+
+  /**
+   * みなと風励ましメッセージ生成
+   */
+  private static generateMinatoEncouragement(analysis: { nutritionFocus: boolean }, userName: string): string {
+    const encouragements = [
+      `${userName}の食事管理への意識、まあ悪くない。継続が重要だ。`,
+      `今日の栄養バランス、合格点は出してやる。だが、これで満足するなよ。`,
+      `${userName}の努力は認めてやる。...別に褒めているわけではないが。`,
+      `食事への取り組み方、少しはマシになってきたな。油断するなよ。`,
+      `今日の食事内容について話したが...思ったよりしっかりしている。`
+    ]
+
+    let baseEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)]
+
+    // 栄養フォーカスの場合は特別メッセージ
+    if (analysis.nutritionFocus) {
+      baseEncouragement += '\n栄養バランスを真剣に考える姿勢は評価できる。この調子で続けろ。'
+    }
+
+    return baseEncouragement
+  }
+
+  /**
+   * みなと版明日のヒント生成
+   */
+  private static generateMinatoTomorrowHint(analysis: { nutritionFocus: boolean }): string {
+    const hints = [
+      '明日も食事の報告をしろ。...別に心配しているわけではないが、データとして必要だからな。',
+      '明日は今日より改善された食事内容を期待している。',
+      '明日の食事も手を抜くなよ。継続してこそ意味がある。',
+      '明日も栄養管理の相談に来い。...時間があればの話だがな。',
+      '明日の食事バランス、今日以上のものを見せてもらう。'
+    ]
+
+    if (analysis.nutritionFocus) {
+      return '明日は今日の栄養の話の続きをしよう。...興味があるならの話だがな。'
+    }
+
+    return hints[Math.floor(Math.random() * hints.length)]
+  }
+
+  /**
+   * みなと風トピック整形
+   */
+  private static formatTopicForMinato(topic: string): string {
+    return `・${topic}について話したな`
+  }
+
+  /**
+   * みなと風ハイライト整形
+   */
+  private static formatHighlightForMinato(highlight: string): string {
+    return `・${highlight}という指摘をした`
   }
 }
 
