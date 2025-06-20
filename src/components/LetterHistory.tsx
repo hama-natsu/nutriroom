@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { DailyLetter } from '@/components/DailyLetterSimple'
+import { supabase } from '@/lib/supabase/client'
 
 interface LetterRecord {
   id: string
@@ -18,6 +19,7 @@ interface LetterHistoryProps {
   characterId: string
   characterName: string
   onClose?: () => void
+  onRefreshRequest?: () => void
 }
 
 interface HistoryState {
@@ -26,15 +28,17 @@ interface HistoryState {
   error: string | null
   hasMore: boolean
   offset: number
+  lastRefresh: Date | null
 }
 
-export function LetterHistory({ characterId, characterName, onClose }: LetterHistoryProps) {
+export function LetterHistory({ characterId, characterName, onClose, onRefreshRequest }: LetterHistoryProps) {
   const [state, setState] = useState<HistoryState>({
     letters: [],
     isLoading: true,
     error: null,
     hasMore: true,
-    offset: 0
+    offset: 0,
+    lastRefresh: null
   })
   
   const [selectedLetter, setSelectedLetter] = useState<LetterRecord | null>(null)
@@ -45,6 +49,13 @@ export function LetterHistory({ characterId, characterName, onClose }: LetterHis
   useEffect(() => {
     stateRef.current = state
   }, [state])
+
+  // 外部からのリフレッシュリクエスト対応
+  useEffect(() => {
+    if (onRefreshRequest) {
+      onRefreshRequest()
+    }
+  }, [onRefreshRequest])
 
   // フェードインアニメーション
   useEffect(() => {
@@ -57,6 +68,13 @@ export function LetterHistory({ characterId, characterName, onClose }: LetterHis
       // Use ref to get current offset without adding it to dependencies
       const currentOffset = reset ? 0 : stateRef.current.offset
       
+      console.log('🔄 Loading letter history:', {
+        characterId,
+        reset,
+        currentOffset,
+        timestamp: new Date().toISOString()
+      })
+      
       setState(prev => ({ 
         ...prev, 
         isLoading: true, 
@@ -64,8 +82,9 @@ export function LetterHistory({ characterId, characterName, onClose }: LetterHis
         ...(reset && { letters: [], offset: 0 })
       }))
 
+      // 表示件数を20に増加
       const response = await fetch(
-        `/api/letters/history?characterId=${characterId}&limit=10&offset=${currentOffset}`
+        `/api/letters/history?characterId=${characterId}&limit=20&offset=${currentOffset}`
       )
       
       const result = await response.json()
@@ -83,10 +102,18 @@ export function LetterHistory({ characterId, characterName, onClose }: LetterHis
           hasMore: result.data.pagination.hasMore,
           offset: currentOffset + result.data.letters.length,
           isLoading: false,
-          error: null
+          error: null,
+          lastRefresh: new Date()
         }))
 
         console.log(`📚 Loaded ${result.data.letters.length} letters (total: ${result.data.pagination.total})`)
+        console.log('📊 Letter details:', {
+          characterId,
+          newLetters: result.data.letters.length,
+          totalLettersNow: reset ? result.data.letters.length : stateRef.current.letters.length + result.data.letters.length,
+          hasMore: result.data.pagination.hasMore,
+          latestLetterDate: result.data.letters[0]?.date || 'none'
+        })
       } else {
         throw new Error('Invalid response format')
       }
@@ -105,6 +132,63 @@ export function LetterHistory({ characterId, characterName, onClose }: LetterHis
     loadLetterHistory(true)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [characterId]) // Only characterId dependency to avoid infinite loop
+
+  // Supabaseリアルタイム購読でINSERTイベントを監視
+  useEffect(() => {
+    console.log('🔊 Setting up realtime subscription for:', characterId)
+    
+    const channel = supabase
+      .channel('daily_summaries_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'daily_summaries',
+          filter: `character_id=eq.${characterId}`
+        },
+        (payload) => {
+          console.log('🔥 New letter detected via realtime:', {
+            characterId,
+            newLetterData: payload.new,
+            timestamp: new Date().toISOString()
+          })
+          
+          // 新しいお手紙が挿入された場合、履歴を再取得
+          if (payload.new && (payload.new as unknown as Record<string, unknown>).letter_content) {
+            console.log('📬 Refreshing letter history due to new letter insertion')
+            loadLetterHistory(true)
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 Realtime subscription status:', status)
+      })
+
+    return () => {
+      console.log('🔇 Cleaning up realtime subscription')
+      supabase.removeChannel(channel)
+    }
+  }, [characterId, loadLetterHistory])
+
+  // お手紙生成イベントのリスニング
+  useEffect(() => {
+    const handleLetterGenerated = (event: CustomEvent) => {
+      const { characterId: eventCharacterId } = event.detail
+      if (eventCharacterId === characterId) {
+        console.log('📬 Letter generation event received, refreshing history')
+        setTimeout(() => {
+          loadLetterHistory(true)
+        }, 500) // 少し待ってからリフレッシュ
+      }
+    }
+
+    window.addEventListener('letterGenerated', handleLetterGenerated as EventListener)
+    
+    return () => {
+      window.removeEventListener('letterGenerated', handleLetterGenerated as EventListener)
+    }
+  }, [characterId, loadLetterHistory])
 
   const handleLoadMore = () => {
     if (!state.isLoading && state.hasMore) {
@@ -164,8 +248,30 @@ export function LetterHistory({ characterId, characterName, onClose }: LetterHis
               <h2 className="text-2xl font-bold text-pink-800 mb-2">
                 📚 {characterName}からのお手紙
               </h2>
-              <div className="text-sm text-purple-600">
+              <div className="text-sm text-purple-600 mb-2">
                 過去のお手紙を振り返ってみましょう
+              </div>
+              
+              {/* デバッグ情報と手動リフレッシュボタン */}
+              <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
+                {state.lastRefresh && (
+                  <span>
+                    最終更新: {state.lastRefresh.toLocaleTimeString('ja-JP')}
+                  </span>
+                )}
+                <button
+                  onClick={() => {
+                    console.log('🔄 Manual refresh triggered')
+                    loadLetterHistory(true)
+                  }}
+                  disabled={state.isLoading}
+                  className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 disabled:opacity-50 transition-colors text-xs"
+                >
+                  {state.isLoading ? '更新中...' : '🔄 再読み込み'}
+                </button>
+                <span className="text-green-600">
+                  {state.letters.length}件表示
+                </span>
               </div>
             </div>
           </div>

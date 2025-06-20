@@ -628,6 +628,14 @@ export function CharacterPrototype({
                   })
                   setShowDailyLetter(true)
                   
+                  // お手紙生成成功後、少し待ってからお手紙履歴を強制更新
+                  setTimeout(() => {
+                    console.log('🔄 Triggering letter history refresh after generation')
+                    window.dispatchEvent(new CustomEvent('letterGenerated', { 
+                      detail: { characterId, letterData: result.data }
+                    }))
+                  }, 1000)
+                  
                   if (process.env.NODE_ENV === 'development') {
                     console.log('💌 Daily letter loaded successfully:', result)
                   }

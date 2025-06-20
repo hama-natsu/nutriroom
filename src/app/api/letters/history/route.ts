@@ -24,10 +24,10 @@ export async function GET(request: NextRequest) {
     // URLパラメータ取得
     const { searchParams } = new URL(request.url)
     const characterId = searchParams.get('characterId') || 'akari'
-    const limit = parseInt(searchParams.get('limit') || '10')
+    const limit = parseInt(searchParams.get('limit') || '20') // デフォルトを20に変更
     const offset = parseInt(searchParams.get('offset') || '0')
     
-    console.log('📜 Fetching letter history for:', { characterId, limit, offset })
+    console.log('📜 Fetching letter history for:', { characterId, limit, offset, timestamp: new Date().toISOString() })
     
     // 一時的に認証なしでテスト（開発用）
     const { data: letters, error: fetchError } = await supabase
@@ -75,7 +75,16 @@ export async function GET(request: NextRequest) {
         : 'お手紙内容が見つかりません'
     }))
 
-    console.log(`✅ Retrieved ${formattedLetters.length} letters`)
+    console.log(`✅ Retrieved ${formattedLetters.length} letters for ${characterId}`)
+    console.log('📊 Letter query results:', {
+      characterId,
+      found: formattedLetters.length,
+      limit,
+      offset,
+      hasMore: formattedLetters.length === limit,
+      latestDate: formattedLetters[0]?.date || 'none',
+      letterIds: formattedLetters.map(l => l.id.substring(0, 8) + '...').slice(0, 3)
+    })
 
     return NextResponse.json({
       success: true,
@@ -87,7 +96,12 @@ export async function GET(request: NextRequest) {
           offset,
           hasMore: formattedLetters.length === limit
         },
-        characterId
+        characterId,
+        debug: {
+          queryTimestamp: new Date().toISOString(),
+          databaseResultCount: letters?.length || 0,
+          formattedResultCount: formattedLetters.length
+        }
       }
     })
 
