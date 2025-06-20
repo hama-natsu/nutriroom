@@ -204,6 +204,33 @@ export function LetterHistory({ characterId, characterName, onClose, onRefreshRe
     setSelectedLetter(null)
   }
 
+  // キャラクター別の色設定
+  const getCharacterColors = (charId: string) => {
+    switch (charId) {
+      case 'minato':
+        return {
+          gradient: 'from-blue-50 to-indigo-50',
+          border: 'border-blue-100',
+          title: 'text-blue-800',
+          subtitle: 'text-blue-600',
+          footer: 'from-blue-200 via-indigo-200 to-blue-200',
+          iconGradient: 'from-blue-100 to-indigo-100'
+        }
+      case 'akari':
+      default:
+        return {
+          gradient: 'from-pink-50 to-purple-50',
+          border: 'border-pink-100',
+          title: 'text-pink-800',
+          subtitle: 'text-purple-600',
+          footer: 'from-pink-200 via-purple-200 to-pink-200',
+          iconGradient: 'from-pink-100 to-purple-100'
+        }
+    }
+  }
+
+  const colors = getCharacterColors(characterId)
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     const today = new Date()
@@ -227,12 +254,12 @@ export function LetterHistory({ characterId, characterName, onClose, onRefreshRe
     <>
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div 
-          className={`bg-gradient-to-br from-pink-50 to-purple-50 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden transform transition-all duration-500 ${
+          className={`bg-gradient-to-br ${colors.gradient} rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden transform transition-all duration-500 ${
             isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
           }`}
         >
           {/* ヘッダー */}
-          <div className="relative p-6 pb-4 border-b border-pink-100">
+          <div className={`relative p-6 pb-4 border-b ${colors.border}`}>
             {/* 閉じるボタン */}
             {onClose && (
               <button
@@ -245,10 +272,10 @@ export function LetterHistory({ characterId, characterName, onClose, onRefreshRe
             
             {/* タイトル */}
             <div className="text-center">
-              <h2 className="text-2xl font-bold text-pink-800 mb-2">
+              <h2 className={`text-2xl font-bold ${colors.title} mb-2`}>
                 📚 {characterName}からのお手紙
               </h2>
-              <div className="text-sm text-purple-600 mb-2">
+              <div className={`text-sm ${colors.subtitle} mb-2`}>
                 過去のお手紙を振り返ってみましょう
               </div>
               
@@ -318,11 +345,11 @@ export function LetterHistory({ characterId, characterName, onClose, onRefreshRe
                   <div
                     key={letter.id}
                     onClick={() => handleLetterClick(letter)}
-                    className="bg-white rounded-xl p-4 shadow-sm border border-pink-100 hover:shadow-md hover:border-pink-200 transition-all cursor-pointer group"
+                    className={`bg-white rounded-xl p-4 shadow-sm border ${colors.border} hover:shadow-md transition-all cursor-pointer group`}
                   >
                     <div className="flex items-start gap-4">
                       {/* 日付アイコン */}
-                      <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-pink-100 to-purple-100 rounded-full flex items-center justify-center">
+                      <div className={`flex-shrink-0 w-12 h-12 bg-gradient-to-br ${colors.iconGradient} rounded-full flex items-center justify-center`}>
                         <span className="text-lg">💌</span>
                       </div>
                       
@@ -373,7 +400,7 @@ export function LetterHistory({ characterId, characterName, onClose, onRefreshRe
           </div>
 
           {/* フッター装飾 */}
-          <div className="h-2 bg-gradient-to-r from-pink-200 via-purple-200 to-pink-200"></div>
+          <div className={`h-2 bg-gradient-to-r ${colors.footer}`}></div>
         </div>
       </div>
 
@@ -383,6 +410,7 @@ export function LetterHistory({ characterId, characterName, onClose, onRefreshRe
           date={selectedLetter.date}
           content={selectedLetter.content}
           characterName={characterName}
+          characterId={characterId}
           onClose={handleCloseSelectedLetter}
         />
       )}
