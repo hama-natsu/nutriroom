@@ -919,33 +919,44 @@ const playSelectedVoice = async (selectedVoice: string | null, isInitialGreeting
   return false;
 };
 
-// 新システム優先の制御フロー（みなと対応）
+// 【完全新システム】レガシー除去済み音声ハンドラー（みなと専用）
 export const handleAiResponseVoice = async (
   aiResponse: string, 
   isInitialGreeting: boolean = false,
   characterId: string = 'akari'
 ): Promise<boolean> => {
-  console.log(`=== Voice Response Handler ===`);
-  console.log(`Character: ${characterId}`);
-  console.log(`🚫 LEGACY SYSTEM: Completely disabled`);
-  console.log(`✅ NEW SYSTEM: Full control enabled`);
+  console.log(`=== 完全新システム Voice Response Handler ===`);
+  console.log(`Character: ${characterId}, Initial: ${isInitialGreeting}`);
+  console.log(`Response: "${aiResponse.substring(0, 50)}..."`);
+  console.log(`🗑️ LEGACY SYSTEM: 完全除去済み`);
   
   if (isInitialGreeting) {
-    // 初回挨拶は時間帯音声
+    // 初回挨拶は時間帯音声（キャラクター別）
     console.log(`🎯 Initial greeting - using time-based voice`);
-    return await playSelectedVoiceWithFallback(null, true, characterId);
+    const timeVoice = getTimeBasedVoice(characterId);
+    return await playDirectVoice(timeVoice, characterId);
   }
   
-  // AI返答に対する音声判定（新システム）
-  const detailedVoice = selectDetailedVoicePatternForCharacter(aiResponse, characterId);
-  
-  if (detailedVoice) {
-    console.log(`🎯 NEW SYSTEM: Playing detailed voice pattern for ${characterId}`);
-    return await playSelectedVoiceWithFallback(detailedVoice, false, characterId);
+  // みなとの場合は専用感情音声システム
+  if (characterId === 'minato') {
+    console.log(`🎭 Minato character - using dedicated emotional voice system`);
+    const minatoVoice = selectMinatoEmotionalVoice(aiResponse);
+    if (minatoVoice) {
+      console.log(`🎵 Selected Minato voice: ${minatoVoice}`);
+      return await playDirectVoice(minatoVoice, characterId);
+    }
+    console.log(`🔇 No emotional pattern matched for Minato`);
+    return false;
   }
   
-  // 音声なしの場合
-  console.log(`🔇 NEW SYSTEM: No voice needed for this response`);
+  // あかりの場合は既存システム
+  const akariVoice = selectDetailedVoicePattern(aiResponse);
+  if (akariVoice) {
+    console.log(`🎵 Selected Akari voice: ${akariVoice}`);
+    return await playDirectVoice(akariVoice, characterId);
+  }
+  
+  console.log(`🔇 No voice needed for this response`);
   return false;
 };
 
@@ -1004,12 +1015,65 @@ async function playMinatoVoiceWithFallback(voiceFile: string, characterId: strin
   }
 }
 
+// 【直接音声再生】レガシーシステム完全除去版
+async function playDirectVoice(voiceFile: string, characterId: string): Promise<boolean> {
+  console.log(`=== Direct Voice Playback System ===`);
+  console.log(`Playing: ${voiceFile} for ${characterId}`);
+  
+  try {
+    const audioPath = characterId === 'minato' 
+      ? `/audio/recorded/minato/${voiceFile}`
+      : `/audio/recorded/akari/${voiceFile}`;
+    
+    console.log(`🎵 Loading voice file: ${audioPath}`);
+    
+    if (typeof window !== 'undefined' && window.Audio) {
+      const audio = new Audio(audioPath);
+      
+      // ファイル存在確認とタイムアウト処理
+      return new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+          console.log(`⚠️ Voice file timeout: ${voiceFile}`);
+          resolve(false);
+        }, 3000);
+        
+        audio.oncanplay = async () => {
+          clearTimeout(timeout);
+          try {
+            await audio.play();
+            console.log(`✅ Successfully played voice: ${voiceFile}`);
+            resolve(true);
+          } catch (playError) {
+            console.log(`❌ Failed to play voice: ${voiceFile}`, playError);
+            resolve(false);
+          }
+        };
+        
+        audio.onerror = () => {
+          clearTimeout(timeout);
+          console.log(`❌ Voice file not found: ${voiceFile}`);
+          resolve(false);
+        };
+        
+        audio.load();
+      });
+    } else {
+      console.log('⚠️ Audio not available in current environment');
+      return false;
+    }
+  } catch (error) {
+    console.log(`❌ Critical error loading voice: ${voiceFile}`, error);
+    return false;
+  }
+}
+
 // キャラクター別音声パターン選択（あかり専用）
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const selectDetailedVoicePatternForCharacter = (aiResponse: string, characterId: string): string | null => {
   console.log(`=== Character Voice Pattern Selection ===`);
   console.log(`Character: ${characterId}, Analyzing: "${aiResponse}"`);
   
-  // みなとの場合は専用システムを使用（この関数では処理しない）
+  // みなとの場合は専用システムを使用（この関数は使用しない）
   if (characterId === 'minato') {
     console.log('🎭 Minato character - using dedicated emotional voice system');
     return null;
