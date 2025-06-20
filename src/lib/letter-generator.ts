@@ -440,9 +440,9 @@ ${conversationData}
           : [],
         encouragementMessage: parsedResponse.encouragementMessage,
         nextSessionHint: config.tomorrowHint 
-          ? (parsedResponse.nextSessionHint || (character.id === 'minato' ? '明日も報告しろ。' : '明日も一緒にお話ししましょう♪'))
+          ? (parsedResponse.nextSessionHint || (character.id === 'minato' ? '明日も報告しろ。' : '明日も一緒にお話ししましょう'))
           : '',
-        signature: parsedResponse.signature || (character.id === 'minato' ? 'みなと' : 'あかりより♪')
+        signature: parsedResponse.signature || (character.id === 'minato' ? 'みなと' : 'あかり')
       }
       
     } catch (parseError) {
@@ -636,10 +636,10 @@ ${conversationData}
    */
   private static generateAkariSignature(): string {
     const signatures = [
-      'あかりより♪',
-      'あかり🌸',
-      '栄養士 あかり♪',
-      'あなたの栄養士、あかりより♪'
+      'あかりより',
+      'あかり',
+      '栄養士 あかり',
+      'あなたの栄養士、あかりより'
     ]
 
     return signatures[Math.floor(Math.random() * signatures.length)]
