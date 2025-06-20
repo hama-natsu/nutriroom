@@ -217,7 +217,7 @@ export async function playDefaultVoice(characterId: string): Promise<boolean> {
   })
 }
 
-// 🎯 現在時刻に基づく自動時間帯判定 - time-greeting.tsと統一
+// 🎯 現在時刻に基づく自動時間帯判定 - 統一システム対応
 export function getCurrentTimeSlot(): TimeSlot {
   const now = new Date();
   const hour = now.getHours();

@@ -74,20 +74,23 @@ export function useInitialGreeting({
       })
 
       // 動的インポートで循環参照を回避
-      const { playSmartGreeting, getCurrentTimeSlot } = await import('@/lib/voice-player')
-      const { getTimeSlotGreeting } = await import('@/lib/time-greeting')
+      const { handleUnifiedVoiceResponse, getUnifiedTimeSlot } = await import('@/lib/unified-voice-system')
       
-      // 時間帯に応じた挨拶メッセージを取得
-      const timeSlot = getCurrentTimeSlot()
-      const greetingMessage = getTimeSlotGreeting(timeSlot)
+      // 統一システムを使用した時間帯取得
+      const timeSlot = getUnifiedTimeSlot()
       
-      console.log('🌅 Time-based greeting:', {
+      console.log('🌅 Unified time-based greeting:', {
+        characterId,
         timeSlot,
-        message: greetingMessage.substring(0, 20) + '...'
+        timestamp: new Date().toISOString()
       })
 
-      // スマート音声での挨拶再生
-      const success = await playSmartGreeting(characterId)
+      // 統一音声システムでの初期挨拶再生（型チェック省略）
+      const validCharacters = ['akari', 'minato', 'yuki', 'riku', 'mao', 'satsuki', 'sora']
+      if (!validCharacters.includes(characterId)) {
+        throw new Error(`Unsupported character: ${characterId}`)
+      }
+      const success = await handleUnifiedVoiceResponse(characterId as 'akari' | 'minato' | 'yuki' | 'riku' | 'mao' | 'satsuki' | 'sora', undefined, true)
       
       if (success) {
         // グローバル状態を更新（セッション全体で共有）

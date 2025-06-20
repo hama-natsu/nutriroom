@@ -1,6 +1,21 @@
-// 🧪 時間帯判定テストユーティリティ
+// 🧪 時間帯判定テストユーティリティ - 統一システム対応
 
-import { getCurrentTimeSlot, getTimeSlotGreeting, getTimeSlotDescription, getTimeSlotForHour } from '@/lib/time-greeting'
+import { getUnifiedTimeSlot, getUnifiedGreetingText, getUnifiedTimeDescription, UnifiedTimeSlot } from '@/lib/unified-time-system'
+
+// 時間帯判定ヘルパー関数
+function getTimeSlotForHour(hour: number): UnifiedTimeSlot {
+  if (hour >= 1 && hour < 5) return 'very_late'
+  if (hour >= 5 && hour < 7) return 'morning_early'
+  if (hour >= 7 && hour < 9) return 'morning'
+  if (hour >= 9 && hour < 11) return 'morning_late'
+  if (hour >= 11 && hour < 13) return 'lunch'
+  if (hour >= 13 && hour < 15) return 'afternoon'
+  if (hour >= 15 && hour < 17) return 'snack'
+  if (hour >= 17 && hour < 19) return 'evening'
+  if (hour >= 19 && hour < 21) return 'dinner'
+  if (hour >= 21 && hour < 23) return 'night'
+  return 'late'
+}
 
 export interface TimeSlotTestResult {
   hour: number
@@ -16,10 +31,11 @@ export function testAllTimeSlots(): TimeSlotTestResult[] {
   const testHours = [0, 1, 2, 5, 6, 9, 11, 12, 15, 17, 18, 20, 21, 22, 23]
   
   return testHours.map(hour => {
+    // 統一システムを使用
     const timeSlot = getTimeSlotForHour(hour)
-    const greeting = getTimeSlotGreeting(timeSlot)
-    const description = getTimeSlotDescription(timeSlot)
-    const expectedVoiceFile = `akari_${timeSlot}_normal.wav`
+    const greeting = getUnifiedGreetingText(timeSlot)
+    const description = getUnifiedTimeDescription(timeSlot)
+    const expectedVoiceFile = `akari_${timeSlot}.wav`
     
     return {
       hour,
@@ -35,10 +51,10 @@ export function testAllTimeSlots(): TimeSlotTestResult[] {
 export function testCurrentTimeSlot(): TimeSlotTestResult {
   const now = new Date()
   const hour = now.getHours()
-  const timeSlot = getCurrentTimeSlot()
-  const greeting = getTimeSlotGreeting(timeSlot)
-  const description = getTimeSlotDescription(timeSlot)
-  const expectedVoiceFile = `akari_${timeSlot}_normal.wav`
+  const timeSlot = getUnifiedTimeSlot()
+  const greeting = getUnifiedGreetingText(timeSlot)
+  const description = getUnifiedTimeDescription(timeSlot)
+  const expectedVoiceFile = `akari_${timeSlot}.wav`
   
   return {
     hour,
@@ -78,16 +94,30 @@ export function debugTimeSlotSystem(): void {
     console.log('')
   })
   
-  console.log('🔍 VALIDATION:')
-  const nightHours = allTests.filter(t => t.timeSlot === 'night')
+  console.log('🔍 VALIDATION (統一システム):')
+  const veryLateHours = allTests.filter(t => t.timeSlot === 'very_late')
+  const morningEarlyHours = allTests.filter(t => t.timeSlot === 'morning_early')
   const morningHours = allTests.filter(t => t.timeSlot === 'morning')
+  const morningLateHours = allTests.filter(t => t.timeSlot === 'morning_late')
+  const lunchHours = allTests.filter(t => t.timeSlot === 'lunch')
   const afternoonHours = allTests.filter(t => t.timeSlot === 'afternoon')
+  const snackHours = allTests.filter(t => t.timeSlot === 'snack')
   const eveningHours = allTests.filter(t => t.timeSlot === 'evening')
+  const dinnerHours = allTests.filter(t => t.timeSlot === 'dinner')
+  const nightHours = allTests.filter(t => t.timeSlot === 'night')
+  const lateHours = allTests.filter(t => t.timeSlot === 'late')
   
-  console.log(`Night (22:00-05:59): Hours ${nightHours.map(t => t.hour).join(', ')}`)
-  console.log(`Morning (06:00-11:59): Hours ${morningHours.map(t => t.hour).join(', ')}`)
-  console.log(`Afternoon (12:00-17:59): Hours ${afternoonHours.map(t => t.hour).join(', ')}`)
-  console.log(`Evening (18:00-21:59): Hours ${eveningHours.map(t => t.hour).join(', ')}`)
+  console.log(`Very Late (1:00-4:59): Hours ${veryLateHours.map(t => t.hour).join(', ')}`)
+  console.log(`Morning Early (5:00-6:59): Hours ${morningEarlyHours.map(t => t.hour).join(', ')}`)
+  console.log(`Morning (7:00-8:59): Hours ${morningHours.map(t => t.hour).join(', ')}`)
+  console.log(`Morning Late (9:00-10:59): Hours ${morningLateHours.map(t => t.hour).join(', ')}`)
+  console.log(`Lunch (11:00-12:59): Hours ${lunchHours.map(t => t.hour).join(', ')}`)
+  console.log(`Afternoon (13:00-14:59): Hours ${afternoonHours.map(t => t.hour).join(', ')}`)
+  console.log(`Snack (15:00-16:59): Hours ${snackHours.map(t => t.hour).join(', ')}`)
+  console.log(`Evening (17:00-18:59): Hours ${eveningHours.map(t => t.hour).join(', ')}`)
+  console.log(`Dinner (19:00-20:59): Hours ${dinnerHours.map(t => t.hour).join(', ')}`)
+  console.log(`Night (21:00-22:59): Hours ${nightHours.map(t => t.hour).join(', ')}`)
+  console.log(`Late (23:00-0:59): Hours ${lateHours.map(t => t.hour).join(', ')}`)
   
   console.log('=' .repeat(60))
 }
