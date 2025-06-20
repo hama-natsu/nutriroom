@@ -117,7 +117,7 @@ export function LetterHistory({ characterId, characterName, onClose, onRefreshRe
 
         // フロントエンド側でも順序確認
         console.log('📋 フロントエンド: 取得したお手紙の順序確認:')
-        result.data.letters.forEach((letter, index) => {
+        result.data.letters.forEach((letter: any, index: number) => {
           console.log(`  ${index}: ${letter.date} (作成: ${letter.createdAt}) - "${letter.preview}"`)
         })
         
