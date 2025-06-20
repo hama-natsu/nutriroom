@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
 
 明日は、お昼ご飯のお話も聞かせてくださいね！
 
-あかりより 💕`;
+あかり`;
       }
       
       console.log('💌 Test mode: Generated sample letter content');
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
 栄養バランスを意識した食事を心がけて、健康的な一日を過ごしましょう！
 何か気になることがあれば、いつでもお話しくださいね。
 
-あかりより 💕`;
+あかり`;
           }
 
           console.log('💌 Fallback mode: Generated fallback letter content');
@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
 栄養バランスを意識した食事を心がけて、健康的な一日を過ごしましょう！
 何か気になることがあれば、いつでもお話しくださいね。
 
-あかりより 💕`;
+あかり`;
         }
 
         console.log('💌 Error fallback mode: Generated fallback letter content');

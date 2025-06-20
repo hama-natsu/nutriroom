@@ -635,14 +635,7 @@ ${conversationData}
    * あかり風署名
    */
   private static generateAkariSignature(): string {
-    const signatures = [
-      'あかりより',
-      'あかり',
-      '栄養士 あかり',
-      'あなたの栄養士、あかりより'
-    ]
-
-    return signatures[Math.floor(Math.random() * signatures.length)]
+    return 'あかり'
   }
 
   // ===============================

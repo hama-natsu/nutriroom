@@ -352,7 +352,15 @@ export function LetterHistory({ characterId, characterName, onClose, onRefreshRe
             ) : (
               // お手紙一覧（スクロール対応）
               <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                {state.letters.map((letter) => (
+                {(() => {
+                  // フロントエンド側でソート処理を追加（新しい順）
+                  const sortedLetters = [...state.letters].sort((a, b) => {
+                    const dateA = new Date(a.createdAt || a.date);
+                    const dateB = new Date(b.createdAt || b.date);
+                    return dateB.getTime() - dateA.getTime(); // 新しい順
+                  });
+                  
+                  return sortedLetters.map((letter) => (
                   <div
                     key={letter.id}
                     onClick={() => handleLetterClick(letter)}
@@ -385,7 +393,8 @@ export function LetterHistory({ characterId, characterName, onClose, onRefreshRe
                       </div>
                     </div>
                   </div>
-                ))}
+                  ))
+                })()}
 
                 {/* もっと見るボタン */}
                 {state.hasMore && (
