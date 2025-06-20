@@ -40,23 +40,14 @@ export function getUnifiedTimeSlot(): UnifiedTimeSlot {
   return 'late' // 23:00-0:59
 }
 
-// 【スプレッドシート準拠】音声ファイル名生成
-export function getUnifiedVoiceFile(timeSlot: UnifiedTimeSlot): string {
-  const voiceMapping: Record<UnifiedTimeSlot, string> = {
-    very_late: 'akari_very_late.wav',
-    morning_early: 'akari_morning_early.wav',
-    morning: 'akari_morning.wav',
-    morning_late: 'akari_morning_late.wav',
-    lunch: 'akari_lunch.wav',
-    afternoon: 'akari_afternoon.wav',
-    snack: 'akari_snack.wav',
-    evening: 'akari_evening.wav',
-    dinner: 'akari_dinner.wav',
-    night: 'akari_night.wav',
-    late: 'akari_late.wav'
-  }
-  
-  return voiceMapping[timeSlot]
+// 【統一システム対応】音声ファイル名生成（全キャラクター対応）
+export function getUnifiedVoiceFile(timeSlot: UnifiedTimeSlot, characterId: string = 'akari'): string {
+  return `${characterId}_${timeSlot}.wav`
+}
+
+// 【レガシー互換】あかり専用関数（既存コード互換性のため）
+export function getAkariVoiceFile(timeSlot: UnifiedTimeSlot): string {
+  return getUnifiedVoiceFile(timeSlot, 'akari')
 }
 
 // 【スプレッドシート準拠】テキスト挨拶生成
@@ -98,12 +89,12 @@ export function getUnifiedTimeDescription(timeSlot: UnifiedTimeSlot): string {
   return descriptions[timeSlot]
 }
 
-// 【音声・テキスト同期生成】メイン関数
-export function generateSyncedGreeting(): SyncedGreeting {
+// 【音声・テキスト同期生成】メイン関数（全キャラクター対応）
+export function generateSyncedGreeting(characterId: string = 'akari'): SyncedGreeting {
   const now = new Date()
   const hour = now.getHours()
   const timeSlot = getUnifiedTimeSlot()
-  const voiceFile = getUnifiedVoiceFile(timeSlot)
+  const voiceFile = getUnifiedVoiceFile(timeSlot, characterId)
   const text = getUnifiedGreetingText(timeSlot)
   const description = getUnifiedTimeDescription(timeSlot)
   
@@ -138,8 +129,9 @@ export function verifySynchronization(): {
   const greeting = generateSyncedGreeting()
   const errors: string[] = []
   
-  // 音声ファイル名と時間帯の一致確認
-  const expectedVoiceFile = `akari_${greeting.timeSlot}.wav`
+  // 音声ファイル名と時間帯の一致確認（キャラクター名を考慮）
+  const characterId = greeting.voiceFile.split('_')[0] || 'akari'
+  const expectedVoiceFile = `${characterId}_${greeting.timeSlot}.wav`
   if (greeting.voiceFile !== expectedVoiceFile) {
     errors.push(`Voice file mismatch: expected ${expectedVoiceFile}, got ${greeting.voiceFile}`)
   }

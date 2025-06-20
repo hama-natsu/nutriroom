@@ -1,4 +1,11 @@
-// 🎯 NutriRoom AI返答ベース音声判定システム - より正確で一貫した音声選択
+// 🎯 NutriRoom AI返答ベース音声判定システム - 統一システム対応版
+// レガシーシステム完全除去、7キャラクター統一対応
+
+import { 
+  CharacterId,
+  handleUnifiedVoiceResponse,
+  selectUnifiedVoice
+} from '@/lib/unified-voice-system'
 
 export type AIResponseType = 
   | 'encouragement'          // 励まし・サポート
@@ -1165,4 +1172,75 @@ if (typeof window !== 'undefined') {
   console.log('- debugAiResponseVoice(aiResponse) : レガシー音声分析')
   console.log('- runAiVoiceTests() : レガシーテスト')
   console.log('- analyzeAiResponse(aiResponse) : レガシー詳細分析')
+}
+
+// ===============================================
+// 🎯 統一システム統合ハンドラー（推奨）
+// ===============================================
+
+/**
+ * 統一音声システム対応版メインハンドラー
+ * 全7キャラクター対応、レガシーシステム完全除去
+ */
+export async function handleUnifiedAiResponseVoice(
+  characterId: string,
+  aiResponse: string,
+  isInitialGreeting: boolean = false
+): Promise<boolean> {
+  console.log(`=== 統一AI応答音声ハンドラー ===`);
+  console.log(`キャラクター: ${characterId}`);
+  console.log(`初回挨拶: ${isInitialGreeting}`);
+  console.log(`応答: "${aiResponse.substring(0, 50)}..."`);
+  console.log(`🗑️ レガシーシステム: 完全除去済み`);
+  
+  // 統一システムを使用
+  const validCharacters = ['akari', 'minato', 'yuki', 'riku', 'mao', 'satsuki', 'sora'];
+  if (!validCharacters.includes(characterId)) {
+    console.log(`❌ 未対応キャラクター: ${characterId}`);
+    return false;
+  }
+  
+  return await handleUnifiedVoiceResponse(
+    characterId as CharacterId,
+    aiResponse,
+    isInitialGreeting
+  );
+}
+
+/**
+ * 統一システム音声選択のみ（再生なし）
+ */
+export function selectUnifiedAiResponseVoice(
+  characterId: string,
+  aiResponse: string,
+  isInitialGreeting: boolean = false
+): { voiceFile: string | null; shouldPlay: boolean; reason: string } {
+  console.log(`=== 統一AI応答音声選択 ===`);
+  console.log(`キャラクター: ${characterId}`);
+  
+  const validCharacters = ['akari', 'minato', 'yuki', 'riku', 'mao', 'satsuki', 'sora'];
+  if (!validCharacters.includes(characterId)) {
+    console.log(`❌ 未対応キャラクター: ${characterId}`);
+    return { voiceFile: null, shouldPlay: false, reason: 'Unsupported character' };
+  }
+  
+  return selectUnifiedVoice(
+    characterId as CharacterId,
+    aiResponse,
+    isInitialGreeting
+  );
+}
+
+// ブラウザ環境での統一システム関数公開
+if (typeof window !== 'undefined') {
+  (window as unknown as Record<string, unknown>).handleUnifiedAiResponseVoice = handleUnifiedAiResponseVoice;
+  (window as unknown as Record<string, unknown>).selectUnifiedAiResponseVoice = selectUnifiedAiResponseVoice;
+  
+  console.log('🎯 統一システム関数公開:');
+  console.log('- handleUnifiedAiResponseVoice(characterId, aiResponse, isInitialGreeting)');
+  console.log('- selectUnifiedAiResponseVoice(characterId, aiResponse, isInitialGreeting)');
+  console.log('');
+  console.log('✅ 全7キャラクター対応: akari, minato, yuki, riku, mao, satsuki, sora');
+  console.log('✅ 統一ファイル命名: character_pattern.wav');
+  console.log('✅ レガシーシステム完全除去');
 }

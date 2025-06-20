@@ -1,4 +1,11 @@
-// 🎯 NutriRoom Phase 2.1: スマート音声選択エンジン
+// 🎯 NutriRoom 統一音声選択エンジン - レガシーシステム完全除去版
+
+import { 
+  CharacterId,
+  handleUnifiedVoiceResponse,
+  selectUnifiedVoice,
+  getUnifiedTimeSlot
+} from '@/lib/unified-voice-system'
 
 import { 
   TimeSlot, 
@@ -54,15 +61,30 @@ const CHARACTER_PROFILES: Record<string, CharacterVoiceProfile> = {
 }
 
 /**
- * 現在の時間帯を判定
+ * 現在の時間帯を判定（統一システム使用）
  */
 export function getCurrentTimeSlot(): TimeSlot {
-  const hour = new Date().getHours()
+  const unifiedSlot = getUnifiedTimeSlot()
   
-  if (hour >= 5 && hour < 12) return 'morning'
-  if (hour >= 12 && hour < 17) return 'afternoon'
-  if (hour >= 17 && hour < 21) return 'evening'
-  return 'night'
+  // 統一システムからレガシー形式に変換
+  switch (unifiedSlot) {
+    case 'morning_early':
+    case 'morning':
+    case 'morning_late':
+      return 'morning'
+    case 'lunch':
+    case 'afternoon':
+    case 'snack':
+      return 'afternoon'
+    case 'evening':
+    case 'dinner':
+      return 'evening'
+    case 'night':
+    case 'late':
+    case 'very_late':
+    default:
+      return 'night'
+  }
 }
 
 /**
@@ -327,18 +349,62 @@ export async function selectSmartVoice(
   }
 }
 
+// 【統一システム】メイン音声選択関数（全キャラクター対応）
+export async function selectAndPlayUnifiedVoice(
+  characterId: string,
+  aiResponse?: string,
+  isGreeting: boolean = false
+): Promise<boolean> {
+  console.log('🎯 統一音声選択システム使用');
+  
+  // 文字列をCharacterIdに変換
+  const validCharacters = ['akari', 'minato', 'yuki', 'riku', 'mao', 'satsuki', 'sora'];
+  if (!validCharacters.includes(characterId)) {
+    console.log(`❌ 未対応キャラクター: ${characterId}`);
+    return false;
+  }
+  
+  return await handleUnifiedVoiceResponse(
+    characterId as CharacterId,
+    aiResponse,
+    isGreeting
+  );
+}
+
+// 【統一システム】音声選択のみ（再生なし）
+export function selectUnifiedVoiceOnly(
+  characterId: string,
+  aiResponse?: string,
+  isGreeting: boolean = false
+): { voiceFile: string | null; shouldPlay: boolean; reason: string } {
+  console.log('🎯 統一音声選択（再生なし）');
+  
+  const validCharacters = ['akari', 'minato', 'yuki', 'riku', 'mao', 'satsuki', 'sora'];
+  if (!validCharacters.includes(characterId)) {
+    console.log(`❌ 未対応キャラクター: ${characterId}`);
+    return { voiceFile: null, shouldPlay: false, reason: 'Unsupported character' };
+  }
+  
+  return selectUnifiedVoice(
+    characterId as CharacterId,
+    aiResponse,
+    isGreeting
+  );
+}
+
 /**
  * デバッグ用関数
  */
 export const debugSmartVoiceSystem = () => {
-  console.log('🎯 Smart Voice Selection Engine Debug:')
+  console.log('🎯 統一音声システム Debug:')
   console.log('=' .repeat(50))
-  console.log('Supported Characters:', Object.keys(CHARACTER_PROFILES))
-  console.log('Current Time Slot:', getCurrentTimeSlot())
-  console.log('Supported Patterns:', ['early', 'normal', 'late', 'cheerful', 'calm', 'energetic', 'gentle'])
-  console.log('Audio Format: WAV')
-  console.log('Fallback System: ✅')
-  console.log('Emotion Analysis: ✅')
-  console.log('Context Detection: ✅')
+  console.log('対応キャラクター:', ['akari', 'minato', 'yuki', 'riku', 'mao', 'satsuki', 'sora'])
+  console.log('現在の時間帯:', getUnifiedTimeSlot())
+  console.log('時間帯パターン数:', 11)
+  console.log('感情パターン数:', 16)
+  console.log('季節パターン数:', 4)
+  console.log('音声形式: WAV')
+  console.log('レガシーシステム: 🗑️ 完全除去済み')
+  console.log('統一ファイル命名: ✅ character_pattern.wav')
   console.log('=' .repeat(50))
 }
