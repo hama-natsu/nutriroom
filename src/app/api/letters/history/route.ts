@@ -86,6 +86,22 @@ export async function GET(request: NextRequest) {
       letterIds: formattedLetters.map(l => l.id.substring(0, 8) + '...').slice(0, 3)
     })
 
+    // デバッグ用：取得したお手紙の順序確認
+    console.log('📋 取得したお手紙の順序確認:')
+    formattedLetters.forEach((letter, index) => {
+      console.log(`  ${index}: ${letter.date} (作成: ${letter.createdAt}) - "${letter.preview}"`)
+    })
+    
+    if (formattedLetters.length > 1) {
+      const firstDate = new Date(formattedLetters[0].date)
+      const lastDate = new Date(formattedLetters[formattedLetters.length - 1].date)
+      console.log('📅 日付順序確認:', {
+        first: formattedLetters[0].date,
+        last: formattedLetters[formattedLetters.length - 1].date,
+        isDescending: firstDate >= lastDate ? '✅ 正しい順序 (新→古)' : '❌ 逆順序 (古→新)'
+      })
+    }
+
     return NextResponse.json({
       success: true,
       data: {

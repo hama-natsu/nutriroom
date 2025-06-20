@@ -114,6 +114,22 @@ export function LetterHistory({ characterId, characterName, onClose, onRefreshRe
           hasMore: result.data.pagination.hasMore,
           latestLetterDate: result.data.letters[0]?.date || 'none'
         })
+
+        // フロントエンド側でも順序確認
+        console.log('📋 フロントエンド: 取得したお手紙の順序確認:')
+        result.data.letters.forEach((letter, index) => {
+          console.log(`  ${index}: ${letter.date} (作成: ${letter.createdAt}) - "${letter.preview}"`)
+        })
+        
+        if (result.data.letters.length > 1) {
+          const firstDate = new Date(result.data.letters[0].date)
+          const lastDate = new Date(result.data.letters[result.data.letters.length - 1].date)
+          console.log('📅 フロントエンド日付順序確認:', {
+            first: result.data.letters[0].date,
+            last: result.data.letters[result.data.letters.length - 1].date,
+            isDescending: firstDate >= lastDate ? '✅ 正しい順序 (新→古)' : '❌ 逆順序 (古→新)'
+          })
+        }
       } else {
         throw new Error('Invalid response format')
       }
@@ -339,8 +355,8 @@ export function LetterHistory({ characterId, characterName, onClose, onRefreshRe
                 </div>
               </div>
             ) : (
-              // お手紙一覧
-              <div className="p-6 space-y-4">
+              // お手紙一覧（スクロール対応）
+              <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                 {state.letters.map((letter) => (
                   <div
                     key={letter.id}
