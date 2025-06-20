@@ -19,16 +19,6 @@ interface ConversationLogWithSession extends ConversationLog {
   }
 }
 
-// Type for debug queries with minimal session info
-interface ConversationLogDebug {
-  id: string
-  message_content: string
-  timestamp: string
-  user_sessions: {
-    user_id: string
-    character_id: string
-  }
-}
 
 // Type for debug function all logs query
 interface ConversationLogDebugAll {
@@ -87,7 +77,7 @@ export const startSession = async (characterId: string): Promise<UserSession | n
     console.log('✅ Session started:', {
       sessionId: data.id,
       characterId,
-      userId: userId.substring(0, 8) + '...'
+      userId: userId ? userId.substring(0, 8) + '...' : 'anonymous'
     })
 
     return data
@@ -423,7 +413,7 @@ export const getTodayConversationLogs = async (characterId: string): Promise<Con
       }))
     })
 
-    return (data as ConversationLogWithSession[]) || []
+    return (data as unknown as ConversationLogWithSession[]) || []
   } catch (error) {
     console.error('❌ Error getting today conversation logs:', error)
     console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace')
@@ -468,7 +458,7 @@ export const debugConversationLogs = async (characterId: string): Promise<void> 
       console.error('❌ Error fetching all logs:', allError)
     } else {
       console.log('📊 Total recent logs found:', allLogs?.length || 0)
-      ;(allLogs as ConversationLogDebugAll[])?.forEach((log, index) => {
+      ;(allLogs as unknown as ConversationLogDebugAll[])?.forEach((log, index) => {
         console.log(`  ${index + 1}. [${log.user_sessions?.character_id}] ${log.message_type}: ${log.message_content.substring(0, 50)}... (${log.timestamp})`)
       })
     }
