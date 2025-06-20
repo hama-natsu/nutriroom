@@ -72,6 +72,9 @@ export async function POST(request: NextRequest) {
       }
       
       console.log('💌 Test mode: Generated sample letter content');
+      console.log('🔍 取得した会話データ:', 'TEST_MODE');
+      console.log('🔍 生成されたお手紙内容:', letterContent);
+      console.log('🔍 最終署名部分:', letterContent.split('\n').slice(-2));
     } else {
       // Step 4: Gemini API呼び出しデバッグ
       console.log('🔥 Step 4: Real mode - calling Gemini API...');
@@ -125,6 +128,9 @@ export async function POST(request: NextRequest) {
           }
 
           console.log('💌 Fallback mode: Generated fallback letter content');
+          console.log('🔍 取得した会話データ:', 'FALLBACK_MODE');
+          console.log('🔍 生成されたお手紙内容:', letterContent);
+          console.log('🔍 最終署名部分:', letterContent.split('\n').slice(-2));
         } else {
           // DailyLetterオブジェクトからテキストを抽出
           console.log('🔥 Processing Gemini letter object...');
@@ -147,6 +153,9 @@ export async function POST(request: NextRequest) {
           ].filter(line => line !== undefined).join('\n');
           
           console.log('💌 Real mode: Generated letter using Gemini');
+          console.log('🔍 取得した会話データ:', letter);
+          console.log('🔍 生成されたお手紙内容:', letterContent);
+          console.log('🔍 最終署名部分:', letterContent.split('\n').slice(-2));
         }
         
       } catch (geminiError) {
@@ -184,6 +193,9 @@ export async function POST(request: NextRequest) {
         }
 
         console.log('💌 Error fallback mode: Generated fallback letter content');
+        console.log('🔍 取得した会話データ:', 'ERROR_FALLBACK');
+        console.log('🔍 生成されたお手紙内容:', letterContent);
+        console.log('🔍 最終署名部分:', letterContent.split('\n').slice(-2));
       }
     }
     
