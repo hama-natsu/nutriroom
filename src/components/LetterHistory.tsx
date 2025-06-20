@@ -115,11 +115,6 @@ export function LetterHistory({ characterId, characterName, onClose, onRefreshRe
           latestLetterDate: result.data.letters[0]?.date || 'none'
         })
 
-        // フロントエンド側でも順序確認
-        console.log('📋 フロントエンド: 取得したお手紙の順序確認:')
-        result.data.letters.forEach((letter: any, index: number) => {
-          console.log(`  ${index}: ${letter.date} (作成: ${letter.createdAt}) - "${letter.preview}"`)
-        })
         
         if (result.data.letters.length > 1) {
           const firstDate = new Date(result.data.letters[0].date)
