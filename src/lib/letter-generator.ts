@@ -64,11 +64,23 @@ export class DailyLetterGenerator {
         date: new Date().toISOString().split('T')[0]
       })
 
-      // 1. データ収集  
+      // 1. データ収集（デバッグ強化）
+      console.log('🔍 Fetching data for letter generation...')
       const [conversations, character] = await Promise.all([
         getTodayConversationLogs(characterId),
         Promise.resolve(getCharacterById(characterId))
       ])
+      
+      console.log('📊 Data collection results:', {
+        conversationsFound: conversations.length,
+        characterFound: !!character,
+        characterId,
+        conversationSample: conversations.slice(0, 3).map(conv => ({
+          type: conv.message_type,
+          content: conv.message_content.substring(0, 50) + '...',
+          timestamp: conv.timestamp
+        }))
+      })
       
       const summary = null // getDailySummaryは未使用のためnullに設定
 
@@ -78,7 +90,8 @@ export class DailyLetterGenerator {
       }
 
       if (conversations.length === 0) {
-        console.log('📭 No conversations found for today')
+        console.log('📭 No conversations found for today - cannot generate letter')
+        console.log('💡 Suggestion: Check if conversation logging is working and sessions are active')
         return null
       }
 
@@ -384,6 +397,14 @@ ${conversationData}
     const conversationData = conversations?.map(conv => 
       `${conv.message_type === 'user' ? 'ユーザー' : character.name}: ${conv.message_content}`
     ).join('\n') || ''
+
+    console.log('📝 Conversation data for Gemini:', {
+      conversationCount: conversations?.length || 0,
+      characterId: character.id,
+      conversationDataLength: conversationData.length,
+      conversationSample: conversationData.substring(0, 200) + '...',
+      fullConversationData: conversationData.length < 500 ? conversationData : '[TOO_LONG_TO_DISPLAY]'
+    })
 
     const userNameDisplay = userName || 'あなた'
     const timeSlot = this.getTimeSlot()

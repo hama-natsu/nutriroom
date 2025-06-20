@@ -75,6 +75,11 @@ export async function POST(request: NextRequest) {
     } else {
       // Step 4: Gemini API呼び出しデバッグ
       console.log('🔥 Step 4: Real mode - calling Gemini API...');
+      console.log('🔥 Generation parameters:', {
+        characterId: finalCharacterId,
+        userName: userName || 'テストユーザー',
+        timestamp: new Date().toISOString()
+      });
       
       try {
         // 実際のGemini呼び出し
@@ -84,7 +89,14 @@ export async function POST(request: NextRequest) {
           userName || 'テストユーザー'
         );
         
-        console.log('🔥 Gemini result:', letter ? 'SUCCESS' : 'NULL');
+        console.log('🔥 Letter generation result:', {
+          success: !!letter,
+          letterObject: letter ? 'OBJECT_RECEIVED' : 'NULL',
+          characterId: finalCharacterId,
+          greetingLength: letter?.greeting?.length || 0,
+          topicsCount: letter?.mainTopics?.length || 0,
+          signature: letter?.signature || 'NO_SIGNATURE'
+        });
         
         if (!letter) {
           console.error('❌ Letter generation returned null/undefined');
