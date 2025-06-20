@@ -131,14 +131,6 @@ export function DailyLetter({ date, content, characterName, characterId, onClose
                     )}
                   </div>
                 
-                  {/* 署名 */}
-                  {isTypingComplete && (
-                    <div className="mt-6 text-right">
-                      <div className={`${colors.signature} font-medium`}>
-                        {characterName}より 💕
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>

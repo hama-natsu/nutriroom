@@ -1044,7 +1044,7 @@ export function CharacterPrototype({
             ) : (
               // 通常の会話
               <div className="space-y-4 max-h-64 overflow-y-auto">
-                {messages.slice(-3).map((message) => (
+                {messages.slice(-50).map((message) => (
                   <div
                     key={message.id}
                     className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}

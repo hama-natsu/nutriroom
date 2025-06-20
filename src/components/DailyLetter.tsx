@@ -81,8 +81,7 @@ export function DailyLetterComponent({ characterId, userName, onClose }: DailyLe
       '\n今日お話したこと:\n' + letter.mainTopics.join('\n'),
       letter.conversationHighlights.length > 0 ? '\n' + letter.conversationHighlights.join('\n') : '',
       '\n' + letter.encouragementMessage,
-      '\n' + letter.nextSessionHint,
-      '\n\n' + letter.signature
+      '\n' + letter.nextSessionHint
     ].filter(section => section.trim() !== '')
 
     let currentText = ''
@@ -268,8 +267,6 @@ function formatLetterForDisplay(letter: DailyLetter): string {
   sections.push(letter.encouragementMessage)
   sections.push('')
   sections.push(letter.nextSessionHint)
-  sections.push('')
-  sections.push(letter.signature)
 
   return sections.filter(section => section !== undefined).join('\n')
 }
