@@ -564,10 +564,22 @@ function getTimeBasedVoice(characterId: string = 'akari'): string {
 // 【多様音声システム】最適音声判定（キャラクター対応）
 const determineOptimalVoice = (aiResponse: string, isInitialGreeting: boolean = false, characterId: string = 'akari') => {
   console.log(`=== Optimal Voice Determination ===`);
+  console.log(`Character: ${characterId}, Initial: ${isInitialGreeting}`);
   
   if (isInitialGreeting) {
     console.log('✅ Initial greeting - Time-based voice');
     return { shouldPlay: true, voiceFile: getTimeBasedVoice(characterId) };
+  }
+  
+  // みなとの場合は専用の感情音声パターンを使用
+  if (characterId === 'minato') {
+    const minatoVoice = selectMinatoEmotionalVoice(aiResponse);
+    if (minatoVoice) {
+      console.log(`✅ Minato emotional voice selected: ${minatoVoice}`);
+      return { shouldPlay: true, voiceFile: minatoVoice };
+    }
+    console.log('❌ Minato voice - no emotional pattern matched');
+    return { shouldPlay: false, voiceFile: null };
   }
   
   const responseType = analyzeFirstSentenceOnly(aiResponse);
@@ -586,6 +598,111 @@ const determineOptimalVoice = (aiResponse: string, isInitialGreeting: boolean = 
       return { shouldPlay: false, voiceFile: null };
   }
 };
+
+// 【みなと専用】感情音声選択システム（35パターン対応）
+function selectMinatoEmotionalVoice(aiResponse: string): string | null {
+  console.log(`🎭 Minato emotional voice analysis: "${aiResponse.substring(0, 50)}..."`);
+  
+  const response = aiResponse.toLowerCase();
+  
+  // 1. 季節対応音声（特別パターン）
+  const currentMonth = new Date().getMonth() + 1;
+  if (response.includes('季節') || response.includes('時期') || response.includes('頃')) {
+    if (currentMonth >= 3 && currentMonth <= 5) return 'minato_spring.wav';
+    if (currentMonth >= 6 && currentMonth <= 8) return 'minato_summer.wav';
+    if (currentMonth >= 9 && currentMonth <= 11) return 'minato_autumn.wav';
+    return 'minato_winter.wav';
+  }
+  
+  // 2. 決まり文句・キャッチフレーズ（ツンデレ特有）
+  if (response.includes('べつに') || response.includes('別に') || 
+      response.includes('勘違い') || response.includes('そんなつもり')) {
+    const phrases = ['minato_catchphrase_1.wav', 'minato_catchphrase_2.wav', 
+                    'minato_catchphrase_3.wav', 'minato_catchphrase_4.wav'];
+    return phrases[Math.floor(Math.random() * phrases.length)];
+  }
+  
+  // 3. 励まし・応援系
+  if (response.includes('頑張') || response.includes('応援') || 
+      response.includes('ファイト') || response.includes('負けない')) {
+    return Math.random() > 0.5 ? 'minato_cheer.wav' : 'minato_encouragement.wav';
+  }
+  
+  // 4. 同意・共感系
+  if (response.includes('そうですね') || response.includes('同感') || 
+      response.includes('おっしゃる通り') || response.includes('その通り')) {
+    return 'minato_agreement.wav';
+  }
+  
+  // 5. 理解・納得系
+  if (response.includes('なるほど') || response.includes('理解') || 
+      response.includes('分かり') || response.includes('わかり')) {
+    return 'minato_understanding.wav';
+  }
+  
+  // 6. 驚き・興味系
+  if (response.includes('えー') || response.includes('びっくり') || 
+      response.includes('驚') || response.includes('へえ')) {
+    return 'minato_surprise.wav';
+  }
+  
+  // 7. 考え込み・思案系
+  if (response.includes('う〜ん') || response.includes('考え') || 
+      response.includes('どうでしょう') || response.includes('検討')) {
+    return 'minato_thinking.wav';
+  }
+  
+  // 8. 称賛・素晴らしい系
+  if (response.includes('素晴らしい') || response.includes('すごい') || 
+      response.includes('よくでき') || response.includes('上手')) {
+    return Math.random() > 0.5 ? 'minato_great.wav' : 'minato_nice.wav';
+  }
+  
+  // 9. 感謝系
+  if (response.includes('ありがと') || response.includes('感謝') || 
+      response.includes('お礼') || response.includes('助かり')) {
+    return 'minato_thanks.wav';
+  }
+  
+  // 10. 謝罪系
+  if (response.includes('ごめん') || response.includes('すみません') || 
+      response.includes('申し訳') || response.includes('失礼')) {
+    return 'minato_sorry.wav';
+  }
+  
+  // 11. 歓迎・挨拶系
+  if (response.includes('いらっしゃい') || response.includes('ようこそ') || 
+      response.includes('お疲れ') || response.includes('こんにち')) {
+    return 'minato_welcome.wav';
+  }
+  
+  // 12. 支援・サポート系
+  if (response.includes('サポート') || response.includes('支援') || 
+      response.includes('手伝') || response.includes('一緒に')) {
+    return Math.random() > 0.5 ? 'minato_support.wav' : 'minato_care.wav';
+  }
+  
+  // 13. 努力・頑張り認知系
+  if (response.includes('努力') || response.includes('一生懸命') || 
+      response.includes('真面目') || response.includes('取り組')) {
+    return 'minato_effort.wav';
+  }
+  
+  // 14. 共感・気持ち理解系
+  if (response.includes('気持ち') || response.includes('心境') || 
+      response.includes('お察し') || response.includes('よく分か')) {
+    return 'minato_empathy.wav';
+  }
+  
+  // 15. 問題なし・大丈夫系
+  if (response.includes('大丈夫') || response.includes('問題ない') || 
+      response.includes('心配') || response.includes('安心')) {
+    return 'minato_no_problem.wav';
+  }
+  
+  console.log('❌ No emotional pattern matched for Minato');
+  return null;
+}
 
 // 【多様音声システム】メイン関数（キャラクター対応）
 export const determineVoiceFromAiResponse = (aiResponse: string, isInitialGreeting: boolean = false, characterId: string = 'akari') => {
@@ -742,6 +859,7 @@ export function runDiverseVoiceTests(): void {
 // ===============================================
 
 // 音声再生の最終制御（レガシーシステムを完全無効化）
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const playSelectedVoice = async (selectedVoice: string | null, isInitialGreeting: boolean = false): Promise<boolean> => {
   console.log(`=== Final Voice Playback Control ===`);
   console.log(`Selected voice: ${selectedVoice}`);
@@ -831,63 +949,77 @@ export const handleAiResponseVoice = async (
   return false;
 };
 
-// キャラクター別音声パターン選択（みなと対応）
+// 【みなと専用】音声再生システム（フォールバック・ループ防止）
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+async function playMinatoVoiceWithFallback(voiceFile: string, characterId: string): Promise<boolean> {
+  console.log(`=== Minato Voice Playback System ===`);
+  console.log(`Attempting to play: ${voiceFile}`);
+  
+  if (characterId !== 'minato') {
+    console.log('⚠️ Non-Minato character - using fallback system');
+    return await playSelectedVoiceWithFallback(voiceFile, false, characterId);
+  }
+  
+  try {
+    const audioPath = `/audio/recorded/minato/${voiceFile}`;
+    console.log(`🎵 Loading Minato voice: ${audioPath}`);
+    
+    if (typeof window !== 'undefined' && window.Audio) {
+      const audio = new Audio(audioPath);
+      
+      // ファイル存在確認のため、loadイベントでタイムアウト処理
+      return new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+          console.log(`⚠️ Minato voice file timeout: ${voiceFile}`);
+          resolve(false);
+        }, 3000);
+        
+        audio.oncanplay = async () => {
+          clearTimeout(timeout);
+          try {
+            await audio.play();
+            console.log(`✅ Successfully played Minato voice: ${voiceFile}`);
+            resolve(true);
+          } catch (playError) {
+            console.log(`❌ Failed to play Minato voice: ${voiceFile}`, playError);
+            resolve(false);
+          }
+        };
+        
+        audio.onerror = () => {
+          clearTimeout(timeout);
+          console.log(`❌ Minato voice file not found: ${voiceFile}`);
+          resolve(false);
+        };
+        
+        audio.load();
+      });
+    } else {
+      console.log('⚠️ Audio not available in current environment');
+      return false;
+    }
+  } catch (error) {
+    console.log(`❌ Critical error loading Minato voice: ${voiceFile}`, error);
+    return false;
+  }
+}
+
+// キャラクター別音声パターン選択（あかり専用）
 const selectDetailedVoicePatternForCharacter = (aiResponse: string, characterId: string): string | null => {
   console.log(`=== Character Voice Pattern Selection ===`);
   console.log(`Character: ${characterId}, Analyzing: "${aiResponse}"`);
   
-  // みなとの場合は感情音声パターンも利用可能
+  // みなとの場合は専用システムを使用（この関数では処理しない）
   if (characterId === 'minato') {
-    console.log('🎭 Minato character detected - emotional voice patterns available');
-    
-    // みなと専用感情音声パターン
-    // 1. 同意・共感系
-    if (aiResponse.includes('そうですね') || aiResponse.includes('私もそう思') || 
-        aiResponse.includes('同感') || aiResponse.includes('おっしゃる通り') ||
-        aiResponse.includes('その通り') || aiResponse.includes('確かに')) {
-      console.log('Selected: minato_agreement.wav (同意・共感)');
-      return 'minato_agreement.wav';
-    }
-    
-    // 2. 理解・納得系  
-    if (aiResponse.includes('なるほど') || aiResponse.includes('勉強になり') || 
-        aiResponse.includes('よく分かり') || aiResponse.includes('理解') ||
-        aiResponse.includes('分かります') || aiResponse.includes('把握')) {
-      console.log('Selected: minato_understanding.wav (理解・納得)');
-      return 'minato_understanding.wav';
-    }
-    
-    // 3. 驚き・興味系
-    if (aiResponse.includes('えー') || aiResponse.includes('そうなんですか') || 
-        aiResponse.includes('びっくり') || aiResponse.includes('驚き') ||
-        aiResponse.includes('へえ') || aiResponse.includes('意外')) {
-      console.log('Selected: minato_surprise.wav (驚き・興味)');
-      return 'minato_surprise.wav';
-    }
-    
-    // 4. 考え込み系
-    if (aiResponse.includes('う〜ん') || aiResponse.includes('一緒に考え') || 
-        aiResponse.includes('どうでしょう') || aiResponse.includes('検討') ||
-        aiResponse.includes('考えて') || aiResponse.includes('悩み')) {
-      console.log('Selected: minato_thinking.wav (考え込み)');
-      return 'minato_thinking.wav';
-    }
-    
-    // 5. 感情的でない場合は時間帯音声
-    const hasEmotionalContent = shouldHaveEmotionalVoice(aiResponse);
-    if (hasEmotionalContent) {
-      console.log('🎭 Minato emotional response detected - using time-based voice');
-      return getTimeBasedVoice('minato');
-    }
-    
-    return null; // 感情的でない場合は音声なし
+    console.log('🎭 Minato character - using dedicated emotional voice system');
+    return null;
   }
   
   // あかりの場合は既存のパターン選択を使用
   return selectDetailedVoicePattern(aiResponse);
 };
 
-// フォールバック付き音声再生（みなと対応）
+// フォールバック付き音声再生（あかり専用）
 const playSelectedVoiceWithFallback = async (
   selectedVoice: string | null, 
   isInitialGreeting: boolean = false,
@@ -896,47 +1028,44 @@ const playSelectedVoiceWithFallback = async (
   console.log(`=== Voice Playback with Fallback ===`);
   console.log(`Character: ${characterId}, Voice: ${selectedVoice}, Initial: ${isInitialGreeting}`);
   
-  // みなとの場合の音声処理
+  // みなとの場合は専用システムを使用
   if (characterId === 'minato') {
-    if (isInitialGreeting) {
-      // みなとの初期挨拶は時間帯音声を使用
-      const timeBasedVoice = getTimeBasedVoice('minato');
-      console.log(`🎭 Minato initial greeting - using ${timeBasedVoice}`);
-      try {
-        const audioPath = `/audio/recorded/minato/${timeBasedVoice}`;
-        if (typeof window !== 'undefined' && window.Audio) {
-          const audio = new Audio(audioPath);
-          await audio.play();
-          console.log(`✅ Minato greeting voice played: ${timeBasedVoice}`);
-          return true;
-        }
-      } catch {
-        console.log('⚠️ Minato voice file not available - continuing without voice');
-        return false;
-      }
-    }
-    
-    if (selectedVoice && selectedVoice.startsWith('minato_')) {
-      console.log(`🎭 Minato emotional voice - using ${selectedVoice}`);
-      try {
-        const audioPath = `/audio/recorded/minato/${selectedVoice}`;
-        if (typeof window !== 'undefined' && window.Audio) {
-          const audio = new Audio(audioPath);
-          await audio.play();
-          console.log(`✅ Minato emotional voice played: ${selectedVoice}`);
-          return true;
-        }
-      } catch {
-        console.log('⚠️ Minato emotional voice file not available - continuing without voice');
-        return false;
-      }
-    }
-    
-    return false; // みなとは現在時間帯音声のみ
+    console.log('🎭 Minato character detected - redirecting to dedicated system');
+    return false;
   }
   
-  // あかりの場合は既存の音声再生を使用
-  return await playSelectedVoice(selectedVoice, isInitialGreeting);
+  // あかりの既存処理
+  if (selectedVoice) {
+    try {
+      const audioPath = `/audio/recorded/akari/${selectedVoice}`;
+      if (typeof window !== 'undefined' && window.Audio) {
+        const audio = new Audio(audioPath);
+        await audio.play();
+        console.log(`✅ Akari voice played: ${selectedVoice}`);
+        return true;
+      }
+    } catch (error) {
+      console.log(`❌ Failed to play Akari voice: ${selectedVoice}`, error);
+      return false;
+    }
+  }
+  
+  if (isInitialGreeting) {
+    const timeVoice = getTimeBasedVoice('akari');
+    try {
+      const audioPath = `/audio/recorded/akari/${timeVoice}`;
+      if (typeof window !== 'undefined' && window.Audio) {
+        const audio = new Audio(audioPath);
+        await audio.play();
+        console.log(`✅ Akari time-based voice played: ${timeVoice}`);
+        return true;
+      }
+    } catch (error) {
+      console.log(`❌ Failed to play Akari time-based voice: ${timeVoice}`, error);
+    }
+  }
+  
+  return false;
 };
 
 // 【互換性維持】旧関数名でのエイリアス（デバッグ関数参照前に宣言）
