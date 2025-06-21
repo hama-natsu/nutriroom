@@ -6,6 +6,19 @@ import { userMemoryManager } from '@/lib/user-memory'
 import { createLINEStylePrompt } from '@/lib/response-length-manager'
 import { createClient } from '@/lib/supabase-client'
 
+// ユーザープロフィール型定義
+interface UserProfileInfo {
+  age_group?: string | null
+  goal_type?: string | null
+  activity_level_jp?: string | null
+  meal_timing?: string | null
+  cooking_frequency?: string | null
+  main_concern?: string | null
+  advice_style?: string | null
+  info_preference?: string | null
+  profile_completed?: boolean | null
+}
+
 // 個性分析関数
 function analyzeUserMessage(message: string): {
   emotion: 'positive' | 'negative' | 'neutral' | 'confused'
@@ -53,7 +66,7 @@ function analyzeUserMessage(message: string): {
 }
 
 // ユーザープロフィール情報を取得
-async function getUserProfileInfo(userId: string) {
+async function getUserProfileInfo(userId: string): Promise<UserProfileInfo | null> {
   try {
     const supabase = createClient()
     const { data: profile, error } = await supabase

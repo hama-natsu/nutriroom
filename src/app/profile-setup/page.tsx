@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-client'
 import { Database } from '@/lib/database.types'
+import type { User } from '@supabase/supabase-js'
 
 type UserProfile = Database['public']['Tables']['user_profiles']['Update']
 
@@ -90,7 +91,7 @@ export default function ProfileSetupPage() {
   const [currentStep, setCurrentStep] = useState(0)
   const [answers, setAnswers] = useState<Partial<UserProfile>>({})
   const [loading, setLoading] = useState(false)
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -215,7 +216,7 @@ export default function ProfileSetupPage() {
 
         {/* Questions */}
         <div className="space-y-8 mb-8">
-          {currentQuestions.map((question, index) => (
+          {currentQuestions.map((question) => (
             <div key={question.id} className="space-y-4">
               <h3 className="text-xl font-semibold text-gray-800">
                 {question.title}

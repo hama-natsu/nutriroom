@@ -89,7 +89,8 @@ export async function POST(request: NextRequest) {
         console.log('🔥 Calling DailyLetterGenerator.generateDailyLetter...');
         const letter = await DailyLetterGenerator.generateDailyLetter(
           finalCharacterId,
-          userName || 'テストユーザー'
+          userName || 'テストユーザー',
+          undefined // userId - APIではundefinedを渡す
         );
         
         console.log('🔥 Letter generation result:', {

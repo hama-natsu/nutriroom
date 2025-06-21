@@ -8,6 +8,19 @@ import { getCharacterById } from '@/lib/characters'
 import { getGeminiModel, isGeminiAvailable, debugGeminiSetup } from '@/lib/gemini-client'
 import { createClient } from '@/lib/supabase-client'
 
+// ユーザープロフィール型定義
+interface UserProfileInfo {
+  age_group?: string | null
+  goal_type?: string | null
+  activity_level_jp?: string | null
+  meal_timing?: string | null
+  cooking_frequency?: string | null
+  main_concern?: string | null
+  advice_style?: string | null
+  info_preference?: string | null
+  profile_completed?: boolean | null
+}
+
 // お手紙データ構造
 export interface DailyLetter {
   id: string
@@ -221,7 +234,7 @@ export class DailyLetterGenerator {
     userName?: string,
     config: LetterGenerationConfig = DEFAULT_CONFIG,
     conversations?: { message_type: string; message_content: string; emotion_detected?: string | null }[],
-    userProfile?: any
+    userProfile?: UserProfileInfo | null
   ): Promise<DailyLetter> {
     const today = new Date().toISOString().split('T')[0]
     
@@ -277,7 +290,7 @@ export class DailyLetterGenerator {
     analysis: { topics: string[]; nutritionFocus: boolean; userMessages: { message_content: string }[]; aiMessages: { message_content: string }[] },
     config: LetterGenerationConfig,
     timeSlot: 'morning' | 'evening',
-    userProfile?: any
+    userProfile?: UserProfileInfo | null
   ): string {
     if (character.id === 'minato') {
       return this.getMinatoLetterPrompt(userNameDisplay, conversationData, analysis, config, timeSlot, userProfile)
@@ -295,7 +308,7 @@ export class DailyLetterGenerator {
     analysis: { topics: string[]; nutritionFocus: boolean; userMessages: { message_content: string }[]; aiMessages: { message_content: string }[] },
     config: LetterGenerationConfig,
     timeSlot: 'morning' | 'evening',
-    userProfile?: any
+    userProfile?: UserProfileInfo | null
   ): string {
     return `あなたは「みなと」という26歳男性のツンデレ系スパルタ栄養士です。
 今日1日の会話を振り返って、${userNameDisplay}に手紙を書いてください。
@@ -381,7 +394,7 @@ ${conversationData}
     analysis: { topics: string[]; nutritionFocus: boolean; userMessages: { message_content: string }[]; aiMessages: { message_content: string }[] },
     config: LetterGenerationConfig,
     timeSlot: 'morning' | 'evening',
-    userProfile?: any
+    userProfile?: UserProfileInfo | null
   ): string {
     return `あなたは「あかり」という元気で温かい管理栄養士です。
 今日1日の会話を振り返って、${userNameDisplay}さんに温かいお手紙を書いてください。
@@ -451,7 +464,7 @@ ${conversationData}
     userName?: string,
     conversations?: { message_type: string; message_content: string; emotion_detected?: string | null }[],
     config: LetterGenerationConfig = DEFAULT_CONFIG,
-    userProfile?: any
+    userProfile?: UserProfileInfo | null
   ): Promise<Pick<DailyLetter, 'greeting' | 'mainTopics' | 'conversationHighlights' | 'encouragementMessage' | 'nextSessionHint' | 'signature'>> {
     
     const model = getGeminiModel()
@@ -911,7 +924,7 @@ export const testLetterGeneration = async (
     fallbackToLocal: true
   }
   
-  const letter = await DailyLetterGenerator.generateDailyLetter(characterId, userName, config)
+  const letter = await DailyLetterGenerator.generateDailyLetter(characterId, userName, undefined, config)
   
   if (letter) {
     console.log('✅ Letter generated successfully!')
