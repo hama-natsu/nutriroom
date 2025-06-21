@@ -186,7 +186,6 @@ export function DailyLetterPreview() {
     <DailyLetter
       date={new Date().toISOString()}
       content={sampleContent}
-      characterName="あかり"
       onClose={() => setShowLetter(false)}
     />
   )
