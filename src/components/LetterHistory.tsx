@@ -429,7 +429,6 @@ export function LetterHistory({ characterId, characterName, onClose, onRefreshRe
         <DailyLetter
           date={selectedLetter.date}
           content={selectedLetter.content}
-          characterName={characterName}
           characterId={characterId}
           onClose={handleCloseSelectedLetter}
         />

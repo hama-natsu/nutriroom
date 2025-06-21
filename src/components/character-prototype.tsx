@@ -1145,7 +1145,6 @@ export function CharacterPrototype({
         <DailyLetter
           date={letterData.date}
           content={letterData.content}
-          characterName={character.name}
           onClose={() => setShowDailyLetter(false)}
         />
       )}
