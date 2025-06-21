@@ -4,6 +4,7 @@ import { characters } from '@/lib/characters'
 import { getCharacterPersonality } from '@/lib/character-personalities'
 import { userMemoryManager } from '@/lib/user-memory'
 import { createLINEStylePrompt } from '@/lib/response-length-manager'
+import { createClient } from '@/lib/supabase-client'
 
 // 個性分析関数
 function analyzeUserMessage(message: string): {
@@ -51,14 +52,46 @@ function analyzeUserMessage(message: string): {
   }
 }
 
+// ユーザープロフィール情報を取得
+async function getUserProfileInfo(userId: string) {
+  try {
+    const supabase = createClient()
+    const { data: profile, error } = await supabase
+      .from('user_profiles')
+      .select(`
+        age_group,
+        goal_type,
+        activity_level_jp,
+        meal_timing,
+        cooking_frequency,
+        main_concern,
+        advice_style,
+        info_preference,
+        profile_completed
+      `)
+      .eq('user_id', userId)
+      .single()
+
+    if (error || !profile?.profile_completed) {
+      return null
+    }
+
+    return profile
+  } catch (error) {
+    console.error('Error fetching user profile:', error)
+    return null
+  }
+}
+
 // エンハンスされたプロンプト生成
-function createEnhancedPrompt(
+async function createEnhancedPrompt(
   character: { id: string; name: string },
   userMessage: string,
   conversationHistory: string[],
   userAnalysis: { emotion: string; topics: string[]; needsSupport: boolean; isResistant: boolean; requestsDetails: boolean },
-  relationshipLevel: number
-): string {
+  relationshipLevel: number,
+  userId: string
+): Promise<string> {
   // LINEスタイルのコンテキスト作成
   const context = {
     messageCount: conversationHistory.length,
@@ -68,12 +101,35 @@ function createEnhancedPrompt(
     relationshipLevel
   }
 
-  // LINEスタイルプロンプトを生成
-  const basePrompt = `あなたは${character.name}です。${getCharacterPersonality(character.id)?.detailedPersonality || ''}
+  // ベースプロンプトを生成
+  let basePrompt = `あなたは${character.name}です。${getCharacterPersonality(character.id)?.detailedPersonality || ''}
 
 【専門分野】${getCharacterPersonality(character.id)?.expertise.specialty || ''}
 
 【関係性レベル】${relationshipLevel}/3`
+
+  // ユーザープロフィール情報を取得して追加
+  const userProfile = await getUserProfileInfo(userId)
+  if (userProfile) {
+    basePrompt += `
+
+【ユーザープロフィール情報】
+- 年代: ${userProfile.age_group || '不明'}
+- 目標: ${userProfile.goal_type || '未設定'}
+- 活動レベル: ${userProfile.activity_level_jp || '不明'}
+- 食事タイミング: ${userProfile.meal_timing || '不明'}
+- 調理頻度: ${userProfile.cooking_frequency || '不明'}
+- 主な悩み: ${userProfile.main_concern || '不明'}
+- 希望アドバイス: ${userProfile.advice_style || '不明'}
+- 情報量の好み: ${userProfile.info_preference || '不明'}
+
+【会話方針】
+- ユーザーの${userProfile.goal_type || '目標'}に合わせたアドバイスを提供
+- ${userProfile.activity_level_jp || '活動レベル'}に適した提案をする
+- ${userProfile.advice_style || 'アドバイススタイル'}の要望に応える
+- ${userProfile.info_preference || '情報量'}で回答する
+- ${userProfile.main_concern || '悩み'}を重点的にサポート`
+  }
 
   return createLINEStylePrompt(basePrompt, userMessage, character.id, context)
 }
@@ -132,12 +188,13 @@ export async function POST(request: NextRequest) {
     console.log('💝 Relationship level:', relationshipLevel)
 
     // エンハンスされたプロンプトを生成
-    const enhancedPrompt = createEnhancedPrompt(
+    const enhancedPrompt = await createEnhancedPrompt(
       character,
       message,
       conversationHistory || [],
       userAnalysis,
-      relationshipLevel
+      relationshipLevel,
+      userId
     )
 
     console.log('📝 Enhanced prompt created for', character.name)

@@ -6,6 +6,7 @@ import { getTodayConversationLogs } from '@/lib/supabase/sessions'
 // import { setLetterContent } from '@/lib/supabase/summaries' // 現在未使用
 import { getCharacterById } from '@/lib/characters'
 import { getGeminiModel, isGeminiAvailable, debugGeminiSetup } from '@/lib/gemini-client'
+import { createClient } from '@/lib/supabase-client'
 
 // お手紙データ構造
 export interface DailyLetter {
@@ -50,11 +51,47 @@ const DEFAULT_CONFIG: LetterGenerationConfig = {
 export class DailyLetterGenerator {
   
   /**
+   * ユーザープロフィール情報を取得
+   */
+  private static async getUserProfileInfo(userId?: string) {
+    if (!userId) return null
+    
+    try {
+      const supabase = createClient()
+      const { data: profile, error } = await supabase
+        .from('user_profiles')
+        .select(`
+          age_group,
+          goal_type,
+          activity_level_jp,
+          meal_timing,
+          cooking_frequency,
+          main_concern,
+          advice_style,
+          info_preference,
+          profile_completed
+        `)
+        .eq('user_id', userId)
+        .single()
+
+      if (error || !profile?.profile_completed) {
+        return null
+      }
+
+      return profile
+    } catch (error) {
+      console.error('Error fetching user profile for letter:', error)
+      return null
+    }
+  }
+  
+  /**
    * 今日のお手紙を生成
    */
   static async generateDailyLetter(
     characterId: string,
     userName?: string,
+    userId?: string,
     config: LetterGenerationConfig = DEFAULT_CONFIG
   ): Promise<DailyLetter | null> {
     try {
@@ -66,14 +103,16 @@ export class DailyLetterGenerator {
 
       // 1. データ収集（デバッグ強化）
       console.log('🔍 Fetching data for letter generation...')
-      const [conversations, character] = await Promise.all([
+      const [conversations, character, userProfile] = await Promise.all([
         getTodayConversationLogs(characterId),
-        Promise.resolve(getCharacterById(characterId))
+        Promise.resolve(getCharacterById(characterId)),
+        this.getUserProfileInfo(userId)
       ])
       
       console.log('📊 Data collection results:', {
         conversationsFound: conversations.length,
         characterFound: !!character,
+        userProfileFound: !!userProfile,
         characterId,
         conversationSample: conversations.slice(0, 3).map(conv => ({
           type: conv.message_type,
@@ -105,7 +144,8 @@ export class DailyLetterGenerator {
         summary,
         userName,
         config,
-        conversations  // Gemini用の生データも渡す
+        conversations,  // Gemini用の生データも渡す
+        userProfile     // プロフィール情報を追加
       )
 
       // 4. データベースに保存
@@ -180,7 +220,8 @@ export class DailyLetterGenerator {
     _summary: null,
     userName?: string,
     config: LetterGenerationConfig = DEFAULT_CONFIG,
-    conversations?: { message_type: string; message_content: string; emotion_detected?: string | null }[]
+    conversations?: { message_type: string; message_content: string; emotion_detected?: string | null }[],
+    userProfile?: any
   ): Promise<DailyLetter> {
     const today = new Date().toISOString().split('T')[0]
     
@@ -195,7 +236,8 @@ export class DailyLetterGenerator {
           analysis,
           userName,
           conversations,
-          config
+          config,
+          userProfile
         )
         console.log('✅ Gemini letter generation successful')
       } catch (error) {
@@ -234,12 +276,13 @@ export class DailyLetterGenerator {
     conversationData: string,
     analysis: { topics: string[]; nutritionFocus: boolean; userMessages: { message_content: string }[]; aiMessages: { message_content: string }[] },
     config: LetterGenerationConfig,
-    timeSlot: 'morning' | 'evening'
+    timeSlot: 'morning' | 'evening',
+    userProfile?: any
   ): string {
     if (character.id === 'minato') {
-      return this.getMinatoLetterPrompt(userNameDisplay, conversationData, analysis, config, timeSlot)
+      return this.getMinatoLetterPrompt(userNameDisplay, conversationData, analysis, config, timeSlot, userProfile)
     } else {
-      return this.getAkariLetterPrompt(userNameDisplay, conversationData, analysis, config, timeSlot)
+      return this.getAkariLetterPrompt(userNameDisplay, conversationData, analysis, config, timeSlot, userProfile)
     }
   }
 
@@ -251,7 +294,8 @@ export class DailyLetterGenerator {
     conversationData: string,
     analysis: { topics: string[]; nutritionFocus: boolean; userMessages: { message_content: string }[]; aiMessages: { message_content: string }[] },
     config: LetterGenerationConfig,
-    timeSlot: 'morning' | 'evening'
+    timeSlot: 'morning' | 'evening',
+    userProfile?: any
   ): string {
     return `あなたは「みなと」という26歳男性のツンデレ系スパルタ栄養士です。
 今日1日の会話を振り返って、${userNameDisplay}に手紙を書いてください。
@@ -266,6 +310,16 @@ export class DailyLetterGenerator {
 
 【会話データ】
 ${conversationData}
+
+【ユーザープロフィール情報】${userProfile ? `
+- 年代: ${userProfile.age_group || '不明'}
+- 目標: ${userProfile.goal_type || '未設定'}
+- 活動レベル: ${userProfile.activity_level_jp || '不明'}
+- 食事タイミング: ${userProfile.meal_timing || '不明'}
+- 調理頻度: ${userProfile.cooking_frequency || '不明'}
+- 主な悩み: ${userProfile.main_concern || '不明'}
+- 希望アドバイス: ${userProfile.advice_style || '不明'}
+- 情報量の好み: ${userProfile.info_preference || '不明'}` : '\n- プロフィール未設定'}
 
 【分析結果】
 - 会話数: ${analysis.userMessages.length + analysis.aiMessages.length}回
@@ -326,7 +380,8 @@ ${conversationData}
     conversationData: string,
     analysis: { topics: string[]; nutritionFocus: boolean; userMessages: { message_content: string }[]; aiMessages: { message_content: string }[] },
     config: LetterGenerationConfig,
-    timeSlot: 'morning' | 'evening'
+    timeSlot: 'morning' | 'evening',
+    userProfile?: any
   ): string {
     return `あなたは「あかり」という元気で温かい管理栄養士です。
 今日1日の会話を振り返って、${userNameDisplay}さんに温かいお手紙を書いてください。
@@ -339,6 +394,16 @@ ${conversationData}
 
 【会話データ】
 ${conversationData}
+
+【ユーザープロフィール情報】${userProfile ? `
+- 年代: ${userProfile.age_group || '不明'}
+- 目標: ${userProfile.goal_type || '未設定'}
+- 活動レベル: ${userProfile.activity_level_jp || '不明'}
+- 食事タイミング: ${userProfile.meal_timing || '不明'}
+- 調理頻度: ${userProfile.cooking_frequency || '不明'}
+- 主な悩み: ${userProfile.main_concern || '不明'}
+- 希望アドバイス: ${userProfile.advice_style || '不明'}
+- 情報量の好み: ${userProfile.info_preference || '不明'}` : '\n- プロフィール未設定'}
 
 【分析結果】
 - 会話数: ${analysis.userMessages.length + analysis.aiMessages.length}回
@@ -385,7 +450,8 @@ ${conversationData}
     analysis: { topics: string[]; nutritionFocus: boolean; userMessages: { message_content: string }[]; aiMessages: { message_content: string }[] },
     userName?: string,
     conversations?: { message_type: string; message_content: string; emotion_detected?: string | null }[],
-    config: LetterGenerationConfig = DEFAULT_CONFIG
+    config: LetterGenerationConfig = DEFAULT_CONFIG,
+    userProfile?: any
   ): Promise<Pick<DailyLetter, 'greeting' | 'mainTopics' | 'conversationHighlights' | 'encouragementMessage' | 'nextSessionHint' | 'signature'>> {
     
     const model = getGeminiModel()
@@ -410,7 +476,7 @@ ${conversationData}
     const timeSlot = this.getTimeSlot()
 
     // 🎯 キャラクター別プロンプト設計
-    const letterPrompt = this.getCharacterLetterPrompt(character, userNameDisplay, conversationData, analysis, config, timeSlot)
+    const letterPrompt = this.getCharacterLetterPrompt(character, userNameDisplay, conversationData, analysis, config, timeSlot, userProfile)
 
     let result: { response: { text: () => string } } | null = null
     try {

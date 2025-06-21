@@ -20,6 +20,15 @@ export type Database = {
           weight: number | null
           activity_level: 'sedentary' | 'lightly_active' | 'moderately_active' | 'very_active' | 'extremely_active' | null
           goal: 'maintain' | 'lose_weight' | 'gain_weight' | 'build_muscle' | null
+          age_group: '20代' | '30代' | '40代' | '50代以上' | null
+          goal_type: '体重管理' | '健康維持' | '筋肉増量' | '生活習慣改善' | null
+          activity_level_jp: '座り仕事中心' | '軽い運動' | '活発' | 'アスリート' | null
+          meal_timing: '規則的' | '不規則' | '夜遅め' | null
+          cooking_frequency: '毎日自炊' | '時々' | '外食中心' | 'コンビニ中心' | null
+          main_concern: '間食' | '偏食' | '量' | '栄養バランス' | null
+          advice_style: 'すぐ実践' | 'じっくり学習' | null
+          info_preference: '簡潔' | '詳しく' | null
+          profile_completed: boolean | null
           created_at: string
           updated_at: string
         }
@@ -33,6 +42,15 @@ export type Database = {
           weight?: number | null
           activity_level?: 'sedentary' | 'lightly_active' | 'moderately_active' | 'very_active' | 'extremely_active' | null
           goal?: 'maintain' | 'lose_weight' | 'gain_weight' | 'build_muscle' | null
+          age_group?: '20代' | '30代' | '40代' | '50代以上' | null
+          goal_type?: '体重管理' | '健康維持' | '筋肉増量' | '生活習慣改善' | null
+          activity_level_jp?: '座り仕事中心' | '軽い運動' | '活発' | 'アスリート' | null
+          meal_timing?: '規則的' | '不規則' | '夜遅め' | null
+          cooking_frequency?: '毎日自炊' | '時々' | '外食中心' | 'コンビニ中心' | null
+          main_concern?: '間食' | '偏食' | '量' | '栄養バランス' | null
+          advice_style?: 'すぐ実践' | 'じっくり学習' | null
+          info_preference?: '簡潔' | '詳しく' | null
+          profile_completed?: boolean | null
           created_at?: string
           updated_at?: string
         }
@@ -46,6 +64,15 @@ export type Database = {
           weight?: number | null
           activity_level?: 'sedentary' | 'lightly_active' | 'moderately_active' | 'very_active' | 'extremely_active' | null
           goal?: 'maintain' | 'lose_weight' | 'gain_weight' | 'build_muscle' | null
+          age_group?: '20代' | '30代' | '40代' | '50代以上' | null
+          goal_type?: '体重管理' | '健康維持' | '筋肉増量' | '生活習慣改善' | null
+          activity_level_jp?: '座り仕事中心' | '軽い運動' | '活発' | 'アスリート' | null
+          meal_timing?: '規則的' | '不規則' | '夜遅め' | null
+          cooking_frequency?: '毎日自炊' | '時々' | '外食中心' | 'コンビニ中心' | null
+          main_concern?: '間食' | '偏食' | '量' | '栄養バランス' | null
+          advice_style?: 'すぐ実践' | 'じっくり学習' | null
+          info_preference?: '簡潔' | '詳しく' | null
+          profile_completed?: boolean | null
           created_at?: string
           updated_at?: string
         }

@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Character } from '@/lib/characters'
 import { UserNameInput } from './user-name-input'
 import { CharacterSelection } from './character-selection'
 import { CharacterPrototype } from './character-prototype'
+import { createClient } from '@/lib/supabase-client'
 
-type AppFlow = 'name-input' | 'character-selection' | 'chat-room'
+type AppFlow = 'name-input' | 'character-selection' | 'chat-room' | 'profile-check'
 
 interface UserData {
   name: string
@@ -14,32 +16,70 @@ interface UserData {
 }
 
 export function AppFlowManager() {
-  const [currentFlow, setCurrentFlow] = useState<AppFlow>('name-input')
+  const [currentFlow, setCurrentFlow] = useState<AppFlow>('profile-check')
   const [userData, setUserData] = useState<UserData>({
     name: '',
     selectedCharacter: null
   })
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
+  const supabase = createClient()
 
-  // ローカルストレージからユーザーデータを復元
+  // 初期化時にプロフィール完了状態をチェック
   useEffect(() => {
-    const savedUserData = localStorage.getItem('nutriroom-user-data')
-    if (savedUserData) {
+    const checkProfileAndLoadData = async () => {
       try {
-        const parsed = JSON.parse(savedUserData)
-        setUserData(parsed)
+        // 認証状態をチェック
+        const { data: { user } } = await supabase.auth.getUser()
         
-        // データが完全にある場合はチャットルームに直接移動
-        if (parsed.name && parsed.selectedCharacter) {
-          setCurrentFlow('chat-room')
-        } else if (parsed.name) {
-          setCurrentFlow('character-selection')
+        if (user) {
+          // プロフィール完了状態をチェック
+          const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('profile_completed, full_name')
+            .eq('user_id', user.id)
+            .single()
+
+          if (!profile?.profile_completed) {
+            // プロフィール未完了の場合はプロフィール設定ページへ
+            router.push('/profile-setup')
+            return
+          }
+        }
+
+        // ローカルストレージからユーザーデータを復元
+        const savedUserData = localStorage.getItem('nutriroom-user-data')
+        if (savedUserData) {
+          try {
+            const parsed = JSON.parse(savedUserData)
+            setUserData(parsed)
+            
+            // データが完全にある場合はチャットルームに直接移動
+            if (parsed.name && parsed.selectedCharacter) {
+              setCurrentFlow('chat-room')
+            } else if (parsed.name) {
+              setCurrentFlow('character-selection')
+            } else {
+              setCurrentFlow('name-input')
+            }
+          } catch (error) {
+            console.error('Failed to parse saved user data:', error)
+            localStorage.removeItem('nutriroom-user-data')
+            setCurrentFlow('name-input')
+          }
+        } else {
+          setCurrentFlow('name-input')
         }
       } catch (error) {
-        console.error('Failed to parse saved user data:', error)
-        localStorage.removeItem('nutriroom-user-data')
+        console.error('Profile check error:', error)
+        setCurrentFlow('name-input')
+      } finally {
+        setLoading(false)
       }
     }
-  }, [])
+
+    checkProfileAndLoadData()
+  }, [router, supabase])
 
   // ユーザーデータをローカルストレージに保存
   const saveUserData = (newData: Partial<UserData>) => {
@@ -76,8 +116,30 @@ export function AppFlowManager() {
     setCurrentFlow('name-input')
   }
 
+  // ローディング画面
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">プロフィールを確認中...</p>
+        </div>
+      </div>
+    )
+  }
+
   // フロー表示
   switch (currentFlow) {
+    case 'profile-check':
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">プロフィールを確認中...</p>
+          </div>
+        </div>
+      )
+
     case 'name-input':
       return (
         <div>

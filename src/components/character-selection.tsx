@@ -42,6 +42,17 @@ export function CharacterSelection({ userName, onBack, onCharacterSelect }: Char
             <span className="mr-2">✨</span>
             7つの個性豊かなAI栄養士があなたをサポート
           </div>
+          
+          {/* プロフィール編集リンク */}
+          <div className="mt-6">
+            <a
+              href="/profile-setup"
+              className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              <span className="mr-1">⚙️</span>
+              プロフィールを編集して、より精度の高いアドバイスを受ける
+            </a>
+          </div>
         </div>
 
         {/* キャラクターグリッド - モバイルファースト */}
