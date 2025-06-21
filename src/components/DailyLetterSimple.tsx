@@ -5,12 +5,11 @@ import { useState, useEffect } from 'react'
 interface DailyLetterProps {
   date: string
   content: string
-  characterName: string
   characterId?: string
   onClose?: () => void
 }
 
-export function DailyLetter({ date, content, characterName, characterId, onClose }: DailyLetterProps) {
+export function DailyLetter({ date, content, characterId, onClose }: DailyLetterProps) {
   const [isVisible, setIsVisible] = useState(false)
   const [typingText, setTypingText] = useState('')
   const [isTypingComplete, setIsTypingComplete] = useState(false)
