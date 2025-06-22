@@ -257,8 +257,12 @@ export class DailyLetterGenerator {
         console.error('❌ Gemini generation failed:', error)
         
         if (config.fallbackToLocal) {
-          console.log('🔄 Falling back to local generation...')
-          letterContent = this.generateCharacterStyleLetter(character, analysis, config, userName)
+          console.log('🔄 Falling back to complete fallback generation...')
+          letterContent = this.generateCompleteFallbackLetter(character, userName, {
+            topics: analysis.topics,
+            userMessages: analysis.userMessages?.map(m => m.message_content),
+            aiMessages: analysis.aiMessages?.map(m => m.message_content)
+          })
         } else {
           throw error
         }
@@ -588,15 +592,89 @@ ${conversationData}
       
       return finalResponse
       
-    } catch (parseError) {
-      console.error('=== Geminiエラー発生 ===')
-      console.error('❌ Failed to parse Gemini response:', parseError)
-      console.log('📝 Raw Gemini response:')
-      const rawResponse = result?.response?.text?.() || 'No response'
-      console.log(rawResponse)
-      console.log('エラー種類:', parseError instanceof Error ? parseError.name : typeof parseError)
-      console.log('エラーメッセージ:', parseError instanceof Error ? parseError.message : String(parseError))
-      throw new Error(`Gemini response parsing failed: ${parseError}`)
+    } catch (geminiError) {
+      console.error('=== Gemini APIエラー発生 ===')
+      console.error('❌ Gemini API error occurred:', geminiError)
+      console.log('エラー種類:', geminiError instanceof Error ? geminiError.name : typeof geminiError)
+      console.log('エラーメッセージ:', geminiError instanceof Error ? geminiError.message : String(geminiError))
+      console.log('エラースタック:', geminiError instanceof Error ? geminiError.stack : 'No stack trace')
+      
+      console.log('📝 Gemini APIデバッグ情報:')
+      console.log('- result:', !!result)
+      console.log('- result.response:', !!result?.response)
+      
+      // responseTextは可能な場合のみ取得
+      let errorResponseText = ''
+      try {
+        errorResponseText = result?.response?.text() || ''
+      } catch {
+        errorResponseText = 'Could not extract response text'
+      }
+      console.log('- responseText:', errorResponseText ? errorResponseText.substring(0, 100) + '...' : 'Empty')
+      
+      // エラー時のフォールバック
+      console.log('🔄 Geminiエラー - フォールバック手紙生成')
+      throw new Error(`Gemini API processing failed: ${geminiError instanceof Error ? geminiError.message : String(geminiError)}`)
+    }
+  }
+  
+  /**
+   * シンプルフォールバック手紙生成（Geminiレスポンスから）
+   */
+  private static generateSimpleFallbackFromText(
+    responseText: string, 
+    character: { id: string; name: string }
+  ): Pick<DailyLetter, 'greeting' | 'mainTopics' | 'conversationHighlights' | 'encouragementMessage' | 'nextSessionHint' | 'signature'> {
+    console.log('🔄 シンプルフォールバック手紙生成')
+    
+    // Geminiのレスポンスをそのまま使用してシンプルな手紙を作成
+    const lines = responseText.split('\n').filter(line => line.trim() !== '')
+    const firstLine = lines[0] || 'あなたへ'
+    
+    return {
+      greeting: firstLine,
+      mainTopics: ['今日の相談内容'],
+      conversationHighlights: ['今日の会話のポイント'],
+      encouragementMessage: responseText.length > 100 ? responseText.substring(0, 100) + '...' : responseText,
+      nextSessionHint: character.id === 'minato' ? '明日も報告しろ。' : '明日も一緒にお話ししましょう',
+      signature: character.id === 'minato' ? 'みなと' : 'あかり'
+    }
+  }
+  
+  /**
+   * 完全フォールバック手紙生成
+   */
+  private static generateCompleteFallbackLetter(
+    character: { id: string; name: string },
+    userName?: string,
+    conversationSummary?: {
+      topics?: string[]
+      userMessages?: string[]
+      aiMessages?: string[]
+    }
+  ): Pick<DailyLetter, 'greeting' | 'mainTopics' | 'conversationHighlights' | 'encouragementMessage' | 'nextSessionHint' | 'signature'> {
+    console.log('🔄 完全フォールバック手紙生成')
+    
+    const userNameDisplay = userName || 'あなた'
+    
+    if (character.id === 'minato') {
+      return {
+        greeting: `${userNameDisplay}へ`,
+        mainTopics: conversationSummary?.topics || ['今日の相談'],
+        conversationHighlights: ['今日の会話について確認した'],
+        encouragementMessage: 'まあ、悪くない取り組みだ。継続してこそ意味がある。',
+        nextSessionHint: '明日も報告しろ。...別に心配しているわけではないが、データとして必要だからな。',
+        signature: 'みなと'
+      }
+    } else {
+      return {
+        greeting: `${userNameDisplay}さんへ♪`,
+        mainTopics: conversationSummary?.topics || ['今日のお話'],
+        conversationHighlights: ['今日も素敵な会話でした'],
+        encouragementMessage: '今日もお疲れさまでした！健康への意識、とても素晴らしいです♪',
+        nextSessionHint: '明日も一緒にお話ししましょう！',
+        signature: 'あかり'
+      }
     }
   }
 

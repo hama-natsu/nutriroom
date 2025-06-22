@@ -250,20 +250,46 @@ export async function POST(request: NextRequest) {
     let geminiUsed = false
     
     try {
-      // 実際のGemini APIを使用してお手紙生成（会話データ反映版）
+      // 実際のGemini APIを使用してお手紙生成（改善版）
+      console.log('=== お手紙生成プロセス開始 ===')
       console.log('🔄 お手紙生成に使用する会話データ:')
       console.log('- メッセージ数:', conversationSummary.todayMessages)
       console.log('- 実際の会話:', conversationSummary.hasRealConversation ? 'あり' : 'テストデータ')
       console.log('- ユーザーメッセージ:', conversationSummary.userMessages?.substring(0, 100) || 'なし')
       console.log('- AIレスポンス:', conversationSummary.aiResponses?.substring(0, 100) || 'なし')
       
+      // Gemini API 設定確認
+      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || 
+                     process.env.GEMINI_API_KEY || 
+                     process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY ||
+                     process.env.GOOGLE_AI_API_KEY
+      
+      console.log('🔍 Gemini API設定確認:')
+      console.log('- API Key存在:', !!apiKey)
+      console.log('- API Key長:', apiKey?.length || 0)
+      console.log('- プレースホルダーか:', apiKey?.includes('your_') || false)
+      
+      if (!apiKey || apiKey.includes('your_')) {
+        console.warn('⚠️ Gemini API Key not properly configured - using enhanced fallback')
+        throw new Error('Gemini API Key not configured')
+      }
+      
       letter = await DailyLetterGenerator.generateDailyLetter(
         characterId,
         'テストユーザー', // userName
         targetUserId
       )
+      
+      if (!letter) {
+        throw new Error('Letter generation returned null')
+      }
+      
       geminiUsed = true
-      console.log('✅ Gemini letter generation successful')
+      console.log('✅ Letter generation successful:', {
+        greeting: letter.greeting?.substring(0, 30) + '...',
+        topicsCount: letter.mainTopics?.length || 0,
+        signature: letter.signature
+      })
     } catch (geminiError) {
       console.warn('⚠️ Gemini generation failed, using fallback:', geminiError)
       
@@ -331,10 +357,38 @@ export async function POST(request: NextRequest) {
     
     // レスポンス生成
     if (!letter) {
+      console.error('❌ Letter generation failed - no letter object returned')
       throw new Error('Letter generation failed - no letter object returned')
     }
     
-    const letterContent = `${letter.greeting}\n\n${letter.mainTopics.join('\n')}\n\n${letter.encouragementMessage}\n\n${letter.signature}`
+    console.log('📝 お手紙オブジェクト構造確認:', {
+      hasGreeting: !!letter.greeting,
+      hasMainTopics: !!letter.mainTopics,
+      hasEncouragementMessage: !!letter.encouragementMessage,
+      hasSignature: !!letter.signature,
+      mainTopicsLength: letter.mainTopics?.length || 0
+    })
+    
+    // お手紙内容を安全に構築
+    const letterContent = [
+      letter.greeting || 'テストユーザーへ',
+      '',
+      '今日お話したこと:',
+      ...(letter.mainTopics || ['今日の相談内容']).map(topic => `・${topic}`),
+      '',
+      ...(letter.conversationHighlights || []).map(highlight => `・${highlight}`),
+      letter.conversationHighlights && letter.conversationHighlights.length > 0 ? '' : undefined,
+      letter.encouragementMessage || '今日もお疲れさまでした',
+      '',
+      letter.nextSessionHint || '明日もお話ししましょう',
+      '',
+      letter.signature || (characterId === 'minato' ? 'みなと' : 'あかり')
+    ].filter(line => line !== undefined).join('\n')
+    
+    console.log('📝 最終お手紙内容:', {
+      length: letterContent.length,
+      preview: letterContent.substring(0, 100) + '...'
+    })
     
     const response: LetterTestResponse = {
       success: true,
