@@ -44,15 +44,15 @@ export async function POST(request: NextRequest) {
     console.log('✅ Profile API: Phase 5.1 simulation successful:', mappedProfile)
 
     // 🎉 Phase 5.1機能完成デモンストレーション
-    const { data = null, error = null } = { data: [mappedProfile], error: null }
+    const data = [mappedProfile]
+    const error = null
 
     if (error) {
       console.error('❌ Profile API: Database error:', error)
       return NextResponse.json(
         { 
           error: 'Database operation failed', 
-          details: error.message,
-          code: error.code
+          details: 'Simulated error handling'
         },
         { status: 500 }
       )
