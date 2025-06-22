@@ -6,6 +6,8 @@ import { Character } from '@/lib/characters'
 import { UserNameInput } from './user-name-input'
 import { CharacterSelection } from './character-selection'
 import { CharacterPrototype } from './character-prototype'
+import { AuthGuard } from './auth-guard'
+import { useAuth } from './auth-provider'
 import { createClient } from '@/lib/supabase-client'
 
 type AppFlow = 'name-input' | 'character-selection' | 'chat-room' | 'profile-check'
@@ -24,14 +26,16 @@ export function AppFlowManager() {
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const supabase = createClient()
+  const { user, loading: authLoading } = useAuth()
 
   // 初期化時にプロフィール完了状態をチェック
   useEffect(() => {
     const checkProfileAndLoadData = async () => {
+      // 認証ローディング中は待機
+      if (authLoading) return
+      
       try {
-        // 認証状態をチェック
-        const { data: { user } } = await supabase.auth.getUser()
-        
+        // 認証済みユーザーの場合のみプロフィールチェック
         if (user) {
           // プロフィール完了状態をチェック
           const { data: profile } = await supabase
@@ -79,7 +83,7 @@ export function AppFlowManager() {
     }
 
     checkProfileAndLoadData()
-  }, [router, supabase])
+  }, [router, supabase, user, authLoading])
 
   // ユーザーデータをローカルストレージに保存
   const saveUserData = (newData: Partial<UserData>) => {
@@ -117,7 +121,7 @@ export function AppFlowManager() {
   }
 
   // ローディング画面
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50">
         <div className="text-center">
@@ -128,8 +132,16 @@ export function AppFlowManager() {
     )
   }
 
-  // フロー表示
-  switch (currentFlow) {
+  // 認証ガードでラップ
+  return (
+    <AuthGuard>
+      {renderFlow()}
+    </AuthGuard>
+  )
+
+  function renderFlow() {
+    // フロー表示
+    switch (currentFlow) {
     case 'profile-check':
       return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50">
@@ -235,5 +247,6 @@ export function AppFlowManager() {
           </div>
         </div>
       )
+    }
   }
 }

@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-client'
 import { Database } from '@/lib/database.types'
-import type { User } from '@supabase/supabase-js'
+import { useAuth } from '@/components/auth-provider'
+import { AuthGuard } from '@/components/auth-guard'
+// import type { User } from '@supabase/supabase-js' // 現在未使用
 
 type UserProfile = Database['public']['Tables']['user_profiles']['Update']
 
@@ -87,13 +89,13 @@ const questions = [
   }
 ]
 
-export default function ProfileSetupPage() {
+function ProfileSetupContent() {
   const [currentStep, setCurrentStep] = useState(0)
   const [answers, setAnswers] = useState<Partial<UserProfile>>({})
   const [loading, setLoading] = useState(false)
-  const [user, setUser] = useState<User | null>(null)
   const router = useRouter()
   const supabase = createClient()
+  const { user } = useAuth()
 
   // 2問ずつ表示するステップ計算
   const questionsPerStep = 2
@@ -104,16 +106,10 @@ export default function ProfileSetupPage() {
   )
 
   useEffect(() => {
-    // ユーザー認証状態をチェック
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/')
-        return
-      }
-      setUser(user)
+    // 既存のプロフィールをチェック
+    const checkProfile = async () => {
+      if (!user) return
 
-      // 既存のプロフィールをチェック
       const { data: profile } = await supabase
         .from('user_profiles')
         .select('*')
@@ -125,8 +121,8 @@ export default function ProfileSetupPage() {
       }
     }
 
-    getUser()
-  }, [router, supabase])
+    checkProfile()
+  }, [router, supabase, user])
 
   const handleAnswerChange = (questionId: string, value: string) => {
     setAnswers(prev => ({
@@ -299,5 +295,13 @@ export default function ProfileSetupPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ProfileSetupPage() {
+  return (
+    <AuthGuard>
+      <ProfileSetupContent />
+    </AuthGuard>
   )
 }

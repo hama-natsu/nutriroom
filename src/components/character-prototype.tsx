@@ -16,6 +16,8 @@ import { useConversationLogger, debugConversationLogger } from '@/hooks/useConve
 import { DailyLetter } from '@/components/DailyLetterSimple'
 // 🎯 Phase 3 Step 2: お手紙履歴システム
 import { LetterHistory } from '@/components/LetterHistory'
+// 認証
+import { useAuth } from '@/components/auth-provider'
 
 // Supabaseクライアント型定義
 interface WindowWithSupabase extends Window {
@@ -65,7 +67,7 @@ export function CharacterPrototype({
   const [showDailyLetter, setShowDailyLetter] = useState(false)
   const [letterData, setLetterData] = useState<{date: string, content: string} | null>(null)
   const [showLetterHistory, setShowLetterHistory] = useState(false)
-  const [authState, setAuthState] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading')
+  const { user, loading: authLoading } = useAuth()
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -106,14 +108,11 @@ export function CharacterPrototype({
         
         if (error || !user) {
           console.log('❌ User not authenticated:', error)
-          setAuthState('unauthenticated')
         } else {
           console.log('✅ User authenticated:', user.id.substring(0, 8) + '...')
-          setAuthState('authenticated')
         }
       } catch (error) {
         console.error('❌ Auth check failed:', error)
-        setAuthState('unauthenticated')
       }
     }
 
@@ -131,10 +130,8 @@ export function CharacterPrototype({
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
           if (session?.user) {
             console.log('✅ Auth state changed: authenticated')
-            setAuthState('authenticated')
           } else {
             console.log('❌ Auth state changed: unauthenticated')
-            setAuthState('unauthenticated')
           }
         })
         
@@ -667,14 +664,14 @@ export function CharacterPrototype({
           {/* 過去のお手紙ボタン */}
           <button
             onClick={() => {
-              if (authState === 'loading') {
+              if (authLoading) {
                 if (process.env.NODE_ENV === 'development') {
                   console.log('⏳ Auth state still loading, please wait')
                 }
                 return
               }
               
-              if (authState !== 'authenticated') {
+              if (!user) {
                 if (process.env.NODE_ENV === 'development') {
                   console.log('⚠️ Anonymous user accessing history (development mode)')
                 }
@@ -688,18 +685,18 @@ export function CharacterPrototype({
                 console.log('📚 Letter history opened for authenticated user')
               }
             }}
-            disabled={authState === 'loading'}
+            disabled={authLoading}
             className={`px-3 py-1 text-xs rounded-lg transition-colors ${
-              authState === 'loading'
+              authLoading
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : authState === 'authenticated' 
+                : user 
                   ? 'bg-purple-100 text-purple-600 hover:bg-purple-200' 
                   : 'bg-orange-100 text-orange-600 hover:bg-orange-200'
             }`}
             title={
-              authState === 'loading' 
+              authLoading 
                 ? '読み込み中...' 
-                : authState === 'authenticated' 
+                : user 
                   ? '過去のお手紙' 
                   : '過去のお手紙 (開発モード)'
             }
@@ -931,21 +928,21 @@ export function CharacterPrototype({
           </button>
           
           {/* 認証状態表示 */}
-          {authState === 'loading' && (
+          {authLoading && (
             <div className="flex items-center gap-1 text-gray-500 text-xs">
               <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
               <span>認証中...</span>
             </div>
           )}
           
-          {authState === 'authenticated' && (
+          {user && (
             <div className="flex items-center gap-1 text-green-500 text-xs">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
               <span>認証済み</span>
             </div>
           )}
           
-          {authState === 'unauthenticated' && (
+          {!user && (
             <div className="flex items-center gap-1 text-orange-500 text-xs">
               <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
               <span>開発モード</span>
