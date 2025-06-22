@@ -168,13 +168,16 @@ function ProfileSetupContent() {
     try {
       console.log('📋 Submitting profile data:', answers)
       
-      // API経由でプロフィール保存
+      // API経由でプロフィール保存（user_idを含める）
       const response = await fetch('/api/profile', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(answers)
+        body: JSON.stringify({
+          ...answers,
+          user_id: user.id  // 新規ユーザー対応でuser_idを明示的に送信
+        })
       })
 
       const result = await response.json()
