@@ -1,25 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateResponse } from '@/lib/gemini'
 import { characters } from '@/lib/characters'
-import { getCharacterPersonality } from '@/lib/character-personalities'
 import { userMemoryManager } from '@/lib/user-memory'
-import { createLINEStylePrompt } from '@/lib/response-length-manager'
 import { createClient } from '@supabase/supabase-js'
 import { createPersonalizedPrompt } from '@/lib/character-prompts'
 import { Database } from '@/lib/database.types'
-
-// ユーザープロフィール型定義
-interface UserProfileInfo {
-  age_group?: string | null
-  goal_type?: string | null
-  activity_level_jp?: string | null
-  meal_timing?: string | null
-  cooking_frequency?: string | null
-  main_concern?: string | null
-  advice_style?: string | null
-  info_preference?: string | null
-  profile_completed?: boolean | null
-}
 
 // 個性分析関数
 function analyzeUserMessage(message: string): {
@@ -115,15 +100,6 @@ async function createEnhancedPrompt(
     characterId: character.id
   })
   
-  // LINEスタイルのコンテキスト作成
-  const context = {
-    messageCount: conversationHistory.length,
-    lastMessages: conversationHistory.slice(-3),
-    userRequestedDetails: userAnalysis.requestsDetails,
-    currentTopic: userAnalysis.topics[0] || null,
-    relationshipLevel
-  }
-  
   // 追加のコンテキスト情報
   const additionalContext = `
 
@@ -205,14 +181,14 @@ export async function POST(request: NextRequest) {
       userId
     )
 
+    // ユーザープロフィールをローカル変数に保存（後で使用）
+    const userProfile = await getUserProfileInfo(userId)
+    
     console.log('📝 Phase 6.1 personalized prompt created for', character.name, {
       hasProfile: !!userProfile,
       profileCompleted: userProfile?.profile_completed || false,
       promptLength: enhancedPrompt.length
     })
-
-    // ユーザープロフィールをローカル変数に保存（後で使用）
-    const userProfile = await getUserProfileInfo(userId)
     
     // Gemini APIを使用してレスポンスを生成
     const response = await generateResponse(character, enhancedPrompt, [])

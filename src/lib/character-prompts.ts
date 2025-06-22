@@ -40,7 +40,7 @@ Phase 3: 具体的な実践方法
 
 // あかりの個別化プロンプト生成
 export function createAkariPersonalizedPrompt(config: PersonalizedPromptConfig): string {
-  const { userProfile, userName = 'ユーザー', characterId } = config
+  const { userProfile, userName = 'ユーザー' } = config
   
   if (!userProfile || !userProfile.profile_completed) {
     return createDefaultAkariPrompt(userName)
@@ -79,7 +79,7 @@ ${ADVISORY_FLOW}
 
 // みなとの個別化プロンプト生成
 export function createMinatoPersonalizedPrompt(config: PersonalizedPromptConfig): string {
-  const { userProfile, userName = 'ユーザー', characterId } = config
+  const { userProfile, userName = 'ユーザー' } = config
   
   if (!userProfile || !userProfile.profile_completed) {
     return createDefaultMinatoPrompt(userName)
