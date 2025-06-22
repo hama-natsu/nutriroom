@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase-client'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,10 +13,24 @@ export async function POST(request: NextRequest) {
       goal_type: body.goal_type
     })
 
-    // 🚀 Phase 5.1完成: 実際のデータベース保存実装
-    console.log('🚀 Profile API: Implementing actual database save with Service Role')
+    // 🚀 実際のデータベース保存実装
+    console.log('🚀 Profile API: Implementing actual database save')
     
-    // 🔧 Phase 5.1完成 - データベース接続は後の段階で実装
+    // Supabaseクライアント作成
+    const supabase = createClient()
+    
+    // 認証されたユーザー取得
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    if (authError || !user) {
+      console.error('❌ Profile API: Authentication failed:', authError)
+      return NextResponse.json(
+        { error: 'Authentication required', details: 'Please sign in to save your profile' },
+        { status: 401 }
+      )
+    }
+    
+    console.log('✅ Profile API: User authenticated:', user.id.substring(0, 8) + '...')
 
     // フィールドマッピング実装
     const activityLevelMapping: Record<string, string> = {
@@ -32,44 +47,69 @@ export async function POST(request: NextRequest) {
       '生活習慣改善': 'maintain'
     }
 
-    // 🎯 Phase 5.1完成: 実際のプロフィール保存を簡素化実装
-    // 一時的に成功レスポンスで機能完成をデモ（RLS解決後にDB保存追加）
-    const mappedProfile = {
-      activity_level: activityLevelMapping[body.activity_level_jp] || 'sedentary',
-      goal: goalMapping[body.goal_type] || 'maintain',
-      profile_completed: true, // 🎯 Phase 5.1完成フラグ
-      timestamp: new Date().toISOString()
+    // 🎯 実際のデータベース保存処理（既存スキーマに合わせて）
+    const profileData = {
+      user_id: user.id,
+      activity_level: activityLevelMapping[body.activity_level_jp] as 'sedentary' | 'lightly_active' | 'moderately_active' | 'very_active' | 'extremely_active',
+      goal: goalMapping[body.goal_type] as 'maintain' | 'lose_weight' | 'gain_weight' | 'build_muscle',
+      profile_completed: true,
+      updated_at: new Date().toISOString()
     }
+    
+    // Phase 5.1データをログに記録（将来のマイグレーション用）
+    console.log('📋 Phase 5.1 Profile Data (for future migration):', {
+      age_group: body.age_group,
+      goal_type: body.goal_type,
+      meal_timing: body.meal_timing,
+      cooking_frequency: body.cooking_frequency,
+      main_concern: body.main_concern,
+      advice_style: body.advice_style,
+      info_preference: body.info_preference
+    })
 
-    console.log('✅ Profile API: Phase 5.1 simulation successful:', mappedProfile)
+    console.log('📝 Profile API: Saving to database:', {
+      user_id: user.id.substring(0, 8) + '...',
+      fields: Object.keys(profileData),
+      profile_completed: profileData.profile_completed
+    })
 
-    // 🎉 Phase 5.1機能完成デモンストレーション
-    const data = [mappedProfile]
-    const error = null
+    // 実際のデータベース保存実行
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .upsert(profileData)
+      .select()
 
     if (error) {
-      console.error('❌ Profile API: Database error:', error)
+      console.error('❌ Profile API: Database error:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      })
+      
       return NextResponse.json(
         { 
           error: 'Database operation failed', 
-          details: 'Simulated error handling'
+          details: error.message,
+          code: error.code
         },
         { status: 500 }
       )
     }
 
-    console.log('🎉 Profile API: Phase 5.1 COMPLETE! Profile processing successful:', {
+    console.log('✅ Profile API: Profile saved successfully!', {
+      user_id: user.id.substring(0, 8) + '...',
       profile_completed: true,
-      mapped_data: data,
-      phase: '5.1 Complete'
+      saved_data: !!data
     })
 
-    // 🎉 Phase 5.1完成成功レスポンス
+    // 🎉 実際のデータベース保存成功レスポンス
     return NextResponse.json({
       success: true,
-      message: 'Profile saved successfully! Phase 5.1 Complete!',
+      message: 'Profile saved successfully to database!',
       profile_completed: true,
-      next_step: 'Redirecting to character selection...'
+      user_id: user.id.substring(0, 8) + '...',
+      saved_data: data?.[0] || null
     })
 
   } catch (error) {
