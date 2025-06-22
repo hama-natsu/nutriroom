@@ -65,58 +65,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-  try {
-    console.log('🔵 Profile API: Getting user profile')
-    
-    const supabase = createClient()
-    
-    // セッションとユーザー情報を両方で確認
-    const { data: { session } } = await supabase.auth.getSession()
-    let user = session?.user || null
-    
-    if (!user) {
-      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
-      user = authUser || null
-      
-      if (authError) {
-        console.error('❌ Profile API: Auth error in GET:', authError)
-      }
-    }
-    
-    if (!user) {
-      return NextResponse.json(
-        { 
-          error: 'Authentication required',
-          details: 'Please sign in to access your profile'
-        },
-        { status: 401 }
-      )
-    }
-
-    const { data: profile, error } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('user_id', user.id)
-      .single()
-
-    if (error) {
-      console.error('❌ Profile API: Get profile error:', error)
-      return NextResponse.json(
-        { error: 'Failed to fetch profile', details: error.message },
-        { status: 500 }
-      )
-    }
-
-    return NextResponse.json({
-      success: true,
-      profile
-    })
-
-  } catch (error) {
-    console.error('❌ Profile API: Get profile unexpected error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
+  // 一時的にGETメソッドも無効化
+  return NextResponse.json({
+    message: 'GET method temporarily disabled during testing phase'
+  })
 }
