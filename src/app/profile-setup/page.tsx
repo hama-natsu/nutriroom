@@ -154,25 +154,29 @@ function ProfileSetupContent() {
 
     setLoading(true)
     try {
-      const profileData = {
-        ...answers,
-        profile_completed: true,
-        updated_at: new Date().toISOString()
+      console.log('📋 Submitting profile data:', answers)
+      
+      // API経由でプロフィール保存
+      const response = await fetch('/api/profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(answers)
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        console.error('❌ Profile save error:', result)
+        throw new Error(result.details || result.error || 'Profile save failed')
       }
 
-      const { error } = await supabase
-        .from('user_profiles')
-        .upsert({
-          user_id: user.id,
-          ...profileData
-        })
-
-      if (error) throw error
-
+      console.log('✅ Profile saved successfully via API')
       router.push('/')
     } catch (error) {
       console.error('Profile update error:', error)
-      alert('プロフィールの保存に失敗しました。もう一度お試しください。')
+      alert(`プロフィールの保存に失敗しました: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setLoading(false)
     }
