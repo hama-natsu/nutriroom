@@ -110,14 +110,26 @@ function ProfileSetupContent() {
     const checkProfile = async () => {
       if (!user) return
 
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single()
+      try {
+        console.log('🔍 ProfileSetup: Checking existing profile for user:', user.id.substring(0, 8) + '...')
+        
+        const { data: profile, error } = await supabase
+          .from('user_profiles')
+          .select('profile_completed')
+          .eq('user_id', user.id)
+          .maybeSingle()
 
-      if (profile?.profile_completed) {
-        router.push('/')
+        if (error) {
+          console.log('ℹ️ ProfileSetup: No existing profile found, continuing with setup')
+          return
+        }
+
+        if (profile?.profile_completed) {
+          console.log('✅ ProfileSetup: Profile already completed, redirecting to home')
+          router.push('/')
+        }
+      } catch (error) {
+        console.error('❌ ProfileSetup: Error checking profile:', error)
       }
     }
 
