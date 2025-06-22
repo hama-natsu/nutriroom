@@ -100,20 +100,42 @@ async function createEnhancedPrompt(
     characterId: character.id
   })
   
+  // プロフィール不足情報の特定
+  const missingInfo = userProfile ? [] : ['profile_setup']
+  if (userProfile) {
+    if (!userProfile.goal && !userProfile.goal_type) missingInfo.push('goal')
+    if (!userProfile.activity_level && !userProfile.activity_level_jp) missingInfo.push('activity_level')
+    if (userProfile.goal_type === '体重管理' && !userProfile.weight) missingInfo.push('current_weight')
+    if (!userProfile.cooking_frequency) missingInfo.push('cooking_frequency')
+  }
+
+  // 会話履歴分析（継続性のため）
+  const recentTopics = conversationHistory.slice(-3).join(' ')
+  const hasRecentNutritionTalk = recentTopics.includes('食事') || recentTopics.includes('栄養')
+  const hasRecentWeightTalk = recentTopics.includes('体重') || recentTopics.includes('ダイエット')
+
   // 追加のコンテキスト情報
   const additionalContext = `
 
-【現在の会話状況】
+【会話コンテキスト】
 - 関係性レベル: ${relationshipLevel}/3
 - ユーザー感情: ${userAnalysis.emotion}
-- 話題: ${userAnalysis.topics.join(', ') || 'なし'}
-- サポートが必要: ${userAnalysis.needsSupport ? 'はい' : 'いいえ'}
-- 詳細を求めている: ${userAnalysis.requestsDetails ? 'はい' : 'いいえ'}
+- 今回の話題: ${userAnalysis.topics.join(', ') || 'なし'}
+- サポート必要度: ${userAnalysis.needsSupport ? '高' : '低'}
+- 詳細要求: ${userAnalysis.requestsDetails ? 'あり' : 'なし'}
+
+【プロフィール状況】
+- 不足情報: ${missingInfo.join(', ') || 'なし'}
+- 最近の会話: 栄養${hasRecentNutritionTalk ? 'あり' : 'なし'}/体重${hasRecentWeightTalk ? 'あり' : 'なし'}
 
 【今回のメッセージ】
-${userMessage}
+"${userMessage}"
 
-上記を踏まえて、あなたのキャラクターに忠実に、かつユーザーの状況に最適化した返答をしてください。`
+【返答指示】
+1. プロフィール不足情報があれば自然に1つ質問
+2. 最近の会話を踏まえた継続的なアドバイス
+3. 100文字以内で1つの要素のみに集中
+4. キャラクターの口癖・個性を活用`
 
   return personalizedPrompt + additionalContext
 }
