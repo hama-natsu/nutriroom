@@ -703,19 +703,29 @@ export function CharacterPrototype({
                       content: result.letter.content
                     })
                     setShowDailyLetter(true)
+                    
+                    // お手紙履歴の自動更新
+                    setTimeout(() => {
+                      console.log('🔄 Triggering letter history refresh after test generation')
+                      window.dispatchEvent(new CustomEvent('letterGenerated', { 
+                        detail: { characterId, letterData: result.letter }
+                      }))
+                    }, 1000)
+                    
+                    alert('✅ お手紙テスト生成が完了しました！')
                   } else {
                     console.error('❌ Test letter generation failed:', result.error)
-                    alert('テスト生成失敗: ' + (result.error || 'Unknown error'))
+                    alert('❌ エラー: ' + (result.error || 'Unknown error'))
                   }
                 } catch (error) {
                   console.error('❌ Test letter API error:', error)
-                  alert('API エラー: ' + error)
+                  alert('❌ API エラー: ' + error)
                 }
               }}
-              className="px-3 py-1 text-xs bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200 transition-colors"
-              title="明日のお手紙をプレビュー（開発用）"
+              className="px-4 py-2 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              title="お手紙テスト生成"
             >
-              🧪
+              🧪 テスト生成
             </button>
           )}
 

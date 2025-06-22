@@ -307,6 +307,54 @@ export function LetterHistory({ characterId, characterName, onClose, onRefreshRe
                 >
                   {state.isLoading ? '更新中...' : '🔄 再読み込み'}
                 </button>
+                
+                {/* テスト生成ボタン（開発環境のみ） */}
+                {process.env.NODE_ENV === 'development' && (
+                  <button
+                    onClick={async () => {
+                      console.log('🧪 Test letter generation started for:', characterId)
+                      try {
+                        const response = await fetch('/api/generate-letter-test', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ 
+                            characterId,
+                            includeDebugInfo: true
+                          })
+                        })
+
+                        const result = await response.json()
+                        
+                        if (result.success && result.letter) {
+                          console.log('🧪 Test letter generated successfully:', {
+                            wordCount: result.letter.wordCount,
+                            conversationSummary: result.conversationSummary,
+                            debugInfo: result.debugInfo
+                          })
+                          
+                          // お手紙履歴の自動更新
+                          setTimeout(() => {
+                            console.log('🔄 Triggering letter history refresh after test generation')
+                            loadLetterHistory(true)
+                          }, 1000)
+                          
+                          alert('✅ お手紙テスト生成が完了しました！')
+                        } else {
+                          console.error('❌ Test letter generation failed:', result.error)
+                          alert('❌ エラー: ' + (result.error || 'Unknown error'))
+                        }
+                      } catch (error) {
+                        console.error('❌ Test letter API error:', error)
+                        alert('❌ API エラー: ' + error)
+                      }
+                    }}
+                    disabled={state.isLoading}
+                    className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 disabled:opacity-50 transition-colors text-xs"
+                  >
+                    🧪 テスト生成
+                  </button>
+                )}
+                
                 <span className="text-green-600">
                   {state.letters.length}件表示
                 </span>
