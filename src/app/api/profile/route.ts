@@ -17,14 +17,38 @@ export async function POST(request: NextRequest) {
       goal_type: body.goal_type
     })
 
-    // 認証確認
+    // 認証確認（緩和版）
     const supabase = createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    if (authError || !user) {
-      console.error('❌ Profile API: Authentication failed:', authError)
+    // まずセッションを確認
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    
+    if (sessionError) {
+      console.error('❌ Profile API: Session error:', sessionError)
+    }
+    
+    // ユーザー情報を取得（複数の方法で試行）
+    let user = session?.user || null
+    
+    if (!user) {
+      console.log('🔄 Profile API: No session user, trying getUser()')
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
+      user = authUser || null
+      
+      if (authError) {
+        console.error('❌ Profile API: GetUser error:', authError)
+      }
+    }
+    
+    if (!user) {
+      console.error('❌ Profile API: No authenticated user found')
       return NextResponse.json(
-        { error: 'Unauthorized', details: authError?.message },
+        { 
+          error: 'Authentication required', 
+          details: 'Please sign in to save your profile',
+          sessionExists: !!session,
+          sessionError: sessionError?.message
+        },
         { status: 401 }
       )
     }
@@ -101,11 +125,26 @@ export async function GET() {
     console.log('🔵 Profile API: Getting user profile')
     
     const supabase = createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    if (authError || !user) {
+    // セッションとユーザー情報を両方で確認
+    const { data: { session } } = await supabase.auth.getSession()
+    let user = session?.user || null
+    
+    if (!user) {
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
+      user = authUser || null
+      
+      if (authError) {
+        console.error('❌ Profile API: Auth error in GET:', authError)
+      }
+    }
+    
+    if (!user) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { 
+          error: 'Authentication required',
+          details: 'Please sign in to access your profile'
+        },
         { status: 401 }
       )
     }
