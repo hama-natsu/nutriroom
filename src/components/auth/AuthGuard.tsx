@@ -1,7 +1,7 @@
 'use client'
 
-import { useAuth } from './auth-provider'
-import { AuthForm } from './auth-form'
+import { useAuth } from './AuthProvider'
+import { AuthForm } from './AuthForm'
 
 interface AuthGuardProps {
   children: React.ReactNode

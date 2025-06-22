@@ -17,7 +17,7 @@ import { DailyLetter } from '@/components/DailyLetterSimple'
 // 🎯 Phase 3 Step 2: お手紙履歴システム
 import { LetterHistory } from '@/components/LetterHistory'
 // 認証
-import { useAuth } from '@/components/auth-provider'
+import { useAuth } from '@/components/auth/AuthProvider'
 
 // Supabaseクライアント型定義
 interface WindowWithSupabase extends Window {

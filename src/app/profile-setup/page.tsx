@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-client'
 import { Database } from '@/lib/database.types'
-import { useAuth } from '@/components/auth-provider'
-import { AuthGuard } from '@/components/auth-guard'
+import { useAuth } from '@/components/auth/AuthProvider'
+import { AuthGuard } from '@/components/auth/AuthGuard'
 // import type { User } from '@supabase/supabase-js' // 現在未使用
 
 type UserProfile = Database['public']['Tables']['user_profiles']['Update']

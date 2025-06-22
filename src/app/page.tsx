@@ -1,12 +1,12 @@
-import { CharacterSelector } from '@/components/common/CharacterSelector';
-import { Metadata } from 'next';
+'use client'
 
-export const metadata: Metadata = {
-  title: 'NutriRoom - AI栄養士チャットアプリ',
-  description: '管理栄養士が開発したAI栄養士と音声で会話。あなたに最適な栄養指導を受けられます。',
-  keywords: ['AI', '栄養士', 'チャット', '健康', 'ダイエット', '栄養指導'],
-};
+import { AuthGuard } from '@/components/auth/AuthGuard'
+import { AppFlowManager } from '@/components/app-flow-manager'
 
 export default function HomePage() {
-  return <CharacterSelector />;
+  return (
+    <AuthGuard>
+      <AppFlowManager />
+    </AuthGuard>
+  )
 }
