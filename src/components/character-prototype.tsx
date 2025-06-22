@@ -673,6 +673,52 @@ export function CharacterPrototype({
             💌
           </button>
 
+          {/* テストお手紙生成ボタン（開発環境のみ） */}
+          {process.env.NODE_ENV === 'development' && (
+            <button
+              onClick={async () => {
+                console.log('🧪 Test letter generation started for:', characterId)
+                try {
+                  const response = await fetch('/api/generate-letter-test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                      characterId,
+                      userId: user?.id || 'test-user',
+                      includeDebugInfo: true
+                    })
+                  })
+
+                  const result = await response.json()
+                  
+                  if (result.success && result.letter) {
+                    console.log('🧪 Test letter generated successfully:', {
+                      wordCount: result.letter.wordCount,
+                      conversationSummary: result.conversationSummary,
+                      debugInfo: result.debugInfo
+                    })
+                    
+                    setLetterData({
+                      date: result.letter.generatedAt,
+                      content: result.letter.content
+                    })
+                    setShowDailyLetter(true)
+                  } else {
+                    console.error('❌ Test letter generation failed:', result.error)
+                    alert('テスト生成失敗: ' + (result.error || 'Unknown error'))
+                  }
+                } catch (error) {
+                  console.error('❌ Test letter API error:', error)
+                  alert('API エラー: ' + error)
+                }
+              }}
+              className="px-3 py-1 text-xs bg-yellow-100 text-yellow-600 rounded-lg hover:bg-yellow-200 transition-colors"
+              title="明日のお手紙をプレビュー（開発用）"
+            >
+              🧪
+            </button>
+          )}
+
           {/* 過去のお手紙ボタン */}
           <button
             onClick={() => {

@@ -10,20 +10,29 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export async function POST(request: NextRequest) {
-  console.log('🔥 ========== GENERATION PROCESS DEBUG ==========');
+  const startTime = Date.now()
+  console.log('🔥 ========== LETTER GENERATION START ==========');
+  console.log(`🔥 [${new Date().toISOString()}] Letter generation started`);
   
   try {
     // Step 1: リクエスト解析
     console.log('🔥 Step 1: Parsing request...');
     const body = await request.json();
-    const { characterId, character_id, testMode, userName, cron_mode } = body;
+    const { characterId, character_id, testMode, userName, cron_mode, userId } = body;
     
     // Cronモード対応: character_id → characterId 変換
     const finalCharacterId = characterId || character_id || 'akari';
     const isCronMode = cron_mode || false;
     
     console.log('🔥 Request body:', body);
-    console.log('🔥 Parsed values:', { finalCharacterId, testMode, userName, isCronMode });
+    console.log('🔥 Parsed values:', { 
+      finalCharacterId, 
+      testMode, 
+      userName, 
+      isCronMode, 
+      hasUserId: !!userId 
+    });
+    console.log(`🔥 User: ${userId || 'undefined'}, Character: ${finalCharacterId}`);
     
     // Step 2: 環境変数確認
     console.log('🔥 Step 2: Environment check...');
@@ -308,6 +317,11 @@ export async function POST(request: NextRequest) {
       });
     }
     
+    const totalTime = Date.now() - startTime
+    console.log(`🔥 Letter generated successfully: ${letterContent.length} characters`)
+    console.log(`🔥 Total processing time: ${totalTime}ms`)
+    console.log('🔥 ========== LETTER GENERATION COMPLETE ==========')
+    
     return NextResponse.json({
       success: true,
       message: letterContent,
@@ -316,14 +330,25 @@ export async function POST(request: NextRequest) {
         content: letterContent,
         characterId: finalCharacterId,
         date: new Date().toISOString().split('T')[0],
-        saved: letterId !== 'unsaved' && letterId !== 'save_error' && letterId !== 'success_no_id'
+        saved: letterId !== 'unsaved' && letterId !== 'save_error' && letterId !== 'success_no_id',
+        processingTime: totalTime,
+        generatedAt: new Date().toISOString()
       }
     });
 
   } catch (error) {
-    console.error('API error:', error);
+    const totalTime = Date.now() - startTime
+    console.error('❌ Letter generation failed:', error);
+    console.error('❌ Error occurred after:', totalTime + 'ms');
+    console.log('🔥 ========== LETTER GENERATION FAILED ==========')
+    
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { 
+        success: false, 
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error',
+        processingTime: totalTime
+      },
       { status: 500 }
     );
   }
