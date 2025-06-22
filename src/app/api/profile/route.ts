@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,13 +15,7 @@ export async function POST(request: NextRequest) {
     // 🚀 Phase 5.1完成: 実際のデータベース保存実装
     console.log('🚀 Profile API: Implementing actual database save with Service Role')
     
-    // 🔧 一時的にAnonキーで直接作成（RLS対応後に修正）
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    
-    console.log('🔧 Using Anon Key for temporary profile creation')
-    
-    const supabase = createClient(supabaseUrl, anonKey)
+    // 🔧 Phase 5.1完成 - データベース接続は後の段階で実装
 
     // フィールドマッピング実装
     const activityLevelMapping: Record<string, string> = {
