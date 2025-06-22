@@ -421,7 +421,7 @@ export function CharacterPrototype({
     }
 
     try {
-      // API呼び出し
+      // Phase 6.1: API呼び出し（user_id追加で個別化対応）
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -431,12 +431,24 @@ export function CharacterPrototype({
           conversationHistory: messages.map(m => 
             `${m.isUser ? 'ユーザー' : character?.name}: ${m.text}`
           ),
+          userId: user?.id || 'anonymous', // Phase 6.1: ユーザーID追加
           ...(systemPrompt && { systemPrompt })
         })
       })
 
       if (response.ok) {
         const data = await response.json()
+        
+        // Phase 6.1: 個別化情報のログ出力
+        if (process.env.NODE_ENV === 'development' && data.personalization) {
+          console.log('🎯 Phase 6.1 Personalization Info:', {
+            hasProfile: data.personalization.hasProfile,
+            profileCompleted: data.personalization.profileCompleted,
+            goalType: data.personalization.goalType,
+            adviceStyle: data.personalization.adviceStyle,
+            mainConcern: data.personalization.mainConcern
+          })
+        }
         
         // 応答制御システムを使用するかの判定（完全無効化）
         const useResponseControl = false // 緊急修正: 完全無効化

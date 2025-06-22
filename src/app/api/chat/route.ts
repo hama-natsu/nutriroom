@@ -4,7 +4,9 @@ import { characters } from '@/lib/characters'
 import { getCharacterPersonality } from '@/lib/character-personalities'
 import { userMemoryManager } from '@/lib/user-memory'
 import { createLINEStylePrompt } from '@/lib/response-length-manager'
-import { createClient } from '@/lib/supabase-client'
+import { createClient } from '@supabase/supabase-js'
+import { createPersonalizedPrompt } from '@/lib/character-prompts'
+import { Database } from '@/lib/database.types'
 
 // ユーザープロフィール型定義
 interface UserProfileInfo {
@@ -66,26 +68,21 @@ function analyzeUserMessage(message: string): {
 }
 
 // ユーザープロフィール情報を取得
-async function getUserProfileInfo(userId: string): Promise<UserProfileInfo | null> {
+async function getUserProfileInfo(userId: string): Promise<Database['public']['Tables']['user_profiles']['Row'] | null> {
   try {
-    const supabase = createClient()
+    // Service Key使用でRLS回避
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+    const supabase = createClient<Database>(supabaseUrl, serviceKey)
+    
     const { data: profile, error } = await supabase
       .from('user_profiles')
-      .select(`
-        age_group,
-        goal_type,
-        activity_level_jp,
-        meal_timing,
-        cooking_frequency,
-        main_concern,
-        advice_style,
-        info_preference,
-        profile_completed
-      `)
+      .select('*')
       .eq('user_id', userId)
       .single()
 
-    if (error || !profile?.profile_completed) {
+    if (error) {
+      console.log('Profile not found for user:', userId)
       return null
     }
 
@@ -96,7 +93,7 @@ async function getUserProfileInfo(userId: string): Promise<UserProfileInfo | nul
   }
 }
 
-// エンハンスされたプロンプト生成
+// エンハンスされたプロンプト生成（新しい個別化システム使用）
 async function createEnhancedPrompt(
   character: { id: string; name: string },
   userMessage: string,
@@ -105,6 +102,19 @@ async function createEnhancedPrompt(
   relationshipLevel: number,
   userId: string
 ): Promise<string> {
+  console.log('🎯 Creating enhanced personalized prompt for:', character.id)
+  
+  // ユーザープロフィール情報を取得
+  const userProfile = await getUserProfileInfo(userId)
+  console.log('📋 User profile status:', userProfile ? 'Found' : 'Not found')
+  
+  // 新しい個別化プロンプトシステムを使用
+  const personalizedPrompt = createPersonalizedPrompt({
+    userProfile,
+    userName: 'ユーザー', // 実際のユーザー名があれば使用
+    characterId: character.id
+  })
+  
   // LINEスタイルのコンテキスト作成
   const context = {
     messageCount: conversationHistory.length,
@@ -113,42 +123,27 @@ async function createEnhancedPrompt(
     currentTopic: userAnalysis.topics[0] || null,
     relationshipLevel
   }
+  
+  // 追加のコンテキスト情報
+  const additionalContext = `
 
-  // ベースプロンプトを生成
-  let basePrompt = `あなたは${character.name}です。${getCharacterPersonality(character.id)?.detailedPersonality || ''}
+【現在の会話状況】
+- 関係性レベル: ${relationshipLevel}/3
+- ユーザー感情: ${userAnalysis.emotion}
+- 話題: ${userAnalysis.topics.join(', ') || 'なし'}
+- サポートが必要: ${userAnalysis.needsSupport ? 'はい' : 'いいえ'}
+- 詳細を求めている: ${userAnalysis.requestsDetails ? 'はい' : 'いいえ'}
 
-【専門分野】${getCharacterPersonality(character.id)?.expertise.specialty || ''}
+【今回のメッセージ】
+${userMessage}
 
-【関係性レベル】${relationshipLevel}/3`
+上記を踏まえて、あなたのキャラクターに忠実に、かつユーザーの状況に最適化した返答をしてください。`
 
-  // ユーザープロフィール情報を取得して追加
-  const userProfile = await getUserProfileInfo(userId)
-  if (userProfile) {
-    basePrompt += `
-
-【ユーザープロフィール情報】
-- 年代: ${userProfile.age_group || '不明'}
-- 目標: ${userProfile.goal_type || '未設定'}
-- 活動レベル: ${userProfile.activity_level_jp || '不明'}
-- 食事タイミング: ${userProfile.meal_timing || '不明'}
-- 調理頻度: ${userProfile.cooking_frequency || '不明'}
-- 主な悩み: ${userProfile.main_concern || '不明'}
-- 希望アドバイス: ${userProfile.advice_style || '不明'}
-- 情報量の好み: ${userProfile.info_preference || '不明'}
-
-【会話方針】
-- ユーザーの${userProfile.goal_type || '目標'}に合わせたアドバイスを提供
-- ${userProfile.activity_level_jp || '活動レベル'}に適した提案をする
-- ${userProfile.advice_style || 'アドバイススタイル'}の要望に応える
-- ${userProfile.info_preference || '情報量'}で回答する
-- ${userProfile.main_concern || '悩み'}を重点的にサポート`
-  }
-
-  return createLINEStylePrompt(basePrompt, userMessage, character.id, context)
+  return personalizedPrompt + additionalContext
 }
 
 export async function POST(request: NextRequest) {
-  console.log('🎭 Enhanced Chat API with personality system');
+  console.log('🎭 Enhanced Chat API with Phase 6.1 personalized prompts');
   
   // デバッグ情報
   const debugInfo = {
@@ -210,16 +205,25 @@ export async function POST(request: NextRequest) {
       userId
     )
 
-    console.log('📝 Enhanced prompt created for', character.name)
+    console.log('📝 Phase 6.1 personalized prompt created for', character.name, {
+      hasProfile: !!userProfile,
+      profileCompleted: userProfile?.profile_completed || false,
+      promptLength: enhancedPrompt.length
+    })
 
+    // ユーザープロフィールをローカル変数に保存（後で使用）
+    const userProfile = await getUserProfileInfo(userId)
+    
     // Gemini APIを使用してレスポンスを生成
     const response = await generateResponse(character, enhancedPrompt, [])
     
-    console.log('🎯 Response generated:', {
+    console.log('🎯 Phase 6.1 Response generated:', {
       characterId,
       responseLength: response.length,
       relationshipLevel,
-      userEmotion: userAnalysis.emotion
+      userEmotion: userAnalysis.emotion,
+      hasUserProfile: !!userProfile,
+      personalizedResponse: userProfile?.profile_completed || false
     });
 
     // 会話をメモリーに記録
@@ -244,7 +248,7 @@ export async function POST(request: NextRequest) {
     // ユーザーの好みを学習
     userMemoryManager.learnUserPreferences(userId, characterId, userAnalysis.topics, outcome)
 
-    // 個性強化された応答と追加情報
+    // Phase 6.1: 個別化された応答と追加情報
     const enhancedResponse = {
       response,
       characterPersonality: {
@@ -253,6 +257,13 @@ export async function POST(request: NextRequest) {
         topics: userAnalysis.topics,
         specialResponse: userAnalysis.isResistant ? 'resistant' : 
                         userAnalysis.needsSupport ? 'supportive' : 'normal'
+      },
+      personalization: {
+        hasProfile: !!userProfile,
+        profileCompleted: userProfile?.profile_completed || false,
+        goalType: userProfile?.goal_type || null,
+        adviceStyle: userProfile?.advice_style || null,
+        mainConcern: userProfile?.main_concern || null
       },
       memoryStats: userMemoryManager.getMemoryStats(userId)
     }
