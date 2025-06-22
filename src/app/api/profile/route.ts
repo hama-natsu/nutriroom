@@ -17,11 +17,9 @@ export async function POST(request: NextRequest) {
       goal_type: body.goal_type
     })
 
-    // 🚨 一時的な認証チェック無効化（プロフィール保存を優先）
+    // 🔄 認証復活 - RLS対応のため
     const supabase = createClient()
     
-    // TODO: 認証機能を段階的に復旧
-    /*
     // まずセッションを確認
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
     
@@ -47,7 +45,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { 
           error: 'Authentication required', 
-          details: 'Please sign in to save your profile',
+          details: 'Please sign in to save your profile. RLS policy requires valid user session.',
           sessionExists: !!session,
           sessionError: sessionError?.message
         },
@@ -56,24 +54,29 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('✅ Profile API: User authenticated:', user.id.substring(0, 8) + '...')
-    */
 
-    // 🎯 一時的にuser_idをリクエストから取得またはダミー値使用
-    const dummyUserId = 'temp-user-123' // 一時的なダミーユーザーID
-    console.log('🔧 Profile API: Using temporary user ID for testing:', dummyUserId)
+    // 🔄 日本語フィールドを既存の英語フィールドにマッピング
+    const activityLevelMapping: Record<string, 'sedentary' | 'lightly_active' | 'moderately_active' | 'very_active' | 'extremely_active'> = {
+      '座り仕事中心': 'sedentary',
+      '軽い運動': 'lightly_active', 
+      '活発': 'very_active',
+      'アスリート': 'extremely_active'
+    }
 
-    // プロフィールデータの準備
+    const goalMapping: Record<string, 'maintain' | 'lose_weight' | 'gain_weight' | 'build_muscle'> = {
+      '体重管理': 'lose_weight',
+      '健康維持': 'maintain',
+      '筋肉増量': 'build_muscle',
+      '生活習慣改善': 'maintain'
+    }
+
+    // プロフィールデータの準備（既存カラムにマッピング）
     const profileData: ProfileInsert = {
-      user_id: dummyUserId, // 一時的にダミーユーザーID使用
-      age_group: body.age_group,
-      goal_type: body.goal_type,
-      activity_level_jp: body.activity_level_jp,
-      meal_timing: body.meal_timing,
-      cooking_frequency: body.cooking_frequency,
-      main_concern: body.main_concern,
-      advice_style: body.advice_style,
-      info_preference: body.info_preference,
+      user_id: user.id, // 認証されたユーザーIDを使用
+      activity_level: activityLevelMapping[body.activity_level_jp] || 'sedentary',
+      goal: goalMapping[body.goal_type] || 'maintain',
       profile_completed: true
+      // 新しいカラムは一時的にスキップ（マイグレーション後に追加）
     }
 
     console.log('📝 Profile API: Prepared profile data:', profileData)
@@ -104,7 +107,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('✅ Profile API: Profile saved successfully:', {
-      user_id: dummyUserId,
+      user_id: user.id.substring(0, 8) + '...',
       profile_completed: true,
       data_returned: !!data
     })
