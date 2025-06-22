@@ -39,79 +39,142 @@ interface LetterTestResponse {
   error?: string
 }
 
-// 会話履歴要約を取得
-async function getConversationSummary(userId: string, characterId: string) {
-  console.log('📊 Getting conversation summary for:', { userId: userId.substring(0, 8), characterId })
+// 会話履歴の詳細取得（修正版）
+async function getDetailedConversationSummary(userId: string, characterId: string) {
+  console.log('=== 会話履歴取得開始 ===')
+  console.log('ユーザーID:', userId.substring(0, 8) + '...')
+  console.log('キャラクターID:', characterId)
   
   const supabase = createClient<Database>(supabaseUrl, serviceKey)
   const today = new Date().toISOString().split('T')[0]
+  console.log('対象日:', today)
   
   try {
-    // 今日のセッション取得
-    const { data: sessions, error: sessionError } = await supabase
-      .from('user_sessions')
-      .select('id, session_start, heartbeat_count')
-      .eq('user_id', userId)
-      .eq('character_id', characterId)
-      .gte('session_start', today)
-      .order('session_start', { ascending: false })
-    
-    if (sessionError) {
-      console.error('❌ Session query error:', sessionError)
-      return { todayMessages: 0, lastActivity: null, topics: [] }
-    }
-    
-    if (!sessions || sessions.length === 0) {
-      console.log('ℹ️ No sessions found for today')
-      return { todayMessages: 0, lastActivity: null, topics: [] }
-    }
-    
-    // セッション内の会話ログ取得
-    const sessionIds = sessions.map(s => s.id)
-    const { data: logs, error: logError } = await supabase
+    // 直接conversation_logsから今日の会話を取得
+    const { data: conversations, error } = await supabase
       .from('conversation_logs')
-      .select('message_content, message_type, created_at')
-      .in('session_id', sessionIds)
-      .order('created_at', { ascending: false })
+      .select('message_content, message_type, created_at, session_id')
+      .gte('created_at', `${today}T00:00:00`)
+      .lt('created_at', `${today}T23:59:59`)
+      .order('created_at', { ascending: true })
     
-    if (logError) {
-      console.error('❌ Conversation logs query error:', logError)
-      return { todayMessages: 0, lastActivity: null, topics: [] }
+    console.log('取得された会話数:', conversations?.length || 0)
+    
+    if (error) {
+      console.error('❌ 会話ログ取得エラー:', error)
+      return createEmptyConversationSummary()
     }
     
-    const messageCount = logs?.length || 0
-    const lastActivity = logs?.[0]?.created_at || null
-    
-    // トピック抽出（簡易版）
-    const topics: string[] = []
-    logs?.forEach(log => {
-      if (log.message_type === 'user') {
-        const message = log.message_content.toLowerCase()
-        if (message.includes('食事') || message.includes('料理')) topics.push('食事')
-        if (message.includes('運動') || message.includes('トレーニング')) topics.push('運動')
-        if (message.includes('体重') || message.includes('ダイエット')) topics.push('体重管理')
-        if (message.includes('栄養') || message.includes('ビタミン')) topics.push('栄養')
-      }
-    })
-    
-    const uniqueTopics = [...new Set(topics)]
-    
-    console.log('✅ Conversation summary:', {
-      todayMessages: messageCount,
-      lastActivity,
-      topics: uniqueTopics
-    })
-    
-    return {
-      todayMessages: messageCount,
-      lastActivity,
-      topics: uniqueTopics
+    if (!conversations || conversations.length === 0) {
+      console.log('⚠️ 今日の会話データが存在しません')
+      // テスト用の仮想会話データを生成
+      return createTestConversationData(characterId)
     }
+    
+    console.log('会話内容サンプル:', conversations.slice(0, 2).map(c => ({
+      type: c.message_type,
+      content: c.message_content.substring(0, 50) + '...',
+      time: c.created_at
+    })))
+    
+    // 会話要約を作成
+    const summary = createConversationSummary(conversations)
+    console.log('会話要約完了:', summary)
+    
+    return summary
     
   } catch (error) {
-    console.error('❌ Error getting conversation summary:', error)
-    return { todayMessages: 0, lastActivity: null, topics: [] }
+    console.error('❌ 会話履歴取得エラー:', error)
+    return createEmptyConversationSummary()
   }
+}
+
+// 会話要約作成関数
+function createConversationSummary(conversations: Array<{message_type: string, message_content: string, created_at: string}>) {
+  console.log('会話要約生成開始:', conversations.length, '件の会話')
+  
+  const userMessages = conversations
+    .filter(conv => conv.message_type === 'user')
+    .map(conv => conv.message_content)
+    .slice(0, 5) // 最新5件のユーザーメッセージ
+  
+  const aiResponses = conversations
+    .filter(conv => conv.message_type === 'assistant' || conv.message_type === 'ai')
+    .map(conv => conv.message_content)
+    .slice(-3) // 最新3件のAI回答
+  
+  console.log('ユーザーメッセージ数:', userMessages.length)
+  console.log('ユーザーメッセージサンプル:', userMessages.slice(0, 2).map(m => m.substring(0, 30) + '...'))
+  console.log('AI回答数:', aiResponses.length)
+  console.log('AI回答サンプル:', aiResponses.slice(0, 2).map(m => m.substring(0, 30) + '...'))
+  
+  // トピック抽出
+  const topics = extractTopics(conversations)
+  
+  return {
+    todayMessages: conversations.length,
+    lastActivity: conversations[conversations.length - 1]?.created_at || null,
+    topics,
+    userMessages: userMessages.join('. '),
+    aiResponses: aiResponses.join('. '),
+    conversationCount: conversations.length,
+    hasRealConversation: true
+  }
+}
+
+// テスト用会話データ生成
+function createTestConversationData(characterId: string) {
+  console.log('🧪 テスト用会話データを生成中...')
+  
+  const testData = characterId === 'minato' ? {
+    todayMessages: 4,
+    lastActivity: new Date().toISOString(),
+    topics: ['食事', '運動'],
+    userMessages: '最近太ってきて困っています. どんな運動をすればいいですか. 食事で気をつけることはありますか',
+    aiResponses: 'ふん、まあいいだろう...まずは食事記録をつけろ. 運動なら筋トレから始めるのが効率的だ. 別に君のためじゃないが、継続が重要だからな',
+    conversationCount: 4,
+    hasRealConversation: false
+  } : {
+    todayMessages: 3,
+    lastActivity: new Date().toISOString(),
+    topics: ['栄養', '食事'],
+    userMessages: 'バランスの良い食事について教えてください. ビタミンが足りているか心配です',
+    aiResponses: '栄養バランスを考えた食事、素晴らしいですね♪ 野菜をたくさん摂って、タンパク質も忘れずに！ 一緒に頑張りましょう',
+    conversationCount: 3,
+    hasRealConversation: false
+  }
+  
+  console.log('🧪 テストデータ生成完了:', testData)
+  return testData
+}
+
+// 空の会話要約
+function createEmptyConversationSummary() {
+  return {
+    todayMessages: 0,
+    lastActivity: null,
+    topics: [],
+    userMessages: '',
+    aiResponses: '',
+    conversationCount: 0,
+    hasRealConversation: false
+  }
+}
+
+// トピック抽出関数
+function extractTopics(conversations: Array<{message_type: string, message_content: string}>) {
+  const topics: string[] = []
+  conversations.forEach(conv => {
+    if (conv.message_type === 'user') {
+      const message = conv.message_content.toLowerCase()
+      if (message.includes('食事') || message.includes('料理')) topics.push('食事')
+      if (message.includes('運動') || message.includes('トレーニング')) topics.push('運動')
+      if (message.includes('体重') || message.includes('ダイエット')) topics.push('体重管理')
+      if (message.includes('栄養') || message.includes('ビタミン')) topics.push('栄養')
+      if (message.includes('健康')) topics.push('健康')
+    }
+  })
+  return [...new Set(topics)]
 }
 
 export async function POST(request: NextRequest) {
@@ -149,8 +212,15 @@ export async function POST(request: NextRequest) {
       console.log('⚠️ No userId provided, using test user:', targetUserId)
     }
     
-    // 会話履歴要約取得
-    const conversationSummary = await getConversationSummary(targetUserId, characterId)
+    // 会話履歴の詳細取得
+    const conversationSummary = await getDetailedConversationSummary(targetUserId, characterId)
+    console.log('🔍 会話履歴取得結果:', {
+      messageCount: conversationSummary.todayMessages,
+      hasRealConversation: conversationSummary.hasRealConversation,
+      topics: conversationSummary.topics,
+      userMessagesLength: conversationSummary.userMessages?.length || 0,
+      aiResponsesLength: conversationSummary.aiResponses?.length || 0
+    })
     
     // デバッグ情報収集
     let debugInfo = undefined
@@ -180,7 +250,13 @@ export async function POST(request: NextRequest) {
     let geminiUsed = false
     
     try {
-      // 実際のGemini APIを使用してお手紙生成
+      // 実際のGemini APIを使用してお手紙生成（会話データ反映版）
+      console.log('🔄 お手紙生成に使用する会話データ:')
+      console.log('- メッセージ数:', conversationSummary.todayMessages)
+      console.log('- 実際の会話:', conversationSummary.hasRealConversation ? 'あり' : 'テストデータ')
+      console.log('- ユーザーメッセージ:', conversationSummary.userMessages?.substring(0, 100) || 'なし')
+      console.log('- AIレスポンス:', conversationSummary.aiResponses?.substring(0, 100) || 'なし')
+      
       letter = await DailyLetterGenerator.generateDailyLetter(
         characterId,
         'テストユーザー', // userName
@@ -191,10 +267,29 @@ export async function POST(request: NextRequest) {
     } catch (geminiError) {
       console.warn('⚠️ Gemini generation failed, using fallback:', geminiError)
       
-      // フォールバック：シンプルなテスト用お手紙
-      const fallbackContent = characterId === 'minato' 
-        ? `テストユーザーへ\n\n今日の会話データを確認した。\n${conversationSummary.todayMessages}件のメッセージがあったな。\n\n別に心配しているわけではないが...継続することが重要だ。\n\nみなと`
-        : `テストユーザーさん♪\n\n今日もお話しできて嬉しかったです！\n${conversationSummary.todayMessages}件のやりとりがありましたね。\n\n明日も一緒に頑張りましょう〜\n\nあかり`
+      // フォールバック：会話内容を反映したテスト用お手紙
+      console.log('🔄 フォールバック生成中 - 会話データを反映します')
+      
+      let fallbackContent: string
+      if (characterId === 'minato') {
+        if (conversationSummary.hasRealConversation && conversationSummary.userMessages) {
+          // 実際の会話がある場合
+          fallbackContent = `テストユーザーへ\n\n今日の相談について話したが...${conversationSummary.todayMessages}件のやりとりがあったな。\n\n「${conversationSummary.userMessages.split('.')[0]}」という話をしていたが、まあ悪くない取り組みだ。\n\n別に心配しているわけではないが...継続することが重要だからな。\n\nみなと`
+        } else {
+          // テストデータの場合
+          const testTopics = conversationSummary.topics.join('、') || '栄養管理'
+          fallbackContent = `テストユーザーへ\n\n今日は${testTopics}について話したな。\n\n「${conversationSummary.userMessages?.split('.')[0] || '最近太ってきて困っています'}」という相談だったが、まあ真面目に取り組んでいるようだな。\n\n継続してこそ意味がある。明日も報告しろ。\n\nみなと`
+        }
+      } else {
+        if (conversationSummary.hasRealConversation && conversationSummary.userMessages) {
+          // 実際の会話がある場合
+          fallbackContent = `テストユーザーさん♪\n\n今日は${conversationSummary.todayMessages}件もお話しできて嬉しかったです！\n\n「${conversationSummary.userMessages.split('.')[0]}」というお話、とても素晴らしい取り組みですね。\n\n明日も一緒に頑張りましょう〜\n\nあかり`
+        } else {
+          // テストデータの場合
+          const testTopics = conversationSummary.topics.join('、') || '栄養バランス'
+          fallbackContent = `テストユーザーさん♪\n\n今日は${testTopics}についてお話しできて嬉しかったです！\n\n「${conversationSummary.userMessages?.split('.')[0] || 'バランスの良い食事について教えてください'}」というご質問、とても良い意識ですね。\n\n明日も一緒にお話ししましょう♪\n\nあかり`
+        }
+      }
       
       letter = {
         id: 'test-' + Date.now(),
@@ -202,13 +297,29 @@ export async function POST(request: NextRequest) {
         characterId,
         characterName: characterId === 'minato' ? 'みなと' : 'あかり',
         greeting: fallbackContent.split('\n')[0],
-        mainTopics: conversationSummary.topics,
-        conversationHighlights: [`今日は${conversationSummary.todayMessages}件の会話がありました`],
-        encouragementMessage: '継続することが大切です',
-        nextSessionHint: '明日もお話ししましょう',
+        mainTopics: conversationSummary.topics.length > 0 ? conversationSummary.topics : ['今日の相談内容'],
+        conversationHighlights: [
+          `今日は${conversationSummary.todayMessages}件の会話がありました`,
+          ...(conversationSummary.hasRealConversation ? 
+            [`実際の会話: ${conversationSummary.userMessages?.substring(0, 50)}...`] : 
+            [`テストデータでの会話シミュレーション`])
+        ],
+        encouragementMessage: characterId === 'minato' ? 
+          '継続してこそ意味がある。明日も真面目に取り組め。' : 
+          '今日も素晴らしい取り組みでした！継続が一番大切ですね♪',
+        nextSessionHint: characterId === 'minato' ? 
+          '明日も報告しろ。...データとして必要だからな。' : 
+          '明日も一緒にお話ししましょう♪',
         signature: characterId === 'minato' ? 'みなと' : 'あかり',
         createdAt: new Date()
       }
+      
+      console.log('📝 フォールバック生成完了:', {
+        contentLength: fallbackContent.length,
+        topicsCount: letter.mainTopics.length,
+        highlightsCount: letter.conversationHighlights.length,
+        hasRealConversation: conversationSummary.hasRealConversation
+      })
     }
     
     const generationTime = Date.now() - generationStart

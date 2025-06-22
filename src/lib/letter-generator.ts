@@ -472,44 +472,100 @@ ${conversationData}
       throw new Error('Gemini model not available')
     }
 
-    // 会話データを整理
+    // 会話データを詳細に整理（改善版）
+    console.log('=== 会話データ整理開始 ===')
+    
+    if (!conversations || conversations.length === 0) {
+      console.log('⚠️ 会話データが存在しません - テンプレートモードで生成します')
+      const conversationData = '今日はまだ会話をしていません。'
+      console.log('会話データ:', conversationData)
+    } else {
+      console.log('会話数:', conversations.length)
+      console.log('会話の種類別分析:')
+      
+      const userMessages = conversations.filter(c => c.message_type === 'user')
+      const aiMessages = conversations.filter(c => c.message_type === 'assistant' || c.message_type === 'ai')
+      
+      console.log('- ユーザーメッセージ:', userMessages.length, '件')
+      console.log('- AIメッセージ:', aiMessages.length, '件')
+      
+      // 最新5件のユーザーメッセージを表示
+      if (userMessages.length > 0) {
+        console.log('ユーザーメッセージサンプル:')
+        userMessages.slice(-5).forEach((msg, index) => {
+          console.log(`  ${index + 1}. "${msg.message_content.substring(0, 50)}..."`)
+        })
+      }
+      
+      // 最新3件のAIメッセージを表示
+      if (aiMessages.length > 0) {
+        console.log('AIメッセージサンプル:')
+        aiMessages.slice(-3).forEach((msg, index) => {
+          console.log(`  ${index + 1}. "${msg.message_content.substring(0, 50)}..."`)
+        })
+      }
+    }
+    
     const conversationData = conversations?.map(conv => 
       `${conv.message_type === 'user' ? 'ユーザー' : character.name}: ${conv.message_content}`
-    ).join('\n') || ''
-
-    console.log('📝 Conversation data for Gemini:', {
-      conversationCount: conversations?.length || 0,
-      characterId: character.id,
-      conversationDataLength: conversationData.length,
-      conversationSample: conversationData.substring(0, 200) + '...',
-      fullConversationData: conversationData.length < 500 ? conversationData : '[TOO_LONG_TO_DISPLAY]'
-    })
+    ).join('\n') || '今日はまだ会話をしていません。'
+    
+    console.log('=== 最終的な会話データ ===')
+    console.log('会話データ長:', conversationData.length, '文字')
+    if (conversationData.length > 0 && conversationData !== '今日はまだ会話をしていません。') {
+      console.log('会話データプレビュー:')
+      console.log(conversationData.substring(0, 300) + (conversationData.length > 300 ? '...' : ''))
+    } else {
+      console.log('会話データ:', conversationData)
+    }
 
     const userNameDisplay = userName || 'あなた'
     const timeSlot = this.getTimeSlot()
 
-    // 🎯 キャラクター別プロンプト設計
+    // 🎯 キャラクター別プロンプト設計（改善版）
+    console.log('=== プロンプト生成開始 ===')
+    console.log('キャラクター:', character.id)
+    console.log('ユーザー名:', userNameDisplay)
+    console.log('時間帯:', timeSlot)
+    console.log('会話データの有無:', conversationData !== '今日はまだ会話をしていません。')
+    
     const letterPrompt = this.getCharacterLetterPrompt(character, userNameDisplay, conversationData, analysis, config, timeSlot, userProfile)
+    
+    console.log('プロンプト長:', letterPrompt.length, '文字')
+    console.log('プロンプトプレビュー:')
+    console.log(letterPrompt.substring(0, 300) + '...')
 
     let result: { response: { text: () => string } } | null = null
     try {
+      console.log('=== Gemini API呼び出し開始 ===')
       console.log('📤 Sending prompt to Gemini...')
+      
       result = await model.generateContent(letterPrompt)
       const responseText = result.response.text()
       
-      console.log('📥 Gemini response received, parsing JSON...')
+      console.log('=== Geminiレスポンス受信 ===')
+      console.log('📥 Gemini response received')
+      console.log('レスポンス長:', responseText.length, '文字')
+      console.log('レスポンスプレビュー:')
+      console.log(responseText.substring(0, 200) + (responseText.length > 200 ? '...' : ''))
+      
+      console.log('=== JSONパーシング開始 ===')
       
       // JSONパース
       const parsedResponse = JSON.parse(responseText)
+      
+      console.log('JSONパーシング成功')
+      console.log('パーシング結果のキー:', Object.keys(parsedResponse))
       
       // バリデーション
       if (!parsedResponse.greeting || !parsedResponse.mainTopics || !parsedResponse.encouragementMessage) {
         throw new Error('Invalid response structure from Gemini')
       }
 
+      console.log('=== 最終レスポンス生成 ===')
       console.log('✅ Gemini response parsed successfully')
       
-      return {
+      const finalResponse = {
         greeting: parsedResponse.greeting,
         mainTopics: Array.isArray(parsedResponse.mainTopics) 
           ? parsedResponse.mainTopics.slice(0, config.maxTopics) 
@@ -524,9 +580,22 @@ ${conversationData}
         signature: parsedResponse.signature || (character.id === 'minato' ? 'みなと' : 'あかり')
       }
       
+      console.log('最終レスポンス内容:')
+      console.log('- 挨拶:', finalResponse.greeting.substring(0, 50) + '...')
+      console.log('- トピック数:', finalResponse.mainTopics.length)
+      console.log('- ハイライト数:', finalResponse.conversationHighlights.length)
+      console.log('- 励まし:', finalResponse.encouragementMessage.substring(0, 50) + '...')
+      
+      return finalResponse
+      
     } catch (parseError) {
+      console.error('=== Geminiエラー発生 ===')
       console.error('❌ Failed to parse Gemini response:', parseError)
-      console.log('📝 Raw Gemini response:', result?.response?.text?.() || 'No response')
+      console.log('📝 Raw Gemini response:')
+      const rawResponse = result?.response?.text?.() || 'No response'
+      console.log(rawResponse)
+      console.log('エラー種類:', parseError instanceof Error ? parseError.name : typeof parseError)
+      console.log('エラーメッセージ:', parseError instanceof Error ? parseError.message : String(parseError))
       throw new Error(`Gemini response parsing failed: ${parseError}`)
     }
   }
