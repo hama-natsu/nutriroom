@@ -37,18 +37,29 @@ export function AppFlowManager() {
       try {
         // 認証済みユーザーの場合のみプロフィールチェック
         if (user) {
+          console.log('🔍 AppFlow: Checking profile completion for user:', user.id.substring(0, 8) + '...')
+          
           // プロフィール完了状態をチェック
-          const { data: profile } = await supabase
+          const { data: profile, error } = await supabase
             .from('user_profiles')
             .select('profile_completed, full_name')
             .eq('user_id', user.id)
-            .single()
+            .maybeSingle()
+
+          if (error) {
+            console.log('ℹ️ AppFlow: No existing profile found, redirecting to profile setup')
+            router.push('/profile-setup')
+            return
+          }
 
           if (!profile?.profile_completed) {
+            console.log('⚠️ AppFlow: Profile incomplete, redirecting to profile setup')
             // プロフィール未完了の場合はプロフィール設定ページへ
             router.push('/profile-setup')
             return
           }
+          
+          console.log('✅ AppFlow: Profile completed, proceeding to main app')
         }
 
         // ローカルストレージからユーザーデータを復元
