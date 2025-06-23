@@ -36,6 +36,8 @@ interface LetterTestResponse {
     generationTime: number
     geminiUsed: boolean
   }
+  databaseSaved?: boolean
+  savedLetterId?: string | null
   error?: string
 }
 
@@ -390,6 +392,96 @@ export async function POST(request: NextRequest) {
       preview: letterContent.substring(0, 100) + '...'
     })
     
+    // データベース保存処理追加
+    console.log('=== データベース保存開始 ===')
+    let savedToDatabase = false
+    let savedLetterId: string | null = null
+    
+    try {
+      const supabase = createClient<Database>(supabaseUrl, serviceKey)
+      const today = new Date().toISOString().split('T')[0]
+      
+      // 既存の手紙をチェック
+      const { data: existingLetter, error: checkError } = await supabase
+        .from('daily_summaries')
+        .select('*')
+        .eq('user_id', targetUserId)
+        .eq('character_id', characterId)
+        .eq('date', today)
+        .single()
+      
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('❌ 既存チェックエラー:', checkError)
+      }
+      
+      const letterData = {
+        user_id: targetUserId,
+        character_id: characterId,
+        date: today,
+        letter_content: letterContent,
+        main_topics: letter.mainTopics || ['今日の相談'],
+        session_count: 1,
+        total_messages: conversationSummary.todayMessages,
+        emotions_detected: conversationSummary.topics || [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+      
+      console.log('保存データ:', {
+        userId: letterData.user_id.substring(0, 8) + '...',
+        characterId: letterData.character_id,
+        date: letterData.date,
+        contentLength: letterData.letter_content.length,
+        topicsCount: letterData.main_topics.length,
+        messageCount: letterData.total_messages
+      })
+      
+      if (existingLetter) {
+        console.log('既存の手紙を更新します')
+        const { data: updatedLetter, error: updateError } = await supabase
+          .from('daily_summaries')
+          .update({
+            letter_content: letterData.letter_content,
+            main_topics: letterData.main_topics,
+            total_messages: letterData.total_messages,
+            updated_at: letterData.updated_at
+          })
+          .eq('id', existingLetter.id)
+          .select()
+          .single()
+        
+        if (updateError) {
+          console.error('❌ 更新エラー:', updateError)
+        } else {
+          console.log('✅ 更新成功:', updatedLetter)
+          savedToDatabase = true
+          savedLetterId = updatedLetter.id
+        }
+      } else {
+        console.log('新規手紙を作成します')
+        const { data: newLetter, error: insertError } = await supabase
+          .from('daily_summaries')
+          .insert(letterData)
+          .select()
+          .single()
+        
+        if (insertError) {
+          console.error('❌ 挿入エラー:', insertError)
+          console.error('詳細:', JSON.stringify(insertError, null, 2))
+        } else {
+          console.log('✅ 挿入成功:', newLetter)
+          savedToDatabase = true
+          savedLetterId = newLetter.id
+        }
+      }
+    } catch (dbError) {
+      console.error('❌ データベース保存エラー:', dbError)
+    }
+    
+    console.log('=== データベース保存結果 ===')
+    console.log('保存成功:', savedToDatabase)
+    console.log('保存ID:', savedLetterId)
+    
     const response: LetterTestResponse = {
       success: true,
       letter: {
@@ -399,7 +491,9 @@ export async function POST(request: NextRequest) {
         wordCount: letterContent.length
       },
       conversationSummary,
-      ...(debugInfo && { debugInfo })
+      ...(debugInfo && { debugInfo }),
+      databaseSaved: savedToDatabase,
+      savedLetterId
     }
     
     const totalTime = Date.now() - startTime
