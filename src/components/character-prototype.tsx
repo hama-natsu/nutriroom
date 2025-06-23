@@ -618,22 +618,23 @@ export function CharacterPrototype({
           <button
             onClick={async () => {
               try {
-                // API呼び出し
-                const response = await fetch('/api/generate-letter', {
+                // 会話反映済みAPI呼び出し
+                const response = await fetch('/api/generate-letter-test', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                     characterId: characterId,
-                    testMode: true
+                    userId: user?.id || 'anonymous',
+                    includeDebugInfo: true
                   })
                 })
                 
                 const result = await response.json()
                 
-                if (result.success) {
+                if (result.success && result.letter) {
                   setLetterData({
-                    date: result.data?.date || new Date().toISOString(),
-                    content: result.data?.content || result.data?.greeting || result.message || '今日も素敵な一日になりそうですね♪'
+                    date: result.letter.generatedAt || new Date().toISOString(),
+                    content: result.letter.content || '今日も素敵な一日になりそうですね♪'
                   })
                   setShowDailyLetter(true)
                   
@@ -641,7 +642,7 @@ export function CharacterPrototype({
                   setTimeout(() => {
                     console.log('🔄 Triggering letter history refresh after generation')
                     window.dispatchEvent(new CustomEvent('letterGenerated', { 
-                      detail: { characterId, letterData: result.data }
+                      detail: { characterId, letterData: result.letter }
                     }))
                   }, 1000)
                   
