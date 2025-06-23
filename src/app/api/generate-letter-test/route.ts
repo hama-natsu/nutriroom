@@ -433,7 +433,6 @@ export async function POST(request: NextRequest) {
       if (existingLetters && existingLetters.length > 0) {
         // 更新
         console.log('既存手紙を更新します')
-        const existingLetter = existingLetters[0]
         const { data, error } = await supabase
           .from('daily_summaries')
           .update({
