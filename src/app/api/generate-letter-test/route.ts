@@ -1,7 +1,7 @@
 // 🎯 NutriRoom Phase 6.1: お手紙システムテスト機能
 // 開発者用手動お手紙生成API
 
-/* eslint-disable @typescript-eslint/no-explicit-any, prefer-const */
+// ESLint設定削除：不要なディレクティブを除去
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
@@ -182,79 +182,7 @@ function extractTopics(conversations: Array<{message_type: string, message_conte
   return [...new Set(topics)]
 }
 
-// 統一された保存処理関数
-async function saveLetterToDatabase(userId: string, characterId: string, letterContent: string, conversationSummary: unknown) {
-  try {
-    const supabase = createClient<Database>(supabaseUrl, serviceKey)
-    const today = new Date().toISOString().split('T')[0]
-    
-    console.log('🎯 データベース保存開始:', {
-      userId: userId ? `${userId.substring(0, 8)}...` : 'anonymous',
-      characterId,
-      date: today,
-      contentLength: letterContent.length
-    })
-
-    // 既存チェック
-    const { data: existing } = await supabase
-      .from('daily_summaries')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('character_id', characterId)
-      .eq('date', today)
-
-    let result
-    if (existing && existing.length > 0) {
-      console.log('既存手紙を更新します')
-      // 更新
-      result = await supabase
-        .from('daily_summaries')
-        .update({
-          letter_content: letterContent,
-          summary: `${(conversationSummary as any)?.topics?.join('、') || '健康相談'}（${(conversationSummary as any)?.todayMessages || 0}件のメッセージ）`,
-          main_topics: (conversationSummary as any)?.topics || ['健康相談'],
-          total_messages: (conversationSummary as any)?.todayMessages || 0,
-          emotions_detected: (conversationSummary as any)?.topics || [],
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userId)
-        .eq('character_id', characterId)
-        .eq('date', today)
-        .select()
-    } else {
-      console.log('新規手紙を作成します')
-      // 新規作成
-      result = await supabase
-        .from('daily_summaries')
-        .insert({
-          user_id: userId,
-          character_id: characterId,
-          date: today,
-          summary: `${(conversationSummary as any)?.topics?.join('、') || '健康相談'}（${(conversationSummary as any)?.todayMessages || 0}件のメッセージ）`,
-          letter_content: letterContent,
-          main_topics: (conversationSummary as any)?.topics || ['健康相談'],
-          session_count: 1,
-          total_messages: (conversationSummary as any)?.todayMessages || 0,
-          emotions_detected: (conversationSummary as any)?.topics || [],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .select()
-    }
-
-    if (result.error) {
-      console.error('❌ 保存エラー:', result.error)
-      return { success: false, error: result.error }
-    } else {
-      console.log('✅ 保存成功:', result.data)
-      return { success: true, data: result.data, letterId: result.data?.[0]?.id }
-    }
-
-  } catch (error) {
-    console.error('❌ 保存例外:', error)
-    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
-  }
-}
+// 🗑️ 未使用関数削除：強制保存処理で置き換え済み
 
 export async function POST(request: NextRequest) {
   console.log('🧪 ========== LETTER TEST GENERATION START ==========')
@@ -279,7 +207,7 @@ export async function POST(request: NextRequest) {
     })
     
     // 🚨 緊急修正: 認証済みユーザーIDを確実に取得
-    const supabaseAuth = createClient(supabaseUrl, supabaseKey)
+    const supabaseAuth = createClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
     const { data: { user: authUser }, error: authError } = await supabaseAuth.auth.getUser()
     
     if (authError || !authUser) {
@@ -477,7 +405,7 @@ export async function POST(request: NextRequest) {
     console.log('Character ID:', characterId)
     console.log('Letter Content Length:', letterContent.length)
     
-    let saveResult = { success: false, letterId: null, error: 'Initial state' }
+    let saveResult: { success: boolean; letterId: string | null; error: string | null } = { success: false, letterId: null, error: 'Initial state' }
     
     if (letterContent && targetUserId) {
       try {
@@ -509,7 +437,7 @@ export async function POST(request: NextRequest) {
         if (directSaveError) {
           console.error('❌ 強制保存エラー:', directSaveError)
           console.error('エラー詳細:', JSON.stringify(directSaveError, null, 2))
-          saveResult = { success: false, letterId: null, error: directSaveError }
+          saveResult = { success: false, letterId: null, error: directSaveError.message || 'Database error' }
         } else {
           console.log('✅ 強制保存成功:', directSaveResult)
           const letterId = directSaveResult?.[0]?.id || null
