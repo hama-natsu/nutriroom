@@ -49,8 +49,8 @@ async function getDetailedConversationSummary(userId: string, characterId: strin
   console.log('ユーザーID:', userId ? `${userId.substring(0, 8)}...` : 'anonymous')
   console.log('キャラクターID:', characterId)
   
-  const supabase = createClient<Database>(supabaseUrl, serviceKey)
-  const today = new Date().toISOString().split('T')[0]
+  const supabase = createClient<Database>(supabaseUrl, serviceKey);
+  const today = new Date().toISOString().split('T')[0];
   console.log('対象日:', today)
   console.log('🔑 Service Key使用確認:', serviceKey ? `${serviceKey.substring(0, 10)}...` : 'なし')
   
@@ -83,13 +83,13 @@ async function getDetailedConversationSummary(userId: string, characterId: strin
     
     if (error) {
       console.error('❌ 会話ログ取得エラー:', error)
-      return createEmptyConversationSummary()
+      return createEmptyConversationSummary();
     }
     
     if (!conversations || conversations.length === 0) {
       console.log('⚠️ 今日の会話データが存在しません')
       // テスト用の仮想会話データを生成
-      return createTestConversationData(characterId)
+      return createTestConversationData(characterId);
     }
     
     // 🔍 詳細な会話データ診断ログ
@@ -117,14 +117,14 @@ async function getDetailedConversationSummary(userId: string, characterId: strin
     })))
     
     // 会話要約を作成
-    const summary = createConversationSummary(conversations)
-    console.log('会話要約完了:', summary)
+    const summary = createConversationSummary(conversations);
+    console.log('会話要約完了:', summary);
     
-    return summary
+    return summary;
     
   } catch (error) {
     console.error('❌ 会話履歴取得エラー:', error)
-    return createEmptyConversationSummary()
+    return createEmptyConversationSummary();
   }
 }
 
@@ -143,10 +143,10 @@ function createConversationSummary(conversations: Array<{message_type: string, m
     .slice(-3) // 最新3件のAI回答
   
   // 🎯 会話の長さと深さ分析
-  const totalCharacters = conversations.reduce((sum, conv) => sum + conv.message_content.length, 0)
-  const avgMessageLength = totalCharacters / Math.max(conversations.length, 1)
-  const conversationDepth = conversations.length <= 2 ? 'short' : conversations.length <= 6 ? 'medium' : 'long'
-  const isShortConversation = conversations.length <= 2 && totalCharacters < 100
+  const totalCharacters = conversations.reduce((sum, conv) => sum + conv.message_content.length, 0);
+  const avgMessageLength = totalCharacters / Math.max(conversations.length, 1);
+  const conversationDepth = conversations.length <= 2 ? 'short' : conversations.length <= 6 ? 'medium' : 'long';
+  const isShortConversation = conversations.length <= 2 && totalCharacters < 100;
   
   console.log('ユーザーメッセージ数:', userMessages.length)
   console.log('ユーザーメッセージサンプル:', userMessages.slice(0, 2).map(m => m.substring(0, 30) + '...'))
@@ -162,7 +162,7 @@ function createConversationSummary(conversations: Array<{message_type: string, m
   })
   
   // トピック抽出
-  const topics = extractTopics(conversations)
+  const topics = extractTopics(conversations);
   
   return {
     todayMessages: conversations.length,
@@ -208,10 +208,10 @@ function createTestConversationData(characterId: string) {
   ]
   
   // ランダムに短い会話か通常の会話かを選択
-  const useShort = Math.random() < 0.6 // 60%の確率で短い会話
+  const useShort = Math.random() < 0.6; // 60%の確率で短い会話
   const pattern = useShort 
     ? shortPatterns[Math.floor(Math.random() * shortPatterns.length)]
-    : regularPatterns[Math.floor(Math.random() * regularPatterns.length)]
+    : regularPatterns[Math.floor(Math.random() * regularPatterns.length)];
   
   const testData = characterId === 'minato' ? {
     todayMessages: pattern.count,
@@ -250,7 +250,7 @@ function createTestConversationData(characterId: string) {
     topics: testData.topics
   })
   
-  return testData
+  return testData;
 }
 
 // 空の会話要約
@@ -268,7 +268,7 @@ function createEmptyConversationSummary() {
 
 // トピック抽出関数
 function extractTopics(conversations: Array<{message_type: string, message_content: string}>) {
-  const topics: string[] = []
+  const topics: string[] = [];
   conversations.forEach(conv => {
     if (conv.message_type === 'user') {
       const message = conv.message_content.toLowerCase()
@@ -279,7 +279,7 @@ function extractTopics(conversations: Array<{message_type: string, message_conte
       if (message.includes('健康')) topics.push('健康')
     }
   })
-  return [...new Set(topics)]
+  return [...new Set(topics)];
 }
 
 // 🗑️ 未使用関数削除：強制保存処理で置き換え済み
@@ -287,7 +287,7 @@ function extractTopics(conversations: Array<{message_type: string, message_conte
 export async function POST(request: NextRequest) {
   console.log('🧪 ========== LETTER TEST GENERATION START ==========')
   
-  const startTime = Date.now()
+  const startTime = Date.now();
   
   try {
     // リクエスト解析
@@ -307,7 +307,7 @@ export async function POST(request: NextRequest) {
     })
     
     // 🚨 修正: Service Key使用のため直接リクエストからuserIdを取得
-    const targetUserId = userId
+    const targetUserId = userId;
     if (!targetUserId) {
       console.error('❌ userId is required for letter generation')
       return NextResponse.json({
@@ -320,7 +320,7 @@ export async function POST(request: NextRequest) {
     console.log('🔑 Service Key認証でRLS回避モード')
     
     // 会話履歴の詳細取得
-    const conversationSummary = await getDetailedConversationSummary(targetUserId, characterId)
+    const conversationSummary = await getDetailedConversationSummary(targetUserId, characterId);
     console.log('🔍 会話履歴取得結果:', {
       messageCount: conversationSummary.todayMessages,
       hasRealConversation: conversationSummary.hasRealConversation,
@@ -330,9 +330,9 @@ export async function POST(request: NextRequest) {
     })
     
     // デバッグ情報収集
-    let debugInfo = undefined
+    let debugInfo = undefined;
     if (includeDebugInfo) {
-      const supabase = createClient<Database>(supabaseUrl, serviceKey)
+      const supabase = createClient<Database>(supabaseUrl, serviceKey);
       
       // ユーザープロフィール確認
       const { data: profile } = await supabase
@@ -351,10 +351,10 @@ export async function POST(request: NextRequest) {
     
     // 🔧 診断モード：Gemini APIスキップしてフォールバック直接実行
     console.log('🧪 診断モード：会話データ確認のためGemini APIをスキップ')
-    const generationStart = Date.now()
+    const generationStart = Date.now();
     
-    let letter
-    let geminiUsed = false
+    let letter;
+    let geminiUsed = false;
     
     console.log('=== 📊 会話データ診断結果表示 ===')
     console.log('🔄 取得された会話データの詳細:')
@@ -378,37 +378,37 @@ export async function POST(request: NextRequest) {
       console.log('🔄 フォールバック生成中 - 会話データを反映します')
       
       // 🎯 会話の長さに応じたお手紙テンプレート選択
-      const isShort = (conversationSummary as any).isShortConversation || conversationSummary.todayMessages <= 2
-      const conversationDepth = (conversationSummary as any).conversationDepth || 'medium'
+      const isShort = (conversationSummary as any).isShortConversation || conversationSummary.todayMessages <= 2;
+      const conversationDepth = (conversationSummary as any).conversationDepth || 'medium';
       
       console.log('📝 お手紙テンプレート選択:', { isShort, conversationDepth, messageCount: conversationSummary.todayMessages })
       
-      let fallbackContent: string
+      let fallbackContent: string;
       if (characterId === 'minato') {
         if (isShort) {
           // 短い会話用（「かぜをひきやすい」など）
-          const userConcern = conversationSummary.userMessages?.split('.')[0] || '健康について'
-          fallbackContent = `テストユーザーへ\n\n「${userConcern}」か...なるほどな。\n\n短いやりとりだったが、重要な話だ。栄養をしっかり摂り、規則正しい生活を心がけろ。\n\n継続が重要だからな。また報告しろ。\n\nみなと`
+          const userConcern = conversationSummary.userMessages?.split('.')[0] || '健康について';
+          fallbackContent = `テストユーザーへ\n\n「${userConcern}」か...なるほどな。\n\n短いやりとりだったが、重要な話だ。栄養をしっかり摂り、規則正しい生活を心がけろ。\n\n継続が重要だからな。また報告しろ。\n\nみなと`;
         } else if (conversationSummary.hasRealConversation && conversationSummary.userMessages) {
           // 通常の会話がある場合
-          fallbackContent = `テストユーザーへ\n\n今日の相談について話したが...${conversationSummary.todayMessages}件のやりとりがあったな。\n\n「${conversationSummary.userMessages.split('.')[0]}」という話をしていたが、まあ悪くない取り組みだ。\n\n別に心配しているわけではないが...継続することが重要だからな。\n\nみなと`
+          fallbackContent = `テストユーザーへ\n\n今日の相談について話したが...${conversationSummary.todayMessages}件のやりとりがあったな。\n\n「${conversationSummary.userMessages.split('.')[0]}」という話をしていたが、まあ悪くない取り組みだ。\n\n別に心配しているわけではないが...継続することが重要だからな。\n\nみなと`;
         } else {
           // テストデータの場合
-          const testTopics = conversationSummary.topics.join('、') || '栄養管理'
-          fallbackContent = `テストユーザーへ\n\n今日は${testTopics}について話したな。\n\n「${conversationSummary.userMessages?.split('.')[0] || '最近太ってきて困っています'}」という相談だったが、まあ真面目に取り組んでいるようだな。\n\n継続してこそ意味がある。明日も報告しろ。\n\nみなと`
+          const testTopics = conversationSummary.topics.join('、') || '栄養管理';
+          fallbackContent = `テストユーザーへ\n\n今日は${testTopics}について話したな。\n\n「${conversationSummary.userMessages?.split('.')[0] || '最近太ってきて困っています'}」という相談だったが、まあ真面目に取り組んでいるようだな。\n\n継続してこそ意味がある。明日も報告しろ。\n\nみなと`;
         }
       } else {
         if (isShort) {
           // 短い会話用（「かぜをひきやすい」など）
-          const userConcern = conversationSummary.userMessages?.split('.')[0] || '健康について'
-          fallbackContent = `テストユーザーさん♪\n\n「${userConcern}」についてお話しできて良かったです！\n\n短いお話でしたが、大切なことですね。しっかりと栄養を摂って、体調管理を心がけてくださいね。\n\n何か気になることがあったら、いつでもお話ししましょう♪\n\nあかり`
+          const userConcern = conversationSummary.userMessages?.split('.')[0] || '健康について';
+          fallbackContent = `テストユーザーさん♪\n\n「${userConcern}」についてお話しできて良かったです！\n\n短いお話でしたが、大切なことですね。しっかりと栄養を摂って、体調管理を心がけてくださいね。\n\n何か気になることがあったら、いつでもお話ししましょう♪\n\nあかり`;
         } else if (conversationSummary.hasRealConversation && conversationSummary.userMessages) {
           // 通常の会話がある場合
-          fallbackContent = `テストユーザーさん♪\n\n今日は${conversationSummary.todayMessages}件もお話しできて嬉しかったです！\n\n「${conversationSummary.userMessages.split('.')[0]}」というお話、とても素晴らしい取り組みですね。\n\n明日も一緒に頑張りましょう〜\n\nあかり`
+          fallbackContent = `テストユーザーさん♪\n\n今日は${conversationSummary.todayMessages}件もお話しできて嬉しかったです！\n\n「${conversationSummary.userMessages.split('.')[0]}」というお話、とても素晴らしい取り組みですね。\n\n明日も一緒に頑張りましょう〜\n\nあかり`;
         } else {
           // テストデータの場合
-          const testTopics = conversationSummary.topics.join('、') || '栄養バランス'
-          fallbackContent = `テストユーザーさん♪\n\n今日は${testTopics}についてお話しできて嬉しかったです！\n\n「${conversationSummary.userMessages?.split('.')[0] || 'バランスの良い食事について教えてください'}」というご質問、とても良い意識ですね。\n\n明日も一緒にお話ししましょう♪\n\nあかり`
+          const testTopics = conversationSummary.topics.join('、') || '栄養バランス';
+          fallbackContent = `テストユーザーさん♪\n\n今日は${testTopics}についてお話しできて嬉しかったです！\n\n「${conversationSummary.userMessages?.split('.')[0] || 'バランスの良い食事について教えてください'}」というご質問、とても良い意識ですね。\n\n明日も一緒にお話ししましょう♪\n\nあかり`;
         }
       }
       
@@ -433,7 +433,7 @@ export async function POST(request: NextRequest) {
           '明日も一緒にお話ししましょう♪',
         signature: characterId === 'minato' ? 'みなと' : 'あかり',
         createdAt: new Date()
-      }
+      };
       
       console.log('📝 フォールバック生成完了:', {
         contentLength: fallbackContent.length,
@@ -446,8 +446,8 @@ export async function POST(request: NextRequest) {
     const generationTime = Date.now() - generationStart;
     
     if (debugInfo) {
-      debugInfo.generationTime = generationTime
-      debugInfo.geminiUsed = geminiUsed
+      debugInfo.generationTime = generationTime;
+      debugInfo.geminiUsed = geminiUsed;
     }
     
     // レスポンス生成
@@ -478,7 +478,7 @@ export async function POST(request: NextRequest) {
       letter.nextSessionHint || '明日もお話ししましょう',
       '',
       letter.signature || (characterId === 'minato' ? 'みなと' : 'あかり')
-    ].filter(line => line !== undefined).join('\n')
+    ].filter(line => line !== undefined).join('\n');
     
     console.log('📝 最終お手紙内容:', {
       length: letterContent.length,
@@ -491,12 +491,12 @@ export async function POST(request: NextRequest) {
     console.log('Character ID:', characterId)
     console.log('Letter Content Length:', letterContent.length)
     
-    let saveResult: { success: boolean; letterId: string | null; error: string | null } = { success: false, letterId: null, error: 'Initial state' }
+    let saveResult: { success: boolean; letterId: string | null; error: string | null } = { success: false, letterId: null, error: 'Initial state' };
     
     if (letterContent && targetUserId) {
       try {
-        const today = new Date().toISOString().split('T')[0]
-        const supabaseSave = createClient<Database>(supabaseUrl, serviceKey)
+        const today = new Date().toISOString().split('T')[0];
+        const supabaseSave = createClient<Database>(supabaseUrl, serviceKey);
         
         console.log('🎯 強制保存処理実行中...')
         console.log('🔑 保存用Service Key確認:', serviceKey ? `${serviceKey.substring(0, 10)}...` : 'なし')
@@ -542,14 +542,14 @@ export async function POST(request: NextRequest) {
           console.error('エラー詳細:', JSON.stringify(directSaveError, null, 2))
           saveResult = { success: false, letterId: null, error: directSaveError.message || 'Database error' }
         } else {
-          console.log('✅ 強制保存成功:', directSaveResult)
-          const letterId = directSaveResult?.[0]?.id || null
-          saveResult = { success: true, letterId, error: null }
+          console.log('✅ 強制保存成功:', directSaveResult);
+          const letterId = directSaveResult?.[0]?.id || null;
+          saveResult = { success: true, letterId, error: null };
         }
 
       } catch (exception) {
         console.error('❌ 強制保存例外:', exception)
-        saveResult = { success: false, letterId: null, error: exception instanceof Error ? exception.message : 'Unknown error' }
+        saveResult = { success: false, letterId: null, error: exception instanceof Error ? exception.message : 'Unknown error' };
       }
     }
     
@@ -558,9 +558,9 @@ export async function POST(request: NextRequest) {
     console.log('保存ID:', saveResult.letterId)
     console.log('エラー:', saveResult.error || 'なし')
     
-    const savedToDatabase = saveResult.success
-    const savedLetterId = saveResult.letterId || null
-    const dbSaveError = saveResult.error ? (typeof saveResult.error === 'string' ? saveResult.error : JSON.stringify(saveResult.error)) : null
+    const savedToDatabase = saveResult.success;
+    const savedLetterId = saveResult.letterId || null;
+    const dbSaveError = saveResult.error ? (typeof saveResult.error === 'string' ? saveResult.error : JSON.stringify(saveResult.error)) : null;
     
     const response: LetterTestResponse = {
       success: true,
@@ -575,14 +575,14 @@ export async function POST(request: NextRequest) {
       databaseSaved: savedToDatabase,
       savedLetterId,
       ...(dbSaveError && { error: dbSaveError })
-    }
+    };
     
-    const totalTime = Date.now() - startTime
+    const totalTime = Date.now() - startTime;
     console.log('🧪 ========== LETTER TEST GENERATION COMPLETE ==========')
     console.log('🧪 Total processing time:', totalTime + 'ms')
     console.log('🧪 Letter length:', letterContent.length, 'characters')
     
-    return NextResponse.json(response)
+    return NextResponse.json(response);
     
   } catch (error) {
     console.error('❌ Letter test generation error:', error)
