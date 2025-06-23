@@ -54,12 +54,13 @@ async function getDetailedConversationSummary(userId: string, characterId: strin
   console.log('対象日:', today)
   
   try {
-    // 直接conversation_logsから今日の会話を取得
+    // 🚨 セキュリティ修正: ユーザーIDでフィルタリングして今日の会話を取得
     const { data: conversations, error } = await supabase
       .from('conversation_logs')
-      .select('message_content, message_type, created_at, session_id')
+      .select('message_content, message_type, created_at, session_id, user_sessions!inner(user_id)')
       .gte('created_at', `${today}T00:00:00`)
       .lt('created_at', `${today}T23:59:59`)
+      .eq('user_sessions.user_id', userId)
       .order('created_at', { ascending: true })
     
     console.log('取得された会話数:', conversations?.length || 0)

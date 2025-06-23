@@ -23,12 +23,13 @@ async function getDetailedConversationSummary(userId: string, characterId: strin
   console.log('対象日:', today)
   
   try {
-    // 直接conversation_logsから今日の会話を取得
+    // 🚨 セキュリティ修正: ユーザーIDでフィルタリングして今日の会話を取得
     const { data: conversations, error } = await supabase
       .from('conversation_logs')
-      .select('message_content, message_type, created_at, session_id')
+      .select('message_content, message_type, created_at, session_id, user_sessions!inner(user_id)')
       .gte('created_at', `${today}T00:00:00`)
       .lt('created_at', `${today}T23:59:59`)
+      .eq('user_sessions.user_id', userId)
       .order('created_at', { ascending: true })
     
     console.log('取得された会話数:', conversations?.length || 0)
@@ -247,7 +248,16 @@ export async function POST(request: NextRequest) {
     
     // 会話履歴取得処理を追加
     console.log('🔥 Step 3.1: Getting conversation history...')
-    const conversationSummary = await getDetailedConversationSummary(userId || 'anonymous', finalCharacterId)
+    // 🚨 セキュリティ修正: userIdが必須、匿名フォールバック削除
+    if (!userId) {
+      console.error('❌ userId is required for conversation summary')
+      return NextResponse.json(
+        { success: false, error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
+    
+    const conversationSummary = await getDetailedConversationSummary(userId, finalCharacterId)
     console.log('🔍 会話履歴取得結果:', {
       messageCount: conversationSummary.todayMessages,
       hasRealConversation: conversationSummary.hasRealConversation,
@@ -461,7 +471,7 @@ export async function POST(request: NextRequest) {
     // Step 3: 統一された保存処理を実行
     console.log('💾 Step 3: Executing unified save process...');
     const saveResult = await saveLetterToDatabase(
-      userId || 'anonymous', 
+      userId, 
       finalCharacterId, 
       letterContent, 
       conversationSummary

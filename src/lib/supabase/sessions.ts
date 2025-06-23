@@ -43,12 +43,16 @@ export const startSession = async (characterId: string): Promise<UserSession | n
   try {
     const userId = await getCurrentUserId()
     
-    // 緊急修正: 認証なしでも動作するように、匿名ユーザーIDを生成
-    const effectiveUserId = userId || 'anonymous-' + Date.now()
+    // 🚨 セキュリティ修正: 認証必須、匿名ユーザー削除
+    if (!userId) {
+      console.error('❌ userId is required for session creation')
+      throw new Error('Authentication required')
+    }
+    const effectiveUserId = userId
     
     console.log('🚀 Starting session:', {
       characterId,
-      userId: userId ? userId.substring(0, 8) + '...' : 'anonymous',
+      userId: userId.substring(0, 8) + '...',
       effectiveUserId: effectiveUserId.substring(0, 12) + '...'
     })
 
@@ -372,7 +376,7 @@ export const getTodayConversationLogs = async (characterId: string): Promise<Con
           created_at: log.timestamp, // created_atがない場合はtimestampを使用
           user_sessions: {
             id: 'sessionless',
-            user_id: userId || 'anonymous',
+            user_id: userId,
             character_id: characterId,
             created_at: log.timestamp
           }
@@ -386,7 +390,7 @@ export const getTodayConversationLogs = async (characterId: string): Promise<Con
     console.log('🔍 Database query result (session-joined):', {
       error: error?.message || 'none',
       dataLength: data?.length || 0,
-      userId: userId ? userId.substring(0, 8) + '...' : 'anonymous',
+      userId: userId.substring(0, 8) + '...',
       characterId
     })
 

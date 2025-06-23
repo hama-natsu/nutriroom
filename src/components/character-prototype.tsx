@@ -431,7 +431,7 @@ export function CharacterPrototype({
           conversationHistory: messages.map(m => 
             `${m.isUser ? 'ユーザー' : character?.name}: ${m.text}`
           ),
-          userId: user?.id || 'anonymous', // Phase 6.1: ユーザーID追加
+          userId: user?.id, // 🚨 セキュリティ修正: 認証必須
           ...(systemPrompt && { systemPrompt })
         })
       })
@@ -624,7 +624,7 @@ export function CharacterPrototype({
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                     characterId: characterId,
-                    userId: user?.id || 'anonymous',
+                    userId: user?.id,
                     includeDebugInfo: true
                   })
                 })
