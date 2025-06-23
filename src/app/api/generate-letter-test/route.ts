@@ -5,7 +5,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { DailyLetterGenerator } from '@/lib/letter-generator'
 import { Database } from '@/lib/database.types'
 
 // Service Key使用でRLS回避
@@ -354,7 +353,7 @@ export async function POST(request: NextRequest) {
     const generationStart = Date.now();
     
     let letter;
-    let geminiUsed = false;
+    const geminiUsed = false;
     
     console.log('=== 📊 会話データ診断結果表示 ===')
     console.log('🔄 取得された会話データの詳細:')
@@ -441,6 +440,9 @@ export async function POST(request: NextRequest) {
         highlightsCount: letter.conversationHighlights.length,
         hasRealConversation: conversationSummary.hasRealConversation
       })
+    } catch (error) {
+      console.error('❌ フォールバック生成エラー:', error)
+      throw new Error('フォールバック生成に失敗しました')
     }
     
     const generationTime = Date.now() - generationStart;
