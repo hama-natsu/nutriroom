@@ -278,18 +278,20 @@ export async function POST(request: NextRequest) {
       includeDebugInfo
     })
     
-    // ユーザーID確認（認証からの取得も対応）
-    let targetUserId = userId
-    if (!targetUserId) {
-      // 認証ヘッダーからユーザーID取得（仮実装）
-      const authHeader = request.headers.get('authorization')
-      if (authHeader) {
-        // 実際の認証処理は省略
-        console.log('🔑 Auth header found, but using test user for now')
-      }
-      targetUserId = 'test-user-' + Date.now()
-      console.log('⚠️ No userId provided, using test user:', targetUserId)
+    // 🚨 緊急修正: 認証済みユーザーIDを確実に取得
+    const supabaseAuth = createClient(supabaseUrl, supabaseKey)
+    const { data: { user: authUser }, error: authError } = await supabaseAuth.auth.getUser()
+    
+    if (authError || !authUser) {
+      console.error('❌ Authentication required for letter generation:', authError?.message)
+      return NextResponse.json({
+        success: false,
+        error: 'Authentication required'
+      }, { status: 401 })
     }
+    
+    const targetUserId = authUser.id
+    console.log('✅ 認証済みユーザーID確定:', targetUserId ? `${targetUserId.substring(0, 8)}...` : 'none')
     
     // 会話履歴の詳細取得
     const conversationSummary = await getDetailedConversationSummary(targetUserId, characterId)
@@ -469,15 +471,58 @@ export async function POST(request: NextRequest) {
       preview: letterContent.substring(0, 100) + '...'
     })
     
-    // 統一された保存処理を実行
-    console.log('=== 🎯 統一保存処理開始 ===')
-    console.log('保存対象手紙:', letterContent.substring(0, 50) + '...')
-    console.log('letterContent存在:', !!letterContent)
-    console.log('letterContent長:', letterContent?.length || 0)
+    // 🚨 緊急修正: 強制保存処理
+    console.log('=== 🎯 強制保存処理開始 ===')
+    console.log('User ID:', targetUserId)
+    console.log('Character ID:', characterId)
+    console.log('Letter Content Length:', letterContent.length)
     
-    const saveResult = await saveLetterToDatabase(targetUserId, characterId, letterContent, conversationSummary)
+    let saveResult = { success: false, letterId: null, error: 'Initial state' }
     
-    console.log('=== 🎯 統一保存処理結果 ===')
+    if (letterContent && targetUserId) {
+      try {
+        const today = new Date().toISOString().split('T')[0]
+        const supabaseSave = createClient<Database>(supabaseUrl, serviceKey)
+        
+        console.log('🎯 強制保存処理実行中...')
+        
+        // UPSERTで確実に保存
+        const { data: directSaveResult, error: directSaveError } = await supabaseSave
+          .from('daily_summaries')
+          .upsert({
+            user_id: targetUserId,
+            character_id: characterId,
+            date: today,
+            letter_content: letterContent,
+            summary: `今日の${characterId}との会話`,
+            main_topics: conversationSummary.topics || ['健康相談'],
+            total_messages: conversationSummary.todayMessages || 0,
+            session_count: 1,
+            emotions_detected: conversationSummary.topics || [],
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'user_id,character_id,date'
+          })
+          .select()
+
+        if (directSaveError) {
+          console.error('❌ 強制保存エラー:', directSaveError)
+          console.error('エラー詳細:', JSON.stringify(directSaveError, null, 2))
+          saveResult = { success: false, letterId: null, error: directSaveError }
+        } else {
+          console.log('✅ 強制保存成功:', directSaveResult)
+          const letterId = directSaveResult?.[0]?.id || null
+          saveResult = { success: true, letterId, error: null }
+        }
+
+      } catch (exception) {
+        console.error('❌ 強制保存例外:', exception)
+        saveResult = { success: false, letterId: null, error: exception instanceof Error ? exception.message : 'Unknown error' }
+      }
+    }
+    
+    console.log('=== 🎯 強制保存処理結果 ===')
     console.log('保存成功:', saveResult.success)
     console.log('保存ID:', saveResult.letterId)
     console.log('エラー:', saveResult.error || 'なし')

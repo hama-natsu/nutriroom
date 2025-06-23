@@ -39,15 +39,12 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20')
     const offset = parseInt(searchParams.get('offset') || '0')
     
-    console.log('📜 Fetching letter history for:', { 
-      characterId, 
-      limit, 
-      offset, 
-      userId: user.id.substring(0, 8) + '...',
-      timestamp: new Date().toISOString() 
-    })
+    console.log('🔍 お手紙履歴取得開始')
+    console.log('User ID:', user.id)
+    console.log('Character ID:', characterId)
+    console.log('取得パラメータ:', { limit, offset })
     
-    // 🚨 セキュリティ修正: ユーザーIDでフィルタリング
+    // 🚨 デバッグ強化: 詳細ログ付きクエリ
     const { data: letters, error: fetchError } = await supabase
       .from('daily_summaries')
       .select(`
@@ -64,11 +61,19 @@ export async function GET(request: NextRequest) {
       .order('date', { ascending: false })
       .range(offset, offset + limit - 1)
 
+    console.log('取得結果:', {
+      lettersCount: letters?.length || 0,
+      error: fetchError,
+      letters: letters?.slice(0, 2) // 最初の2件のみログ出力
+    })
+
     if (fetchError) {
-      console.error('❌ Database error:', fetchError)
+      console.error('❌ 履歴取得エラー:', fetchError)
+      console.error('❌ エラー詳細:', JSON.stringify(fetchError, null, 2))
       return NextResponse.json({
         success: false,
         error: 'Database error',
+        errorDetails: fetchError,
         letters: []
       }, { status: 500 })
     }
@@ -95,7 +100,9 @@ export async function GET(request: NextRequest) {
     }))
 
     console.log(`✅ Retrieved ${formattedLetters.length} letters for user ${user.id.substring(0, 8) + '...'} / character ${characterId}`)
-    console.log('📊 Letter query results:', {
+    
+    // 🚨 デバッグ強化: 詳細な取得結果ログ
+    console.log('📊 詳細取得結果:', {
       userId: user.id.substring(0, 8) + '...',
       characterId,
       found: formattedLetters.length,
@@ -103,8 +110,48 @@ export async function GET(request: NextRequest) {
       offset,
       hasMore: formattedLetters.length === limit,
       latestDate: formattedLetters[0]?.date || 'none',
-      letterIds: formattedLetters.map(l => l.id.substring(0, 8) + '...').slice(0, 3)
+      letterIds: formattedLetters.map(l => l.id.substring(0, 8) + '...').slice(0, 3),
+      rawDataLength: letters?.length || 0,
+      firstLetterPreview: formattedLetters[0] ? {
+        id: formattedLetters[0].id.substring(0, 8) + '...',
+        date: formattedLetters[0].date,
+        contentPreview: formattedLetters[0].content?.substring(0, 50) + '...' || 'No content'
+      } : null
     })
+    
+    // デバッグ: 全件数確認クエリ
+    const { count } = await supabase
+      .from('daily_summaries')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('character_id', characterId)
+      .not('letter_content', 'is', null)
+    
+    console.log('📊 ユーザーの総お手紙数:', count)
+    
+    // 🚨 RLS権限確認クエリ
+    console.log('🔐 RLS権限確認テスト開始...')
+    try {
+      // テスト1: user_idフィルタなしで全件取得テスト（RLSで制限されるはず）
+      const { data: rlsTest, error: rlsError } = await supabase
+        .from('daily_summaries')
+        .select('user_id, character_id, date')
+        .limit(5)
+      
+      console.log('🔐 RLSテスト結果:', {
+        canAccessOtherUsers: rlsTest?.some(letter => letter.user_id !== user.id) || false,
+        totalAccessible: rlsTest?.length || 0,
+        rlsError: rlsError?.message || 'none',
+        userIdsFound: [...new Set(rlsTest?.map(l => l.user_id.substring(0, 8) + '...') || [])]
+      })
+      
+      if (rlsError) {
+        console.log('🔐 RLS正常動作: アクセス制限エラー', rlsError.message)
+      }
+      
+    } catch (rlsTestError) {
+      console.log('🔐 RLS確認エラー:', rlsTestError)
+    }
 
     // デバッグ用：取得したお手紙の順序確認
     console.log('📋 取得したお手紙の順序確認:')
@@ -136,7 +183,10 @@ export async function GET(request: NextRequest) {
         debug: {
           queryTimestamp: new Date().toISOString(),
           databaseResultCount: letters?.length || 0,
-          formattedResultCount: formattedLetters.length
+          formattedResultCount: formattedLetters.length,
+          totalUserLetters: count || 0,
+          userId: user.id.substring(0, 8) + '...',
+          queryParams: { characterId, limit, offset }
         }
       }
     })
