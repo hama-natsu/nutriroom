@@ -443,7 +443,7 @@ export async function POST(request: NextRequest) {
       })
     }
     
-    const generationTime = Date.now() - generationStart
+    const generationTime = Date.now() - generationStart;
     
     if (debugInfo) {
       debugInfo.generationTime = generationTime
