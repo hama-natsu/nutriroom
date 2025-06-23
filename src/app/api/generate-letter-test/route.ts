@@ -96,7 +96,7 @@ async function getDetailedConversationSummary(userId: string, characterId: strin
     console.log('=== 📋 取得された会話データ詳細 ===')
     console.log('総会話数:', conversations.length)
     console.log('ユーザーメッセージ数:', conversations.filter(c => c.message_type === 'user').length)
-    console.log('AIメッセージ数:', conversations.filter(c => c.message_type === 'assistant' || c.message_type === 'ai').length)
+    console.log('AIメッセージ数:', conversations.filter(c => c.message_type === 'ai').length)
     
     // 全会話内容を詳細ログ出力（最大10件）
     conversations.slice(0, 10).forEach((conv, index) => {
@@ -138,7 +138,7 @@ function createConversationSummary(conversations: Array<{message_type: string, m
     .slice(0, 5) // 最新5件のユーザーメッセージ
   
   const aiResponses = conversations
-    .filter(conv => conv.message_type === 'assistant' || conv.message_type === 'ai')
+    .filter(conv => conv.message_type === 'ai')
     .map(conv => conv.message_content)
     .slice(-3) // 最新3件のAI回答
   
@@ -349,57 +349,31 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // お手紙生成実行
-    console.log('🧪 Starting letter generation...')
+    // 🔧 診断モード：Gemini APIスキップしてフォールバック直接実行
+    console.log('🧪 診断モード：会話データ確認のためGemini APIをスキップ')
     const generationStart = Date.now()
     
     let letter
     let geminiUsed = false
     
+    console.log('=== 📊 会話データ診断結果表示 ===')
+    console.log('🔄 取得された会話データの詳細:')
+    console.log('- メッセージ数:', conversationSummary.todayMessages)
+    console.log('- 実際の会話データか:', conversationSummary.hasRealConversation ? 'はい（実データ）' : 'いいえ（テストデータ）')
+    console.log('- ユーザーメッセージ内容:', conversationSummary.userMessages || '（なし）')
+    console.log('- AIレスポンス内容:', conversationSummary.aiResponses || '（なし）')
+    console.log('- トピック:', conversationSummary.topics?.join(', ') || '（なし）')
+    console.log('- 会話分析:', {
+      isShortConversation: (conversationSummary as any).isShortConversation,
+      conversationDepth: (conversationSummary as any).conversationDepth,
+      totalCharacters: (conversationSummary as any).totalCharacters,
+      avgMessageLength: (conversationSummary as any).avgMessageLength
+    })
+    
+    console.log('🔧 診断：Gemini APIをスキップしてフォールバック生成を実行します')
+    
+    // 直接フォールバック生成を実行（診断用）
     try {
-      // 実際のGemini APIを使用してお手紙生成（改善版）
-      console.log('=== お手紙生成プロセス開始 ===')
-      console.log('🔄 お手紙生成に使用する会話データ:')
-      console.log('- メッセージ数:', conversationSummary.todayMessages)
-      console.log('- 実際の会話:', conversationSummary.hasRealConversation ? 'あり' : 'テストデータ')
-      console.log('- ユーザーメッセージ:', conversationSummary.userMessages?.substring(0, 100) || 'なし')
-      console.log('- AIレスポンス:', conversationSummary.aiResponses?.substring(0, 100) || 'なし')
-      
-      // Gemini API 設定確認
-      const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || 
-                     process.env.GEMINI_API_KEY || 
-                     process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY ||
-                     process.env.GOOGLE_AI_API_KEY
-      
-      console.log('🔍 Gemini API設定確認:')
-      console.log('- API Key存在:', !!apiKey)
-      console.log('- API Key長:', apiKey?.length || 0)
-      console.log('- プレースホルダーか:', apiKey?.includes('your_') || false)
-      
-      if (!apiKey || apiKey.includes('your_')) {
-        console.warn('⚠️ Gemini API Key not properly configured - using enhanced fallback')
-        throw new Error('Gemini API Key not configured')
-      }
-      
-      letter = await DailyLetterGenerator.generateDailyLetter(
-        characterId,
-        'テストユーザー', // userName
-        targetUserId
-      )
-      
-      if (!letter) {
-        throw new Error('Letter generation returned null')
-      }
-      
-      geminiUsed = true
-      console.log('✅ Letter generation successful:', {
-        greeting: letter.greeting?.substring(0, 30) + '...',
-        topicsCount: letter.mainTopics?.length || 0,
-        signature: letter.signature
-      })
-    } catch (geminiError) {
-      console.warn('⚠️ Gemini generation failed, using fallback:', geminiError)
-      
       // 🔧 改良版フォールバック：会話の長さに応じた適切なお手紙生成
       console.log('🔄 フォールバック生成中 - 会話データを反映します')
       
