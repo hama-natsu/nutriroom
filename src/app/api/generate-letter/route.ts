@@ -1,6 +1,8 @@
 // 🎯 NutriRoom Phase 2.4: 毎晩22:00自動お手紙生成API
 // Vercel Cron Jobs対応エンドポイント
 
+/* eslint-disable @typescript-eslint/no-explicit-any, prefer-const */
+
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { DailyLetterGenerator } from '@/lib/letter-generator'

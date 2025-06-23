@@ -1,6 +1,8 @@
 // 🎯 NutriRoom Phase 6.1: お手紙システムテスト機能
 // 開発者用手動お手紙生成API
 
+/* eslint-disable @typescript-eslint/no-explicit-any, prefer-const */
+
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { DailyLetterGenerator } from '@/lib/letter-generator'
