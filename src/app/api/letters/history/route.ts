@@ -21,15 +21,33 @@ export async function GET(request: NextRequest) {
     // 既存のSupabaseクライアント使用
     const supabase = createClient(supabaseUrl, supabaseKey)
     
+    // 🚨 緊急修正: 認証状態確認
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    if (authError || !user) {
+      console.error('❌ Authentication required for letter history:', authError?.message)
+      return NextResponse.json({
+        success: false,
+        error: 'Authentication required',
+        letters: []
+      }, { status: 401 })
+    }
+    
     // URLパラメータ取得
     const { searchParams } = new URL(request.url)
     const characterId = searchParams.get('characterId') || 'akari'
-    const limit = parseInt(searchParams.get('limit') || '20') // デフォルトを20に変更
+    const limit = parseInt(searchParams.get('limit') || '20')
     const offset = parseInt(searchParams.get('offset') || '0')
     
-    console.log('📜 Fetching letter history for:', { characterId, limit, offset, timestamp: new Date().toISOString() })
+    console.log('📜 Fetching letter history for:', { 
+      characterId, 
+      limit, 
+      offset, 
+      userId: user.id.substring(0, 8) + '...',
+      timestamp: new Date().toISOString() 
+    })
     
-    // 一時的に認証なしでテスト（開発用）
+    // 🚨 セキュリティ修正: ユーザーIDでフィルタリング
     const { data: letters, error: fetchError } = await supabase
       .from('daily_summaries')
       .select(`
@@ -40,6 +58,7 @@ export async function GET(request: NextRequest) {
         created_at,
         updated_at
       `)
+      .eq('user_id', user.id)
       .eq('character_id', characterId)
       .not('letter_content', 'is', null)
       .order('date', { ascending: false })
@@ -75,8 +94,9 @@ export async function GET(request: NextRequest) {
         : 'お手紙内容が見つかりません'
     }))
 
-    console.log(`✅ Retrieved ${formattedLetters.length} letters for ${characterId}`)
+    console.log(`✅ Retrieved ${formattedLetters.length} letters for user ${user.id.substring(0, 8) + '...'} / character ${characterId}`)
     console.log('📊 Letter query results:', {
+      userId: user.id.substring(0, 8) + '...',
       characterId,
       found: formattedLetters.length,
       limit,
