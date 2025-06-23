@@ -46,7 +46,7 @@ interface LetterTestResponse {
 // 会話履歴の詳細取得（修正版）
 async function getDetailedConversationSummary(userId: string, characterId: string) {
   console.log('=== 会話履歴取得開始 ===')
-  console.log('ユーザーID:', userId.substring(0, 8) + '...')
+  console.log('ユーザーID:', userId ? `${userId.substring(0, 8)}...` : 'anonymous')
   console.log('キャラクターID:', characterId)
   
   const supabase = createClient<Database>(supabaseUrl, serviceKey)
@@ -189,7 +189,7 @@ async function saveLetterToDatabase(userId: string, characterId: string, letterC
     const today = new Date().toISOString().split('T')[0]
     
     console.log('🎯 データベース保存開始:', {
-      userId: userId.substring(0, 8) + '...',
+      userId: userId ? `${userId.substring(0, 8)}...` : 'anonymous',
       characterId,
       date: today,
       contentLength: letterContent.length

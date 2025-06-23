@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    console.log('✅ Profile API: User ID obtained:', userId.substring(0, 8) + '...')
+    console.log('✅ Profile API: User ID obtained:', userId ? `${userId.substring(0, 8)}...` : 'anonymous')
 
     // フィールドマッピング実装
     const activityLevelMapping: Record<string, string> = {
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     })
 
     console.log('📝 Profile API: Saving to database:', {
-      user_id: userId.substring(0, 8) + '...',
+      user_id: userId ? `${userId.substring(0, 8)}...` : 'anonymous',
       fields: Object.keys(profileData),
       profile_completed: profileData.profile_completed
     })
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
         details: error.details,
         hint: error.hint,
         code: error.code,
-        user_id: userId.substring(0, 8) + '...',
+        user_id: userId ? `${userId.substring(0, 8)}...` : 'anonymous',
         service_key_used: true
       })
       
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('✅ Profile API: Profile saved successfully!', {
-      user_id: userId.substring(0, 8) + '...',
+      user_id: userId ? `${userId.substring(0, 8)}...` : 'anonymous',
       profile_completed: true,
       saved_data: !!data,
       service_key_used: true
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Profile saved successfully to database!',
       profile_completed: true,
-      user_id: userId.substring(0, 8) + '...',
+      user_id: userId ? `${userId.substring(0, 8)}...` : 'anonymous',
       saved_data: data?.[0] || null,
       service_key_used: true
     })

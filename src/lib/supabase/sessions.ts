@@ -52,7 +52,7 @@ export const startSession = async (characterId: string): Promise<UserSession | n
     
     console.log('🚀 Starting session:', {
       characterId,
-      userId: userId.substring(0, 8) + '...',
+      userId: userId ? `${userId.substring(0, 8)}...` : 'anonymous',
       effectiveUserId: effectiveUserId.substring(0, 12) + '...'
     })
 
@@ -390,7 +390,7 @@ export const getTodayConversationLogs = async (characterId: string): Promise<Con
     console.log('🔍 Database query result (session-joined):', {
       error: error?.message || 'none',
       dataLength: data?.length || 0,
-      userId: userId.substring(0, 8) + '...',
+      userId: userId ? `${userId.substring(0, 8)}...` : 'anonymous',
       characterId
     })
 

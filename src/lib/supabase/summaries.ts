@@ -68,7 +68,7 @@ export const getTodaySummary = async (characterId: string): Promise<DailySummary
     console.log('✅ Daily summary created:', {
       date: today,
       characterId,
-      userId: userId.substring(0, 8) + '...'
+      userId: userId ? `${userId.substring(0, 8)}...` : 'anonymous'
     })
 
     return createdSummary
