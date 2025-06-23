@@ -1,7 +1,7 @@
 // 🎯 NutriRoom Phase 6.1: お手紙システムテスト機能
 // 開発者用手動お手紙生成API
 
-// ESLint設定削除：不要なディレクティブを除去
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
@@ -92,6 +92,24 @@ async function getDetailedConversationSummary(userId: string, characterId: strin
       return createTestConversationData(characterId)
     }
     
+    // 🔍 詳細な会話データ診断ログ
+    console.log('=== 📋 取得された会話データ詳細 ===')
+    console.log('総会話数:', conversations.length)
+    console.log('ユーザーメッセージ数:', conversations.filter(c => c.message_type === 'user').length)
+    console.log('AIメッセージ数:', conversations.filter(c => c.message_type === 'assistant' || c.message_type === 'ai').length)
+    
+    // 全会話内容を詳細ログ出力（最大10件）
+    conversations.slice(0, 10).forEach((conv, index) => {
+      console.log(`[${index + 1}] ${conv.message_type}: "${conv.message_content}" (${conv.created_at})`)
+    })
+    
+    if (conversations.length > 10) {
+      console.log(`... and ${conversations.length - 10} more messages`)
+    }
+    
+    console.log('=== 📋 会話データ診断完了 ===')
+    
+    // サンプル表示（既存）
     console.log('会話内容サンプル:', conversations.slice(0, 2).map(c => ({
       type: c.message_type,
       content: c.message_content.substring(0, 50) + '...',
@@ -124,10 +142,24 @@ function createConversationSummary(conversations: Array<{message_type: string, m
     .map(conv => conv.message_content)
     .slice(-3) // 最新3件のAI回答
   
+  // 🎯 会話の長さと深さ分析
+  const totalCharacters = conversations.reduce((sum, conv) => sum + conv.message_content.length, 0)
+  const avgMessageLength = totalCharacters / Math.max(conversations.length, 1)
+  const conversationDepth = conversations.length <= 2 ? 'short' : conversations.length <= 6 ? 'medium' : 'long'
+  const isShortConversation = conversations.length <= 2 && totalCharacters < 100
+  
   console.log('ユーザーメッセージ数:', userMessages.length)
   console.log('ユーザーメッセージサンプル:', userMessages.slice(0, 2).map(m => m.substring(0, 30) + '...'))
   console.log('AI回答数:', aiResponses.length)
   console.log('AI回答サンプル:', aiResponses.slice(0, 2).map(m => m.substring(0, 30) + '...'))
+  
+  console.log('🔍 会話分析結果:', {
+    totalMessages: conversations.length,
+    totalCharacters,
+    avgMessageLength: Math.round(avgMessageLength),
+    conversationDepth,
+    isShortConversation
+  })
   
   // トピック抽出
   const topics = extractTopics(conversations)
@@ -139,33 +171,85 @@ function createConversationSummary(conversations: Array<{message_type: string, m
     userMessages: userMessages.join('. '),
     aiResponses: aiResponses.join('. '),
     conversationCount: conversations.length,
-    hasRealConversation: true
+    hasRealConversation: true,
+    // 🎯 新機能: 会話分析データ
+    conversationDepth,
+    totalCharacters,
+    avgMessageLength: Math.round(avgMessageLength),
+    isShortConversation
   }
 }
 
 // テスト用会話データ生成
+// 🔧 改良版: 短い会話に対応したテスト用会話データ生成
 function createTestConversationData(characterId: string) {
   console.log('🧪 テスト用会話データを生成中...')
   
+  // 🎯 短い会話パターン（「かぜをひきやすい」タイプ）
+  const shortPatterns = [
+    { userMessages: 'かぜをひきやすい', topics: ['免疫力', '体調管理'], count: 2 },
+    { userMessages: '疲れやすくなった', topics: ['栄養不足', '休息'], count: 2 },
+    { userMessages: '最近食欲がない', topics: ['食欲不振', '栄養'], count: 2 },
+    { userMessages: 'お腹の調子が悪い', topics: ['消化', '腸内環境'], count: 2 }
+  ]
+  
+  // 🎯 通常の会話パターン
+  const regularPatterns = [
+    { 
+      userMessages: '最近太ってきて困っています. どんな運動をすればいいですか',
+      topics: ['ダイエット', '運動'], 
+      count: 4
+    },
+    { 
+      userMessages: 'バランスの良い食事について教えてください. ビタミンが足りているか心配です',
+      topics: ['栄養バランス', 'ビタミン'], 
+      count: 3
+    }
+  ]
+  
+  // ランダムに短い会話か通常の会話かを選択
+  const useShort = Math.random() < 0.6 // 60%の確率で短い会話
+  const pattern = useShort 
+    ? shortPatterns[Math.floor(Math.random() * shortPatterns.length)]
+    : regularPatterns[Math.floor(Math.random() * regularPatterns.length)]
+  
   const testData = characterId === 'minato' ? {
-    todayMessages: 4,
+    todayMessages: pattern.count,
     lastActivity: new Date().toISOString(),
-    topics: ['食事', '運動'],
-    userMessages: '最近太ってきて困っています. どんな運動をすればいいですか. 食事で気をつけることはありますか',
-    aiResponses: 'ふん、まあいいだろう...まずは食事記録をつけろ. 運動なら筋トレから始めるのが効率的だ. 別に君のためじゃないが、継続が重要だからな',
-    conversationCount: 4,
-    hasRealConversation: false
+    topics: pattern.topics,
+    userMessages: pattern.userMessages,
+    aiResponses: useShort 
+      ? 'ふん...なるほどな。栄養をしっかり摂って規則正しい生活をしろ'
+      : 'ふん、まあいいだろう...まずは食事記録をつけろ. 継続が重要だからな',
+    conversationCount: pattern.count,
+    hasRealConversation: false,
+    isShortConversation: useShort,
+    conversationDepth: useShort ? 'short' : 'medium',
+    totalCharacters: pattern.userMessages.length + 50,
+    avgMessageLength: (pattern.userMessages.length + 50) / pattern.count
   } : {
-    todayMessages: 3,
+    todayMessages: pattern.count,
     lastActivity: new Date().toISOString(),
-    topics: ['栄養', '食事'],
-    userMessages: 'バランスの良い食事について教えてください. ビタミンが足りているか心配です',
-    aiResponses: '栄養バランスを考えた食事、素晴らしいですね♪ 野菜をたくさん摂って、タンパク質も忘れずに！ 一緒に頑張りましょう',
-    conversationCount: 3,
-    hasRealConversation: false
+    topics: pattern.topics,
+    userMessages: pattern.userMessages,
+    aiResponses: useShort
+      ? 'そうですね、体調管理は大切です♪ しっかり栄養を摂ってくださいね'
+      : '栄養バランスを考えた食事、素晴らしいですね♪ 一緒に頑張りましょう',
+    conversationCount: pattern.count,
+    hasRealConversation: false,
+    isShortConversation: useShort,
+    conversationDepth: useShort ? 'short' : 'medium',
+    totalCharacters: pattern.userMessages.length + 60,
+    avgMessageLength: (pattern.userMessages.length + 60) / pattern.count
   }
   
-  console.log('🧪 テストデータ生成完了:', testData)
+  console.log('🧪 テストデータ生成完了:', {
+    type: useShort ? 'short' : 'regular',
+    messageCount: testData.todayMessages,
+    userMessage: testData.userMessages,
+    topics: testData.topics
+  })
+  
   return testData
 }
 
@@ -316,13 +400,23 @@ export async function POST(request: NextRequest) {
     } catch (geminiError) {
       console.warn('⚠️ Gemini generation failed, using fallback:', geminiError)
       
-      // フォールバック：会話内容を反映したテスト用お手紙
+      // 🔧 改良版フォールバック：会話の長さに応じた適切なお手紙生成
       console.log('🔄 フォールバック生成中 - 会話データを反映します')
+      
+      // 🎯 会話の長さに応じたお手紙テンプレート選択
+      const isShort = (conversationSummary as any).isShortConversation || conversationSummary.todayMessages <= 2
+      const conversationDepth = (conversationSummary as any).conversationDepth || 'medium'
+      
+      console.log('📝 お手紙テンプレート選択:', { isShort, conversationDepth, messageCount: conversationSummary.todayMessages })
       
       let fallbackContent: string
       if (characterId === 'minato') {
-        if (conversationSummary.hasRealConversation && conversationSummary.userMessages) {
-          // 実際の会話がある場合
+        if (isShort) {
+          // 短い会話用（「かぜをひきやすい」など）
+          const userConcern = conversationSummary.userMessages?.split('.')[0] || '健康について'
+          fallbackContent = `テストユーザーへ\n\n「${userConcern}」か...なるほどな。\n\n短いやりとりだったが、重要な話だ。栄養をしっかり摂り、規則正しい生活を心がけろ。\n\n継続が重要だからな。また報告しろ。\n\nみなと`
+        } else if (conversationSummary.hasRealConversation && conversationSummary.userMessages) {
+          // 通常の会話がある場合
           fallbackContent = `テストユーザーへ\n\n今日の相談について話したが...${conversationSummary.todayMessages}件のやりとりがあったな。\n\n「${conversationSummary.userMessages.split('.')[0]}」という話をしていたが、まあ悪くない取り組みだ。\n\n別に心配しているわけではないが...継続することが重要だからな。\n\nみなと`
         } else {
           // テストデータの場合
@@ -330,8 +424,12 @@ export async function POST(request: NextRequest) {
           fallbackContent = `テストユーザーへ\n\n今日は${testTopics}について話したな。\n\n「${conversationSummary.userMessages?.split('.')[0] || '最近太ってきて困っています'}」という相談だったが、まあ真面目に取り組んでいるようだな。\n\n継続してこそ意味がある。明日も報告しろ。\n\nみなと`
         }
       } else {
-        if (conversationSummary.hasRealConversation && conversationSummary.userMessages) {
-          // 実際の会話がある場合
+        if (isShort) {
+          // 短い会話用（「かぜをひきやすい」など）
+          const userConcern = conversationSummary.userMessages?.split('.')[0] || '健康について'
+          fallbackContent = `テストユーザーさん♪\n\n「${userConcern}」についてお話しできて良かったです！\n\n短いお話でしたが、大切なことですね。しっかりと栄養を摂って、体調管理を心がけてくださいね。\n\n何か気になることがあったら、いつでもお話ししましょう♪\n\nあかり`
+        } else if (conversationSummary.hasRealConversation && conversationSummary.userMessages) {
+          // 通常の会話がある場合
           fallbackContent = `テストユーザーさん♪\n\n今日は${conversationSummary.todayMessages}件もお話しできて嬉しかったです！\n\n「${conversationSummary.userMessages.split('.')[0]}」というお話、とても素晴らしい取り組みですね。\n\n明日も一緒に頑張りましょう〜\n\nあかり`
         } else {
           // テストデータの場合
