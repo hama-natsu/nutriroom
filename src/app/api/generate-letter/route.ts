@@ -4,7 +4,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { DailyLetterGenerator } from '@/lib/letter-generator'
-import { randomUUID } from 'crypto'
 import { Database } from '@/lib/database.types'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -137,7 +136,7 @@ function extractTopics(conversations: Array<{message_type: string, message_conte
 }
 
 // 統一された保存処理関数
-async function saveLetterToDatabase(userId: string, characterId: string, letterContent: string, conversationSummary: any) {
+async function saveLetterToDatabase(userId: string, characterId: string, letterContent: string, conversationSummary: unknown) {
   try {
     const supabase = createClient<Database>(supabaseUrl, serviceKey)
     const today = new Date().toISOString().split('T')[0]
@@ -164,10 +163,10 @@ async function saveLetterToDatabase(userId: string, characterId: string, letterC
         .from('daily_summaries')
         .update({
           letter_content: letterContent,
-          summary: `${conversationSummary.topics?.join('、') || '健康相談'}（${conversationSummary.todayMessages || 0}件のメッセージ）`,
-          main_topics: conversationSummary.topics || ['健康相談'],
-          total_messages: conversationSummary.todayMessages || 0,
-          emotions_detected: conversationSummary.topics || [],
+          summary: `${(conversationSummary as any)?.topics?.join('、') || '健康相談'}（${(conversationSummary as any)?.todayMessages || 0}件のメッセージ）`,
+          main_topics: (conversationSummary as any)?.topics || ['健康相談'],
+          total_messages: (conversationSummary as any)?.todayMessages || 0,
+          emotions_detected: (conversationSummary as any)?.topics || [],
           updated_at: new Date().toISOString()
         })
         .eq('user_id', userId)
@@ -182,12 +181,12 @@ async function saveLetterToDatabase(userId: string, characterId: string, letterC
           user_id: userId,
           character_id: characterId,
           date: today,
-          summary: `${conversationSummary.topics?.join('、') || '健康相談'}（${conversationSummary.todayMessages || 0}件のメッセージ）`,
+          summary: `${(conversationSummary as any)?.topics?.join('、') || '健康相談'}（${(conversationSummary as any)?.todayMessages || 0}件のメッセージ）`,
           letter_content: letterContent,
-          main_topics: conversationSummary.topics || ['健康相談'],
+          main_topics: (conversationSummary as any)?.topics || ['健康相談'],
           session_count: 1,
-          total_messages: conversationSummary.todayMessages || 0,
-          emotions_detected: conversationSummary.topics || [],
+          total_messages: (conversationSummary as any)?.todayMessages || 0,
+          emotions_detected: (conversationSummary as any)?.topics || [],
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
@@ -481,7 +480,8 @@ export async function POST(request: NextRequest) {
     }
     
     console.log('✅ SAVE SUCCESS:', saveResult.data);
-    letterId = saveResult.letterId || 'success_no_id';
+    const finalLetterId = saveResult.letterId || 'success_no_id';
+    letterId = finalLetterId;
     
     const totalTime = Date.now() - startTime
     console.log(`🔥 Letter generated successfully: ${letterContent.length} characters`)
