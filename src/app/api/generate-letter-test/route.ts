@@ -515,14 +515,7 @@ export async function POST(request: NextRequest) {
       ...(debugInfo && { debugInfo }),
       databaseSaved: savedToDatabase,
       savedLetterId,
-      ...(dbSaveError && { error: dbSaveError }),
-      debug: {
-        conversationCount: conversationSummary.todayMessages || 0,
-        timestamp: new Date().toISOString(),
-        databaseSaveAttempted: true,
-        databaseSaveSuccess: savedToDatabase,
-        databaseError: dbSaveError || null
-      }
+      ...(dbSaveError && { error: dbSaveError })
     }
     
     const totalTime = Date.now() - startTime
