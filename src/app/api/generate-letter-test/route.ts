@@ -394,93 +394,115 @@ export async function POST(request: NextRequest) {
     
     // データベース保存処理追加
     console.log('=== データベース保存開始 ===')
+    console.log('保存対象手紙:', letterContent.substring(0, 50) + '...')
+    
     let savedToDatabase = false
     let savedLetterId: string | null = null
+    let dbSaveError: string | null = null
     
     try {
       const supabase = createClient<Database>(supabaseUrl, serviceKey)
+      
+      // Supabase設定確認
+      console.log('Supabase設定確認:')
+      console.log('- User ID:', targetUserId)
+      console.log('- Service Key存在:', !!serviceKey)
+      console.log('- Service Key長:', serviceKey?.length || 0)
+      console.log('- daily_summariesテーブルアクセス権限をテスト中...')
+      
       const today = new Date().toISOString().split('T')[0]
       
-      // 既存の手紙をチェック
-      const { data: existingLetter, error: checkError } = await supabase
+      // まず既存の手紙をチェック
+      console.log('既存手紙チェック開始...')
+      const { data: existingLetters, error: checkError } = await supabase
         .from('daily_summaries')
         .select('*')
         .eq('user_id', targetUserId)
         .eq('character_id', characterId)
         .eq('date', today)
-        .single()
       
-      if (checkError && checkError.code !== 'PGRST116') {
+      if (checkError) {
         console.error('❌ 既存チェックエラー:', checkError)
+        dbSaveError = 'Existing check failed: ' + checkError.message
+      } else {
+        console.log('既存チェック成功:', existingLetters?.length || 0, '件見つかりました')
       }
+
+      let saveResult;
       
-      const letterData = {
-        user_id: targetUserId,
-        character_id: characterId,
-        date: today,
-        letter_content: letterContent,
-        main_topics: letter.mainTopics || ['今日の相談'],
-        session_count: 1,
-        total_messages: conversationSummary.todayMessages,
-        emotions_detected: conversationSummary.topics || [],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-      
-      console.log('保存データ:', {
-        userId: letterData.user_id.substring(0, 8) + '...',
-        characterId: letterData.character_id,
-        date: letterData.date,
-        contentLength: letterData.letter_content.length,
-        topicsCount: letterData.main_topics.length,
-        messageCount: letterData.total_messages
-      })
-      
-      if (existingLetter) {
-        console.log('既存の手紙を更新します')
-        const { data: updatedLetter, error: updateError } = await supabase
+      if (existingLetters && existingLetters.length > 0) {
+        // 更新
+        console.log('既存手紙を更新します')
+        const existingLetter = existingLetters[0]
+        const { data, error } = await supabase
           .from('daily_summaries')
           .update({
-            letter_content: letterData.letter_content,
-            main_topics: letterData.main_topics,
-            total_messages: letterData.total_messages,
-            updated_at: letterData.updated_at
+            letter_content: letterContent,
+            summary: conversationSummary.summary || 'テスト生成による会話まとめ',
+            main_topics: letter.mainTopics || ['今日の相談'],
+            total_messages: conversationSummary.todayMessages,
+            emotions_detected: conversationSummary.topics || [],
+            updated_at: new Date().toISOString()
           })
-          .eq('id', existingLetter.id)
+          .eq('user_id', targetUserId)
+          .eq('character_id', characterId)
+          .eq('date', today)
           .select()
-          .single()
         
-        if (updateError) {
-          console.error('❌ 更新エラー:', updateError)
-        } else {
-          console.log('✅ 更新成功:', updatedLetter)
-          savedToDatabase = true
-          savedLetterId = updatedLetter.id
-        }
+        saveResult = { data, error }
       } else {
+        // 新規作成
         console.log('新規手紙を作成します')
-        const { data: newLetter, error: insertError } = await supabase
-          .from('daily_summaries')
-          .insert(letterData)
-          .select()
-          .single()
-        
-        if (insertError) {
-          console.error('❌ 挿入エラー:', insertError)
-          console.error('詳細:', JSON.stringify(insertError, null, 2))
-        } else {
-          console.log('✅ 挿入成功:', newLetter)
-          savedToDatabase = true
-          savedLetterId = newLetter.id
+        const insertData = {
+          user_id: targetUserId,
+          character_id: characterId,
+          date: today,
+          summary: conversationSummary.summary || 'テスト生成による会話まとめ',
+          letter_content: letterContent,
+          main_topics: letter.mainTopics || ['今日の相談'],
+          session_count: 1,
+          total_messages: conversationSummary.todayMessages,
+          emotions_detected: conversationSummary.topics || [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         }
+        
+        console.log('挿入データ:', {
+          userId: insertData.user_id.substring(0, 8) + '...',
+          characterId: insertData.character_id,
+          date: insertData.date,
+          contentLength: insertData.letter_content.length,
+          topicsCount: insertData.main_topics?.length || 0,
+          messageCount: insertData.total_messages
+        })
+        
+        const { data, error } = await supabase
+          .from('daily_summaries')
+          .insert(insertData)
+          .select()
+      
+        saveResult = { data, error }
       }
+
+      if (saveResult.error) {
+        console.error('❌ データベース保存エラー:', saveResult.error)
+        console.error('エラー詳細:', saveResult.error.message)
+        dbSaveError = saveResult.error.message
+      } else {
+        console.log('✅ データベース保存成功:', saveResult.data)
+        savedToDatabase = true
+        savedLetterId = saveResult.data?.[0]?.id || null
+      }
+
     } catch (dbError) {
-      console.error('❌ データベース保存エラー:', dbError)
+      console.error('❌ データベース保存例外:', dbError)
+      dbSaveError = dbError instanceof Error ? dbError.message : 'Unknown database error'
     }
     
     console.log('=== データベース保存結果 ===')
     console.log('保存成功:', savedToDatabase)
     console.log('保存ID:', savedLetterId)
+    console.log('エラー:', dbSaveError || 'なし')
     
     const response: LetterTestResponse = {
       success: true,
@@ -493,7 +515,15 @@ export async function POST(request: NextRequest) {
       conversationSummary,
       ...(debugInfo && { debugInfo }),
       databaseSaved: savedToDatabase,
-      savedLetterId
+      savedLetterId,
+      ...(dbSaveError && { error: dbSaveError }),
+      debug: {
+        conversationCount: conversationSummary.todayMessages || 0,
+        timestamp: new Date().toISOString(),
+        databaseSaveAttempted: true,
+        databaseSaveSuccess: savedToDatabase,
+        databaseError: dbSaveError || null
+      }
     }
     
     const totalTime = Date.now() - startTime
