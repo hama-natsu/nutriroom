@@ -179,6 +179,80 @@ function extractTopics(conversations: Array<{message_type: string, message_conte
   return [...new Set(topics)]
 }
 
+// 統一された保存処理関数
+async function saveLetterToDatabase(userId: string, characterId: string, letterContent: string, conversationSummary: any) {
+  try {
+    const supabase = createClient<Database>(supabaseUrl, serviceKey)
+    const today = new Date().toISOString().split('T')[0]
+    
+    console.log('🎯 データベース保存開始:', {
+      userId: userId.substring(0, 8) + '...',
+      characterId,
+      date: today,
+      contentLength: letterContent.length
+    })
+
+    // 既存チェック
+    const { data: existing } = await supabase
+      .from('daily_summaries')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('character_id', characterId)
+      .eq('date', today)
+
+    let result
+    if (existing && existing.length > 0) {
+      console.log('既存手紙を更新します')
+      // 更新
+      result = await supabase
+        .from('daily_summaries')
+        .update({
+          letter_content: letterContent,
+          summary: `${conversationSummary.topics?.join('、') || '健康相談'}（${conversationSummary.todayMessages || 0}件のメッセージ）`,
+          main_topics: conversationSummary.topics || ['健康相談'],
+          total_messages: conversationSummary.todayMessages || 0,
+          emotions_detected: conversationSummary.topics || [],
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId)
+        .eq('character_id', characterId)
+        .eq('date', today)
+        .select()
+    } else {
+      console.log('新規手紙を作成します')
+      // 新規作成
+      result = await supabase
+        .from('daily_summaries')
+        .insert({
+          user_id: userId,
+          character_id: characterId,
+          date: today,
+          summary: `${conversationSummary.topics?.join('、') || '健康相談'}（${conversationSummary.todayMessages || 0}件のメッセージ）`,
+          letter_content: letterContent,
+          main_topics: conversationSummary.topics || ['健康相談'],
+          session_count: 1,
+          total_messages: conversationSummary.todayMessages || 0,
+          emotions_detected: conversationSummary.topics || [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+    }
+
+    if (result.error) {
+      console.error('❌ 保存エラー:', result.error)
+      return { success: false, error: result.error }
+    } else {
+      console.log('✅ 保存成功:', result.data)
+      return { success: true, data: result.data, letterId: result.data?.[0]?.id }
+    }
+
+  } catch (error) {
+    console.error('❌ 保存例外:', error)
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+  }
+}
+
 export async function POST(request: NextRequest) {
   console.log('🧪 ========== LETTER TEST GENERATION START ==========')
   
@@ -392,116 +466,22 @@ export async function POST(request: NextRequest) {
       preview: letterContent.substring(0, 100) + '...'
     })
     
-    // データベース保存処理追加
-    console.log('=== データベース保存開始 ===')
+    // 統一された保存処理を実行
+    console.log('=== 🎯 統一保存処理開始 ===')
     console.log('保存対象手紙:', letterContent.substring(0, 50) + '...')
+    console.log('letterContent存在:', !!letterContent)
+    console.log('letterContent長:', letterContent?.length || 0)
     
-    let savedToDatabase = false
-    let savedLetterId: string | null = null
-    let dbSaveError: string | null = null
+    const saveResult = await saveLetterToDatabase(targetUserId, characterId, letterContent, conversationSummary)
     
-    try {
-      const supabase = createClient<Database>(supabaseUrl, serviceKey)
-      
-      // Supabase設定確認
-      console.log('Supabase設定確認:')
-      console.log('- User ID:', targetUserId)
-      console.log('- Service Key存在:', !!serviceKey)
-      console.log('- Service Key長:', serviceKey?.length || 0)
-      console.log('- daily_summariesテーブルアクセス権限をテスト中...')
-      
-      const today = new Date().toISOString().split('T')[0]
-      
-      // まず既存の手紙をチェック
-      console.log('既存手紙チェック開始...')
-      const { data: existingLetters, error: checkError } = await supabase
-        .from('daily_summaries')
-        .select('*')
-        .eq('user_id', targetUserId)
-        .eq('character_id', characterId)
-        .eq('date', today)
-      
-      if (checkError) {
-        console.error('❌ 既存チェックエラー:', checkError)
-        dbSaveError = 'Existing check failed: ' + checkError.message
-      } else {
-        console.log('既存チェック成功:', existingLetters?.length || 0, '件見つかりました')
-      }
-
-      let saveResult;
-      
-      if (existingLetters && existingLetters.length > 0) {
-        // 更新
-        console.log('既存手紙を更新します')
-        const { data, error } = await supabase
-          .from('daily_summaries')
-          .update({
-            letter_content: letterContent,
-            summary: `${conversationSummary.topics?.join('、') || '健康相談'}（${conversationSummary.todayMessages || 0}件のメッセージ）`,
-            main_topics: letter.mainTopics || ['今日の相談'],
-            total_messages: conversationSummary.todayMessages || 0,
-            emotions_detected: conversationSummary.topics || [],
-            updated_at: new Date().toISOString()
-          })
-          .eq('user_id', targetUserId)
-          .eq('character_id', characterId)
-          .eq('date', today)
-          .select()
-        
-        saveResult = { data, error }
-      } else {
-        // 新規作成
-        console.log('新規手紙を作成します')
-        const insertData = {
-          user_id: targetUserId,
-          character_id: characterId,
-          date: today,
-          summary: `${conversationSummary.topics?.join('、') || '健康相談'}（${conversationSummary.todayMessages || 0}件のメッセージ）`,
-          letter_content: letterContent,
-          main_topics: letter.mainTopics || ['今日の相談'],
-          session_count: 1,
-          total_messages: conversationSummary.todayMessages || 0,
-          emotions_detected: conversationSummary.topics || [],
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-        
-        console.log('挿入データ:', {
-          userId: insertData.user_id.substring(0, 8) + '...',
-          characterId: insertData.character_id,
-          date: insertData.date,
-          contentLength: insertData.letter_content.length,
-          topicsCount: insertData.main_topics?.length || 0,
-          messageCount: insertData.total_messages
-        })
-        
-        const { data, error } = await supabase
-          .from('daily_summaries')
-          .insert(insertData)
-          .select()
-      
-        saveResult = { data, error }
-      }
-
-      if (saveResult.error) {
-        console.error('❌ データベース保存エラー:', saveResult.error)
-        console.error('エラー詳細:', saveResult.error.message)
-        dbSaveError = saveResult.error.message
-      } else {
-        console.log('✅ データベース保存成功:', saveResult.data)
-        savedToDatabase = true
-        savedLetterId = saveResult.data?.[0]?.id || null
-      }
-
-    } catch (dbError) {
-      console.error('❌ データベース保存例外:', dbError)
-      dbSaveError = dbError instanceof Error ? dbError.message : 'Unknown database error'
-    }
+    console.log('=== 🎯 統一保存処理結果 ===')
+    console.log('保存成功:', saveResult.success)
+    console.log('保存ID:', saveResult.letterId)
+    console.log('エラー:', saveResult.error || 'なし')
     
-    console.log('=== データベース保存結果 ===')
-    console.log('保存成功:', savedToDatabase)
-    console.log('保存ID:', savedLetterId)
-    console.log('エラー:', dbSaveError || 'なし')
+    const savedToDatabase = saveResult.success
+    const savedLetterId = saveResult.letterId || null
+    const dbSaveError = saveResult.error ? (typeof saveResult.error === 'string' ? saveResult.error : JSON.stringify(saveResult.error)) : null
     
     const response: LetterTestResponse = {
       success: true,
