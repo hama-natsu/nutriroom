@@ -437,9 +437,9 @@ export async function POST(request: NextRequest) {
           .from('daily_summaries')
           .update({
             letter_content: letterContent,
-            summary: conversationSummary.summary || 'テスト生成による会話まとめ',
+            summary: `${conversationSummary.topics?.join('、') || '健康相談'}（${conversationSummary.todayMessages || 0}件のメッセージ）`,
             main_topics: letter.mainTopics || ['今日の相談'],
-            total_messages: conversationSummary.todayMessages,
+            total_messages: conversationSummary.todayMessages || 0,
             emotions_detected: conversationSummary.topics || [],
             updated_at: new Date().toISOString()
           })
@@ -456,11 +456,11 @@ export async function POST(request: NextRequest) {
           user_id: targetUserId,
           character_id: characterId,
           date: today,
-          summary: conversationSummary.summary || 'テスト生成による会話まとめ',
+          summary: `${conversationSummary.topics?.join('、') || '健康相談'}（${conversationSummary.todayMessages || 0}件のメッセージ）`,
           letter_content: letterContent,
           main_topics: letter.mainTopics || ['今日の相談'],
           session_count: 1,
-          total_messages: conversationSummary.todayMessages,
+          total_messages: conversationSummary.todayMessages || 0,
           emotions_detected: conversationSummary.topics || [],
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
